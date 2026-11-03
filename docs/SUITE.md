@@ -43,9 +43,25 @@ testé avec sa vraie collection, tout fonctionne.
   achetés, n montés » dans les Stats ; « Acheté » note le jour.
 - **Étiquettes libres** (8 au plus, 30 caractères) : saisie sur la fiche avec puces des étiquettes
   existantes, filtre, recherche texte. Pas encore d'édition en masse.
-- **Qualité** : `npm run lint`, `npm test` (258 tests), `npm run verif:ui` (axe-core, cibles de
-  48 px, débordements, navigation ; 18 écrans × 2 thèmes × 3 largeurs). Les trois tournent dans
-  le CI avant le déploiement.
+- **Refonte d'interface (novembre 2026), inspirée de Material 3 et des guides Android** :
+  - *Noyau* : cibles tactiles de 48 px (norme Android, contrôlé par `verif:ui`), couches d'état au
+    toucher et au survol, `prefers-reduced-motion`, jetons « conteneur » teintés (sélection, puces
+    actives), cartes pleines sans contour, boutons en pilule, feuille à 28 px. Contrastes mesurés
+    en commentaire dans `src/index.css`.
+  - *En-tête permanent* : logo (brique rouge sur jaune), « Bricks-List » en Fredoka, section et
+    nombre de sets (« Collection · 14 sets »), icônes Sélectionner, liste/grille et Réglages.
+    Fredoka est embarquée (29 Ko, `src/fonts/`, licence SIL OFL) : hors ligne, aucun appel à Google.
+  - *Barre du bas sur téléphone* : recherche, bouton Filtres et « Ajouter » (bouton flottant). Sur
+    grand écran, les mêmes éléments sont en haut de la liste. Pendant la saisie la navigation se
+    range (`interactive-widget=resizes-content`) ; Filtres et Ajouter gardent le focus du champ,
+    sinon le tap était perdu quand le clavier se refermait.
+  - *Feuille « Filtres et tri »* : le tri y est rangé avec les filtres (plus de sélecteur dans la page).
+  - *Liste ou grille* : un seul bouton dans l'en-tête, choix retenu (`bl_vue`, hors export).
+  - *840 px et plus, en liste* : liste à gauche, détail du set à droite (`FicheContenu`, `useLarge`).
+    En grille et sous 840 px, le détail reste une feuille.
+- **Qualité** : `npm run lint`, `npm test` (267 tests), `npm run verif:ui` (axe-core, cibles de
+  48 px, débordements, navigation, recherche visible clavier ouvert ; 23 écrans × 2 thèmes × 4
+  largeurs : 360, 412, 900, 1280). Les trois tournent dans le CI avant le déploiement.
 
 ## Décisions de cadrage (ne pas rouvrir sans raison)
 
@@ -129,6 +145,15 @@ Corollaire : la recherche par nom de Rebrickable ne trouve que de l'anglais (« 
 
 ## Limites connues
 
+- **Clavier Android à confirmer sur le S26** : la recherche en bas et le rangement de la navigation
+  pendant la saisie sont testés en simulation (`verif:ui`, parcours navigateur), pas sur un vrai
+  clavier. Si la barre est recouverte, le réglage à revoir est `interactive-widget` dans `index.html`.
+- La grille montre les rendus du modèle monté (fond blanc), pas des boîtes : elle est plus
+  uniforme avec de vraies images de boîte (voir « Vraies images de boîtes »).
+- Pas de couleurs dynamiques Material You : à ma connaissance une page web n'y a pas accès (non vérifié
+  sur une source officielle). La palette est fixe, sombre par défaut et claire au choix.
+- Pas de bouton flottant « étendu » (avec le mot « Ajouter ») sur téléphone : l'icône seule suffit, avec
+  le nom accessible « Ajouter un set ». Sur grand écran, le mot est affiché.
 - Les images ont un fond blanc intégré : elles restent sur un panneau blanc, même en thème sombre.
 - L'écran de démarrage de la PWA installée reste noir en thème clair (un manifeste n'a qu'une couleur).
 - La durée réelle d'un lot dépend de la limite de débit de Rebrickable ; un 429 est retenté une fois.
