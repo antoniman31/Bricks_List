@@ -74,6 +74,8 @@ async function verifier(page, largeur) {
       petits: [...new Set(petits)],
       debordePage: document.documentElement.scrollWidth > innerWidth,
       debordeFeuille: Boolean(dialogue) && (rd.left < 0 || rd.right > innerWidth + 0.5 || corps.scrollWidth > corps.clientWidth),
+      saisie: Boolean(document.querySelector('.appli--saisie')),
+      dockEnBas: (() => { const d = document.querySelector('.dock')?.getBoundingClientRect(); return Boolean(d) && d.bottom <= innerHeight + 0.5 && d.bottom > innerHeight - 120; })(),
       nav: nav ? { enBas: Math.abs(nav.bottom - innerHeight) < 1 && nav.width >= innerWidth - 1, aGauche: nav.left === 0 && nav.top === 0 && nav.width < 200 && Math.abs(nav.bottom - innerHeight) < 1 } : null,
       largeurPage,
     };
@@ -82,45 +84,63 @@ async function verifier(page, largeur) {
   const ecarts = [...axe.map((a) => `axe : ${a}`), ...mesures.petits.map((p) => `cible < 48 px : ${p}`)];
   if (mesures.debordePage) ecarts.push('débordement horizontal de la page');
   if (mesures.debordeFeuille) ecarts.push('feuille qui déborde de l\'écran');
-  if (!mesures.nav) ecarts.push('navigation absente');
+  if (mesures.saisie && largeur < 600) {
+    // Pendant la saisie la navigation est rangée à dessein ; la recherche doit alors rester visible en bas.
+    if (!mesures.dockEnBas) ecarts.push('recherche : devrait rester visible en bas pendant la saisie');
+  }
+  else if (!mesures.nav) ecarts.push('navigation absente');
   else if (largeur < 600 && !mesures.nav.enBas) ecarts.push('navigation : devrait être une barre en bas');
   else if (largeur >= 600 && !mesures.nav.aGauche) ecarts.push('navigation : devrait être un rail à gauche');
   return ecarts;
 }
 
+// Les contrôles principaux n'ont plus de texte visible à toutes les largeurs : on les vise par leur nom accessible.
+const AJOUTER = 'button[aria-label="Ajouter un set"]';
+const REGLAGES = 'button[aria-label="Réglages"]';
+const FILTRES = 'button[aria-label^="Filtres"]';
+const SELECTIONNER = 'button[aria-label="Sélectionner des sets"]';
+// Le tri se règle dans la feuille « Filtres et tri » : on l'ouvre, on choisit, on la referme.
+async function trier(p, libelle) {
+  await p.click(FILTRES);
+  await p.click(`dialog[open] .rubrique .puce:has-text("${libelle}")`);
+  await p.click('dialog[open] .bouton--plein');
+}
+
 const ECRANS = {
   'liste': async () => {},
-  'liste par emplacement': async (p) => { await p.selectOption('select.champ', 'emplacement'); await p.waitForSelector('.rangee'); },
+  'liste par emplacement': async (p) => { await trier(p, 'Emplacement'); await p.waitForSelector('.rangee'); },
   'liste par emplacement (sélection)': async (p) => {
-    await p.selectOption('select.champ', 'emplacement');
-    await p.click('button:has-text("Sélectionner")');
+    await trier(p, 'Emplacement');
+    await p.click(SELECTIONNER);
     await p.locator('.rangee button:has-text("Choisir ce groupe")').first().click();
   },
   'wishlist (tri par priorité)': async (p) => {
     await p.click('.nav__item:has-text("Wishlist")');
-    await p.selectOption('select.champ', 'priorite');
+    await trier(p, 'Priorité');
   },
   'formulaire (dates)': async (p) => { await p.locator('.carte').first().click(); await p.click('dialog[open] button:has-text("Modifier")'); await p.locator('input[type=date]').first().scrollIntoViewIfNeeded(); },
-  'filtres (étiquette)': async (p) => { await p.click('button:has-text("Filtres")'); await p.click('.groupe__ligne:has-text("Étiquette")'); },
+  'filtres (étiquette)': async (p) => { await p.click(FILTRES); await p.click('.groupe__ligne:has-text("Étiquette")'); },
   'stats': async (p) => { await p.click('.nav__item:has-text("Stats")'); await p.waitForSelector('.stats'); },
   'wishlist': async (p) => { await p.click('.nav__item:has-text("Wishlist")'); },
-  'recherche (résultats de l\'autre onglet)': async (p) => { await p.fill('input[type=search]', 'Souhait'); await p.waitForSelector('.ailleurs'); },
-  'filtres': async (p) => { await p.click('button:has-text("Filtres")'); await p.click('.groupe__ligne:has-text("Emplacement")'); },
+  'recherche (résultats de l\'autre onglet)': async (p) => { await p.fill('input[type=search]', 'Souhait'); await p.waitForSelector('.ailleurs'); await p.locator('input[type=search]').blur(); },
+  // Clavier ouvert (champ actif) : sur téléphone la navigation se range, la recherche reste en bas de l'écran.
+  'recherche (champ actif)': async (p) => { await p.locator('input[type=search]').focus(); await p.keyboard.type('Set'); },
+  'filtres': async (p) => { await p.click(FILTRES); await p.click('.groupe__ligne:has-text("Emplacement")'); },
   'fiche': async (p) => { await p.locator('.carte').first().click(); },
-  'formulaire (erreur)': async (p) => { await p.click('header >> text=Ajouter'); await p.click('button[type=submit]'); },
+  'formulaire (erreur)': async (p) => { await p.click(AJOUTER); await p.click('button[type=submit]'); },
   'formulaire (recherche par nom)': async (p) => {
     await p.evaluate(() => localStorage.setItem('bl_rebrickable', 'cle-de-test-0123456789'));
     await p.reload(); await p.waitForSelector('.carte');
-    await p.click('header >> text=Ajouter');
+    await p.click(AJOUTER);
     await p.fill('#champ-recherche-nom', 'millennium falcon'); await p.keyboard.press('Enter'); await p.waitForSelector('.resultat');
   },
   'sélection (cartes cochées)': async (p) => {
-    await p.click('button:has-text("Sélectionner")');
+    await p.click(SELECTIONNER);
     await p.locator('.carte').nth(0).click(); await p.locator('.carte').nth(1).click();
     await p.waitForSelector('.carte[aria-checked=true]');
   },
   'modification en masse (aperçu)': async (p) => {
-    await p.click('button:has-text("Sélectionner")');
+    await p.click(SELECTIONNER);
     await p.locator('.carte').nth(0).click(); await p.locator('.carte').nth(1).click(); await p.locator('.carte').nth(2).click();
     await p.click('.nav__item:has-text("Modifier")');
     await p.fill('dialog[open] input[list=emplacements-masse]', 'étagère 3');
@@ -129,14 +149,14 @@ const ECRANS = {
     await p.waitForSelector('.masse__ligne');
   },
   'suppression en masse': async (p) => {
-    await p.click('button:has-text("Sélectionner")');
+    await p.click(SELECTIONNER);
     await p.locator('.carte').nth(0).click(); await p.locator('.carte').nth(1).click();
     await p.click('.nav__item:has-text("Supprimer")');
     await p.waitForSelector('.masse__ligne');
   },
-  'réglages': async (p) => { await p.click('header >> text=Réglages'); },
+  'réglages': async (p) => { await p.click(REGLAGES); },
   'lot (vérification)': async (p) => {
-    await p.click('header >> text=Ajouter'); await p.click('button:has-text("Ajouter plusieurs sets")');
+    await p.click(AJOUTER); await p.click('button:has-text("Ajouter plusieurs sets")');
     await p.fill('dialog[open] textarea', '10001\n10002\n99001'); await p.click('dialog[open] button:has-text("Continuer")'); await p.waitForSelector('.coche');
   },
 };

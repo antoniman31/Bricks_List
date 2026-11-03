@@ -41,6 +41,7 @@
   --cible-min: 48px;           /* Android : 48 dp au moins, même si le visuel est plus petit */
   --rayon-carte: 16px;
   --rayon-pilule: 999px;
+  --ombre-fab: 0 4px 14px rgb(0 0 0 / 0.6);
   --police-titre: 'Fredoka', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --barre-basse: 64px;
   --rail: 96px;
@@ -66,6 +67,7 @@ html[data-theme='light'] {
   --danger: #b3261e;           /* 6,5:1 */
   --accent-conteneur: #ffe08a; /* texte dessus --sur-accent-conteneur : 10,4:1 ; l'accent y reste à 5,1:1 */
   --sur-accent-conteneur: #3b2d00;
+  --ombre-fab: 0 4px 14px rgb(0 0 0 / 0.25);
   --survol: rgb(20 22 28 / 0.08);
   --appui: rgb(20 22 28 / 0.14);
   color-scheme: light;
@@ -89,13 +91,12 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
   max-width: 720px;
   margin: 0 auto;
   /* La barre du bas est fixe : le contenu lui laisse sa hauteur, sinon elle masquerait le bas de la liste. */
-  padding: var(--espace) 16px calc(var(--barre-basse) + var(--espace) + env(safe-area-inset-bottom));
+  /* Pas de marge en haut : l'en-tête permanent porte la sienne, sinon il se collerait 12 px plus bas. */
+  padding: 0 16px calc(var(--barre-basse) + var(--espace) + env(safe-area-inset-bottom));
 }
 .contenu { margin-top: var(--espace); }
 
-.appli__entete { display: flex; align-items: baseline; justify-content: space-between; }
 .appli__titre { margin: 0; font-family: var(--police-titre); font-weight: 600; font-size: 1.5rem; letter-spacing: -0.01em; }
-.appli__version { color: var(--texte-doux); font-size: 0.75rem; }
 
 .avis {
   margin: var(--espace) 0 0;
@@ -108,8 +109,6 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
 }
 .avis--erreur { color: var(--danger); border: 1px solid var(--danger); }
 
-.barre { display: flex; gap: 8px; align-items: center; }
-.barre--secondaire { justify-content: space-between; margin-top: 8px; }
 
 .champ {
   min-height: var(--cible-min);
@@ -118,7 +117,6 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
   border-radius: var(--rayon);
   background: var(--surface);
 }
-.barre .champ[type='search'] { flex: 1; min-width: 0; }
 
 .bouton {
   padding: 0 16px;
@@ -129,8 +127,6 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
 .bouton:disabled { opacity: 0.4; cursor: default; }
 .bouton--plein { background: var(--accent-fond); border-color: var(--accent-fond); color: var(--sur-accent); font-weight: 600; }
 
-.compteur { margin: 0; color: var(--texte-doux); font-size: 0.875rem; }
-.tri { display: flex; align-items: center; gap: 8px; color: var(--texte-doux); font-size: 0.875rem; }
 
 .liste { list-style: none; margin: var(--espace) 0 0; padding: 0; display: grid; gap: 8px; }
 .carte {
@@ -191,7 +187,6 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
 .puce[aria-pressed='true'] { background: var(--accent-conteneur); border-color: var(--accent-conteneur); color: var(--sur-accent-conteneur); font-weight: 600; }
 
 /* Écrans de la 3a : fiche, formulaire, réglages */
-.appli__actions { display: flex; gap: 8px; }
 
 .carte { width: 100%; border: 0; text-align: left; color: inherit; }
 .avis p { margin: 0 0 8px; }
@@ -400,8 +395,6 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
 .resultat__details { color: var(--texte-doux); font-size: 0.8125rem; }
 
 /* Sélection multiple et modifications en masse */
-.barre__droite { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
-.barre--secondaire { flex-wrap: wrap; }
 
 .selection {
   /* Reste visible quand on défile une longue liste : le compte et « Tout sélectionner » ne se perdent pas. */
@@ -470,3 +463,116 @@ button:not(:disabled):active, .champ:active { box-shadow: inset 0 0 0 999px var(
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }
+
+
+/* ---------- En-tête permanent ---------- */
+.entete {
+  position: sticky;
+  top: 0;
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  /* Fond plein : la liste défile dessous sans transparaître. */
+  margin: 0 -16px;
+  padding: calc(var(--espace) + env(safe-area-inset-top)) 8px var(--espace) 16px;
+  background: var(--fond);
+}
+.entete__logo { flex: none; border-radius: 10px; }
+.entete__titres { flex: 1; min-width: 0; display: grid; gap: 0; }
+.entete__contexte { margin: 0; color: var(--texte-doux); font-size: 0.8125rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.entete__actions { display: flex; flex: none; }
+.icone-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--rayon-pilule);
+  background: transparent;
+  color: var(--texte);
+}
+.icone-btn--plein { background: var(--surface-haute); border: 1px solid var(--bordure-champ); }
+.icone-btn__badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: var(--accent-fond);
+  color: var(--sur-accent);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+/* ---------- Recherche, filtres et « Ajouter » ---------- */
+.outils { display: flex; justify-content: flex-end; margin-top: var(--espace); }
+.dock {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.dock--seul { justify-content: flex-end; }
+.dock__champ {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--cible-min);
+  padding: 0 20px;
+  border: 1px solid var(--bordure-champ);
+  border-radius: var(--rayon-pilule);
+  background: var(--surface-haute);
+}
+.fab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: none;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--rayon-pilule);
+  background: var(--accent-fond);
+  color: var(--sur-accent);
+  font-weight: 600;
+  box-shadow: var(--ombre-fab);
+}
+.fab:disabled { opacity: 0.4; box-shadow: none; }
+.fab__libelle { display: none; }
+.dock .icone-btn { width: 56px; height: 56px; flex: none; }
+.dock__champ { min-height: 56px; }
+
+/* Sur téléphone, le bloc se pose en bas, au-dessus de la navigation : c'est là que le pouce arrive
+   sans lâcher l'appareil. Le contenu lui laisse sa hauteur. */
+@media (max-width: 599px) {
+  .dock {
+    position: fixed;
+    z-index: 9;
+    left: 0;
+    right: 0;
+    bottom: calc(var(--barre-basse) + env(safe-area-inset-bottom) + 8px);
+    margin: 0;
+    padding: 20px 16px 0;
+    /* Fondu : le texte qui défile dessous s'efface au lieu de se couper net derrière la recherche. */
+    background: linear-gradient(to bottom, transparent, var(--fond) 45%);
+    pointer-events: none;
+  }
+  .dock > * { pointer-events: auto; }
+  .appli { padding-bottom: calc(var(--barre-basse) + 88px + env(safe-area-inset-bottom)); }
+  /* Pendant la saisie, le clavier prend la place : la navigation se range, la recherche reste visible. */
+  .appli--saisie .nav { display: none; }
+  .appli--saisie .dock { bottom: 8px; }
+}
+/* Sur grand écran, la recherche est en haut de la liste et « Ajouter » porte son texte. */
+@media (min-width: 600px) {
+  .fab { width: auto; padding: 0 20px; }
+  .fab__libelle { display: inline; }
+}
+
+.rubrique { margin-bottom: var(--espace); }
+.rubrique__titre { margin: 0 0 4px; font-size: 0.9375rem; color: var(--texte-doux); font-weight: 500; }

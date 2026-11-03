@@ -11,6 +11,7 @@ import LotSheet from './components/LotSheet.jsx'
 import ReglagesSheet from './components/ReglagesSheet.jsx'
 import { demanderPersistance, etatSauvegarde, libelleDelai, lireDerniereSauvegarde, noterSauvegarde } from './lib/sauvegarde.js'
 import Navigation from './components/Navigation.jsx'
+import Icone from './components/Icones.jsx'
 import BarreSelection from './components/BarreSelection.jsx'
 import BarreActionsMasse from './components/BarreActionsMasse.jsx'
 import MasseSheet from './components/MasseSheet.jsx'
@@ -49,6 +50,9 @@ export default function App() {
   const [mode, setMode] = useState(lireMode)
   const [derniereSauvegarde, setDerniereSauvegarde] = useState(() => lireDerniereSauvegarde())
   const [persistance, setPersistance] = useState('inconnu')
+  // Vrai pendant la saisie dans la recherche : sur téléphone, la barre du bas se range pour
+  // laisser la place au clavier (sinon barre + recherche le coiffent tous les deux).
+  const [saisie, setSaisie] = useState(false)
   // null : pas de sélection. Sinon { cle, ids } : `cle` décrit la vue pour laquelle les ids ont été choisis.
   const [selection, setSelection] = useState(null)
   // La dernière modification en masse, pour pouvoir l'annuler : { avant, apres }.
@@ -298,6 +302,17 @@ export default function App() {
   const nbFiltres = groupes.filter((g) => filtres[g.cle] !== '').length
   const filtre = texte !== '' || nbFiltres > 0
 
+  // Taper sur Filtres ou Ajouter pendant la saisie ferait perdre le focus au champ : la barre du bas
+  // réapparaîtrait et la recherche remonterait AVANT la fin du tap, qui tomberait à côté et serait
+  // perdu. On empêche ce changement de focus : le champ le garde, et la feuille qui s'ouvre le prend.
+  const garderFocus = (e) => e.preventDefault()
+
+  // Ce que dit l'en-tête sous le nom : la section, et combien de sets elle montre.
+  const nomSection = vueStats ? 'Stats' : statut === 'possédé' ? 'Collection' : 'Wishlist'
+  const nbAffiches = vueStats ? sets.length : filtre ? `${visibles.length} sur ${duOnglet.length}` : duOnglet.length
+  const nbPourPluriel = vueStats ? sets.length : visibles.length
+  const contexte = `${nomSection} · ${nbAffiches} set${nbPourPluriel > 1 ? 's' : ''}`
+
   const { erreur, corriges, rejetes } = depart.info
   const fiche = ecran?.type === 'fiche' ? sets.find((s) => s.id === ecran.id) : null
   const fermer = () => setEcran(null)
@@ -316,16 +331,61 @@ export default function App() {
   }
 
   return (
-    <div className="appli">
-      <header className="appli__entete">
-        <h1 className="appli__titre">Bricks-List</h1>
-        <div className="appli__actions">
-          <button type="button" className="bouton bouton--plein" disabled={lectureSeule} onClick={() => setEcran({ type: 'formulaire', id: null })}>
-            Ajouter
+    <div className={`appli${saisie ? ' appli--saisie' : ''}`}>
+      {/* En-tête permanent : le nom et le contexte restent en haut quand on défile. Le compte
+          est annoncé aux lecteurs d'écran à chaque changement (recherche, filtres). */}
+      <header className="entete">
+        <img className="entete__logo" src={`${import.meta.env.BASE_URL}favicon.svg`} width="40" height="40" alt="" />
+        <div className="entete__titres">
+          <h1 className="appli__titre">Bricks-List</h1>
+          <p className="entete__contexte" aria-live="polite">{contexte}</p>
+        </div>
+        <div className="entete__actions">
+          {!vueStats && !selection && visibles.length > 0 && !lectureSeule && (
+            <button type="button" className="icone-btn" aria-label="Sélectionner des sets" onClick={() => setSelection({ cle: cleVue, ids: new Set() })}>
+              <Icone nom="selection" />
+            </button>
+          )}
+          <button type="button" className="icone-btn" aria-label="Réglages" onClick={() => setEcran({ type: 'reglages' })}>
+            <Icone nom="reglages" />
           </button>
-          <button type="button" className="bouton" onClick={() => setEcran({ type: 'reglages' })}>Réglages</button>
         </div>
       </header>
+
+      {/* Recherche, filtres et « Ajouter » : en bas sur téléphone (là où le pouce arrive), en haut
+          de la liste sur grand écran, sans changer de balisage : c'est le CSS qui les déplace. */}
+      {!selection && (
+        <div className={`dock${vueStats ? ' dock--seul' : ''}`}>
+          {!vueStats && (
+            <>
+              <input
+                type="search"
+                className="dock__champ"
+                placeholder="Nom, thème ou numéro"
+                aria-label="Rechercher un set"
+                value={texte}
+                onChange={(e) => setTexte(e.target.value)}
+                onFocus={() => setSaisie(true)}
+                onBlur={() => setSaisie(false)}
+              />
+              <button
+                type="button"
+                className="icone-btn icone-btn--plein"
+                aria-label={`Filtres et tri${nbFiltres > 0 ? `, ${nbFiltres} actif${nbFiltres > 1 ? 's' : ''}` : ''}`}
+                onMouseDown={garderFocus}
+                onClick={() => setFeuille(true)}
+              >
+                <Icone nom="filtres" />
+                {nbFiltres > 0 && <span className="icone-btn__badge" aria-hidden="true">{nbFiltres}</span>}
+              </button>
+            </>
+          )}
+          <button type="button" className="fab" aria-label="Ajouter un set" disabled={lectureSeule} onMouseDown={garderFocus} onClick={() => setEcran({ type: 'formulaire', id: null })}>
+            <Icone nom="plus" />
+            <span className="fab__libelle" aria-hidden="true">Ajouter</span>
+          </button>
+        </div>
+      )}
 
       {selection && !vueStats ? (
         <BarreActionsMasse
@@ -378,39 +438,11 @@ export default function App() {
         />
       ) : (
         <>
-      <div className="barre">
-        <input
-          type="search"
-          className="champ"
-          placeholder="Nom, thème ou numéro"
-          aria-label="Rechercher un set"
-          value={texte}
-          onChange={(e) => setTexte(e.target.value)}
-        />
-        <button type="button" className="bouton" onClick={() => setFeuille(true)}>
-          Filtres{nbFiltres > 0 ? ` (${nbFiltres})` : ''}
-        </button>
-      </div>
-
-      <div className="barre barre--secondaire">
-        <p className="compteur" aria-live="polite">
-          {filtre ? `${visibles.length} sur ${duOnglet.length}` : duOnglet.length} set{visibles.length > 1 ? 's' : ''}
-        </p>
-        <div className="barre__droite">
-          {!selection && statut === 'souhaité' && visibles.length > 0 && (
-            <button type="button" className="bouton" onClick={copierWishlist}>Copier la liste</button>
-          )}
-          {!selection && visibles.length > 0 && !lectureSeule && (
-            <button type="button" className="bouton" onClick={() => setSelection({ cle: cleVue, ids: new Set() })}>Sélectionner</button>
-          )}
-          <label className="tri">
-            Tri
-            <select className="champ" value={triEffectif} onChange={(e) => setTri(e.target.value)}>
-              {TRIS.filter((t) => !t.statut || t.statut === statut).map((t) => <option key={t.cle} value={t.cle}>{t.libelle}</option>)}
-            </select>
-          </label>
+      {!selection && statut === 'souhaité' && visibles.length > 0 && (
+        <div className="outils">
+          <button type="button" className="bouton" onClick={copierWishlist}>Copier la liste</button>
         </div>
-      </div>
+      )}
 
       {selection && (
         <BarreSelection
@@ -481,6 +513,9 @@ export default function App() {
         onChanger={(cle, v) => setFiltres((f) => ({ ...f, [cle]: v }))}
         onReinitialiser={() => setFiltres(FILTRES_VIDES)}
         nbResultats={visibles.length}
+        tris={TRIS.filter((t) => !t.statut || t.statut === statut)}
+        tri={triEffectif}
+        onTri={setTri}
       />
 
       {fiche && (
