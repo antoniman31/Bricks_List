@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import Sheet from './Sheet.jsx'
 import Vignette from './Vignette.jsx'
+import ChoixEmplacement from './ChoixEmplacement.jsx'
 import { normaliserNumero } from '../lib/numero.js'
 import { normaliserSet, ETATS, LIBELLES_PRIORITE, PRIORITES } from '../lib/model.js'
 import { analyserSaisie, basculerDansSaisie, cleEtiquette, formaterSaisie, preparerSaisie } from '../lib/etiquettes.js'
@@ -323,13 +324,10 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
         </div>
         {statut === 'possédé' && (
           <>
-            <label className="formulaire__champ">
-              Emplacement de rangement
-              <input className="champ" list="emplacements-connus" autoComplete="off" maxLength={60} placeholder="Étagère 2, carton A…" value={champs.emplacement} onChange={maj('emplacement')} />
-              <datalist id="emplacements-connus">
-                {emplacementsConnus.map((e) => <option key={e} value={e} />)}
-              </datalist>
-            </label>
+            <div className="formulaire__champ">
+              <span>Emplacement de rangement</span>
+              <ChoixEmplacement libelle="Emplacement de rangement" lieux={emplacementsConnus} valeur={champs.emplacement} vide="Sans emplacement" onChange={(v) => maj('emplacement')({ target: { value: v } })} />
+            </div>
             <div className="formulaire__ligne">
               <label className="formulaire__champ">
                 Boîte

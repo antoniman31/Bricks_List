@@ -22,7 +22,7 @@ import StatsView from './components/StatsView.jsx'
 import { charger, sauver } from './lib/storage.js'
 import { ajouter, ajouterPlusieurs, acheter, compterExemplaires, modifier, modifierPlusieurs, supprimer, supprimerPlusieurs } from './lib/collection.js'
 import { ETATS, LIBELLES_PRIORITE, PRIORITES } from './lib/model.js'
-import { TRIS, emplacements, filtrer, groupesAnnees, grouperParEmplacement, manquants, triPourOnglet, CHAMPS_A_COMPLETER, rechercherAilleurs, themes, trier } from './lib/recherche.js'
+import { TRIS, emplacements, filtrer, groupesAnnees, grouperParEmplacement, comptesEmplacements, manquants, triPourOnglet, CHAMPS_A_COMPLETER, rechercherAilleurs, themes, trier } from './lib/recherche.js'
 import { calculerStats } from './lib/stats.js'
 import { appeler } from './lib/api.js'
 import { chercherSet, completerResultat, messageErreur, rechercherSets } from './lib/rebrickable.js'
@@ -174,7 +174,12 @@ export default function App() {
     [sets, statut, texte, triEffectif],
   )
   const themesConnus = useMemo(() => themes(sets), [sets])
-  const emplacementsConnus = useMemo(() => emplacements(sets), [sets])
+  const emplacementsConnus = useMemo(() => comptesEmplacements(sets), [sets])
+  // Le lieu du set ajouté le plus récemment : on range souvent plusieurs sets à la suite.
+  const lieuRecent = useMemo(() => {
+    const dernier = sets.filter((s) => s.emplacement).sort((a, b) => String(b.dateAjout).localeCompare(String(a.dateAjout)))[0]
+    return dernier?.emplacement ?? ''
+  }, [sets])
   const etiquettesUtilisees = useMemo(() => etiquettesDe(sets), [sets])
   const stats = useMemo(() => calculerStats(sets), [sets])
 
@@ -561,6 +566,9 @@ export default function App() {
                 key={detail.id}
                 set={detail}
                 lectureSeule={lectureSeule}
+                lieux={emplacementsConnus}
+                lieuRecent={lieuRecent}
+                onRanger={(v) => appliquer(modifier(sets, detail.id, { emplacement: v }))}
                 onModifier={() => setEcran({ type: 'formulaire', id: detail.id })}
                 onAcheter={(etat) => appliquer(acheter(sets, detail.id, etat))}
                 onSupprimer={() => appliquer(supprimer(sets, detail.id))}
@@ -590,6 +598,9 @@ export default function App() {
           key={fiche.id}
           set={fiche}
           lectureSeule={lectureSeule}
+          lieux={emplacementsConnus}
+          lieuRecent={lieuRecent}
+          onRanger={(v) => appliquer(modifier(sets, fiche.id, { emplacement: v }))}
           onFermer={fermer}
           onModifier={() => setEcran({ type: 'formulaire', id: fiche.id })}
           onAcheter={(etat) => { appliquer(acheter(sets, fiche.id, etat)); fermer() }}

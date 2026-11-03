@@ -137,6 +137,14 @@ export function emplacements(sets) {
   return [...new Set(sets.map((s) => s.emplacement).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base', numeric: true }));
 }
 
+// Les emplacements avec le nombre de sets rangés dedans : le décompte aide à choisir
+// « l'étagère 2 » sans avoir à se rappeler ce qu'elle contient.
+export function comptesEmplacements(sets) {
+  const n = new Map();
+  for (const s of sets) if (s.emplacement) n.set(s.emplacement, (n.get(s.emplacement) ?? 0) + 1);
+  return emplacements(sets).map((nom) => ({ nom, n: n.get(nom) }));
+}
+
 // Les années se regroupent par décennie dès que la collection s'étale sur plus de
 // 15 ans : année par année, elle ferait des dizaines de valeurs. Le même choix
 // sert au filtre et aux statistiques, sinon une barre « 2010–2019 » mènerait à

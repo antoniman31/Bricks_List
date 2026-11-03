@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Sheet from './Sheet.jsx'
+import ChoixEmplacement from './ChoixEmplacement.jsx'
 import { ETATS } from '../lib/model.js'
 import { apercuModification } from '../lib/collection.js'
 import { exporter } from '../lib/partage.js'
@@ -101,22 +102,10 @@ export default function MasseSheet({ action, sets, tous, statut, emplacementsCon
             </label>
           ) : (
             <>
-              <label className="formulaire__champ">
-                Emplacement de rangement
-                <input
-                  className="champ"
-                  list="emplacements-masse"
-                  autoComplete="off"
-                  maxLength={60}
-                  placeholder="Ne pas changer"
-                  disabled={champs.effacerEmplacement}
-                  value={champs.emplacement}
-                  onChange={maj('emplacement')}
-                />
-                <datalist id="emplacements-masse">
-                  {emplacementsConnus.map((e) => <option key={e} value={e} />)}
-                </datalist>
-              </label>
+              <div className="formulaire__champ">
+                <span>Emplacement de rangement</span>
+                <ChoixEmplacement libelle="Emplacement de rangement" lieux={emplacementsConnus} valeur={champs.emplacement} desactive={champs.effacerEmplacement} onChange={(v) => maj('emplacement')({ target: { value: v } })} />
+              </div>
               <label className="coche-simple">
                 <input
                   type="checkbox"

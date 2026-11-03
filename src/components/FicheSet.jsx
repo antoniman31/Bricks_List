@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Sheet from './Sheet.jsx'
 import Vignette from './Vignette.jsx'
+import RangerSheet from './RangerSheet.jsx'
 import { ETATS, LIBELLES_PRIORITE } from '../lib/model.js'
 import { formaterDate } from '../lib/dates.js'
 
@@ -16,8 +17,9 @@ function Ligne({ libelle, valeur }) {
 
 // Le contenu d'une fiche, sans son contenant : la feuille en dessous de 840 px, le panneau de
 // droite au-dessus. Même contenu, mêmes gestes, un seul endroit à tenir à jour.
-export function FicheContenu({ set, lectureSeule, onModifier, onAcheter, onSupprimer }) {
+export function FicheContenu({ set, lectureSeule, lieux = [], lieuRecent = '', onRanger, onModifier, onAcheter, onSupprimer }) {
   const [confirmer, setConfirmer] = useState(false)
+  const [rangement, setRangement] = useState(false)
   const [etatAchat, setEtatAchat] = useState('')
 
   return (
@@ -41,6 +43,21 @@ export function FicheContenu({ set, lectureSeule, onModifier, onAcheter, onSuppr
         <Ligne libelle="Ajouté le" valeur={set.dateAjout ? new Date(set.dateAjout).toLocaleDateString('fr-FR') : null} />
         <Ligne libelle="Notes" valeur={set.notes} />
       </dl>
+
+      {set.statut === 'possédé' && onRanger && (
+        <button type="button" className="bouton" disabled={lectureSeule} onClick={() => setRangement(true)}>
+          Ranger dans…
+        </button>
+      )}
+      {rangement && (
+        <RangerSheet
+          lieux={lieux}
+          actuel={set.emplacement}
+          recent={lieuRecent}
+          onChoisir={(v) => { onRanger(v); setRangement(false) }}
+          onFermer={() => setRangement(false)}
+        />
+      )}
 
       <a className="lien" href={`https://rebrickable.com/sets/${encodeURIComponent(set.numero)}/`} target="_blank" rel="noopener noreferrer">
         Voir sur Rebrickable
@@ -79,10 +96,10 @@ export function FicheContenu({ set, lectureSeule, onModifier, onAcheter, onSuppr
   )
 }
 
-export default function FicheSet({ set, lectureSeule, onModifier, onAcheter, onSupprimer, onFermer }) {
+export default function FicheSet({ set, lectureSeule, lieux, lieuRecent, onRanger, onModifier, onAcheter, onSupprimer, onFermer }) {
   return (
     <Sheet ouvert onFermer={onFermer} titre={set.nom}>
-      <FicheContenu set={set} lectureSeule={lectureSeule} onModifier={onModifier} onAcheter={onAcheter} onSupprimer={onSupprimer} />
+      <FicheContenu set={set} lectureSeule={lectureSeule} lieux={lieux} lieuRecent={lieuRecent} onRanger={onRanger} onModifier={onModifier} onAcheter={onAcheter} onSupprimer={onSupprimer} />
     </Sheet>
   )
 }

@@ -157,6 +157,11 @@ const ECRANS = {
   'recherche (champ actif)': async (p) => { await p.locator('input[type=search]').focus(); await p.keyboard.type('Set'); },
   'filtres': async (p) => { await p.click(FILTRES); await p.click('.groupe__ligne:has-text("Emplacement")'); },
   'fiche': async (p) => { await p.locator('.carte').first().click(); },
+  'fiche (ranger dans)': async (p) => {
+    await p.locator('.carte').first().click();
+    await p.click('button:has-text("Ranger dans")');
+    await p.waitForSelector('.rangement');
+  },
   'formulaire (erreur)': async (p) => { await p.click(AJOUTER); await p.click('button[type=submit]'); },
   'formulaire (recherche par nom)': async (p) => {
     await p.evaluate(() => localStorage.setItem('bl_rebrickable', 'cle-de-test-0123456789'));
@@ -173,7 +178,8 @@ const ECRANS = {
     await p.click(SELECTIONNER);
     await p.locator('.carte').nth(0).click(); await p.locator('.carte').nth(1).click(); await p.locator('.carte').nth(2).click();
     await p.click('.nav__item:has-text("Modifier")');
-    await p.fill('dialog[open] input[list=emplacements-masse]', 'étagère 3');
+    await p.click('dialog[open] button.puce:has-text("Nouveau")');
+    await p.fill('dialog[open] input[aria-label="Nom du nouvel emplacement"]', 'étagère 3');
     await p.locator('dialog[open] label:has-text("État") select').selectOption('monté');
     await p.click('dialog[open] button:has-text("Voir l\'aperçu")');
     await p.waitForSelector('.masse__ligne');

@@ -681,3 +681,13 @@ button:not(:disabled):active, .champ:active { box-shadow: inset 0 0 0 999px var(
 @media (min-width: 600px) {
   .maj { left: auto; right: 24px; bottom: 24px; max-width: 420px; }
 }
+
+/* Choix d'emplacement : puces, puis le champ de saisie seulement pour un nouveau nom. */
+.choix { display: grid; gap: 8px; }
+.choix .groupe__options { padding: 0; }
+.rangement { list-style: none; margin: var(--espace) 0; padding: 0; display: grid; gap: 4px; }
+.rangement__ligne { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: var(--espace); padding: 0 16px; border: 0; border-radius: var(--rayon); background: var(--surface-haute); color: inherit; text-align: left; }
+.rangement__ligne[aria-pressed='true'] { background: var(--accent-conteneur); color: var(--sur-accent-conteneur); font-weight: 600; }
+.rangement__n { color: var(--texte-doux); }
+.rangement__nouveau { display: flex; gap: 8px; }
+.rangement__nouveau .champ { flex: 1; min-width: 0; }
