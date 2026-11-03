@@ -160,9 +160,18 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
   color: var(--texte);
 }
 .sheet::backdrop { background: rgb(0 0 0 / 0.6); }
-.sheet__corps { min-width: 0; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); max-height: 80vh; overflow-y: auto; }
-.sheet__entete { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--espace); }
+/* Colonne : poignée et titre restent fixes, seul le contenu défile, les actions restent visibles. */
+.sheet__corps { display: flex; flex-direction: column; min-width: 0; max-height: 85vh; padding-bottom: env(safe-area-inset-bottom); }
+.sheet { transition: transform 0.2s ease; }
+/* Zone de prise du glissé vers le bas : `touch-action: none` évite que le navigateur la prenne pour un défilement. */
+.sheet__haut { flex: none; padding: 0 16px; touch-action: none; }
+.sheet__poignee { display: block; width: 32px; height: 4px; margin: 12px auto 4px; border-radius: 2px; background: var(--bordure-champ); }
+.sheet__entete { display: flex; align-items: center; justify-content: space-between; }
 .sheet__titre { margin: 0; font-size: 1.125rem; }
+.sheet__defile { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: var(--espace) 16px 16px; }
+.sheet__garde { margin: 0 16px; }
+.sheet__action { flex: none; display: flex; gap: 8px; justify-content: space-between; padding: 12px 16px; border-top: 1px solid var(--bordure); background: var(--surface); }
+.sheet__action .bouton { flex: 1; }
 .sheet__pied { display: flex; gap: 8px; justify-content: space-between; margin-top: 16px; }
 
 .groupe { border-bottom: 1px solid var(--bordure); }
@@ -215,7 +224,12 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
 .fiche__achat { display: grid; gap: 8px; margin-top: var(--espace); }
 .lien { display: inline-flex; align-items: center; min-height: var(--cible-min); margin-top: 8px; color: var(--accent); }
 
-.reglage { margin-bottom: 20px; }
+.reglage { margin-bottom: 4px; border-bottom: 1px solid var(--bordure); }
+.reglage > summary { display: flex; align-items: center; justify-content: space-between; min-height: var(--cible-min); cursor: pointer; list-style: none; font-family: var(--police-titre); font-weight: 600; }
+.reglage > summary::-webkit-details-marker { display: none; }
+.reglage > summary::after { content: ''; width: 8px; height: 8px; border-right: 2px solid var(--texte-doux); border-bottom: 2px solid var(--texte-doux); transform: rotate(45deg); transition: transform 0.15s; }
+.reglage[open] > summary::after { transform: rotate(-135deg); }
+.reglage[open] { padding-bottom: 16px; }
 .reglage__titre { margin: 0 0 4px; font-size: 1rem; }
 .reglage__aide { margin: 0 0 8px; color: var(--texte-doux); font-size: 0.875rem; }
 .reglage__version { margin: 0; color: var(--texte-doux); font-size: 0.75rem; }
@@ -280,9 +294,9 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
 /* Les boutons de validation d'une longue liste restent visibles sans défiler. */
 .sheet__pied--collant {
   position: sticky;
-  bottom: calc(-16px - env(safe-area-inset-bottom));
-  margin: 16px -16px calc(-16px - env(safe-area-inset-bottom));
-  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  bottom: -16px;
+  margin: 16px -16px -16px;
+  padding: 12px 16px;
   background: var(--surface);
   border-top: 1px solid var(--bordure);
 }
