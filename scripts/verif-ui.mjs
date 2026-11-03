@@ -89,6 +89,7 @@ const ECRANS = {
   'liste': async () => {},
   'stats': async (p) => { await p.click('.nav__item:has-text("Stats")'); await p.waitForSelector('.stats'); },
   'wishlist': async (p) => { await p.click('.nav__item:has-text("Wishlist")'); },
+  'recherche (résultats de l\'autre onglet)': async (p) => { await p.fill('input[type=search]', 'Souhait'); await p.waitForSelector('.ailleurs'); },
   'filtres': async (p) => { await p.click('button:has-text("Filtres")'); await p.click('.groupe__ligne:has-text("Thème")'); },
   'fiche': async (p) => { await p.locator('.carte').first().click(); },
   'formulaire (erreur)': async (p) => { await p.click('header >> text=Ajouter'); await p.click('button[type=submit]'); },

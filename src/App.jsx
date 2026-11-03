@@ -10,7 +10,7 @@ import StatsView from './components/StatsView.jsx'
 import { charger, sauver } from './lib/storage.js'
 import { ajouter, ajouterPlusieurs, acheter, compterExemplaires, modifier, supprimer } from './lib/collection.js'
 import { ETATS } from './lib/model.js'
-import { TRIS, filtrer, groupesAnnees, manquants, CHAMPS_A_COMPLETER, themes, trier } from './lib/recherche.js'
+import { TRIS, filtrer, groupesAnnees, manquants, CHAMPS_A_COMPLETER, rechercherAilleurs, themes, trier } from './lib/recherche.js'
 import { calculerStats } from './lib/stats.js'
 import { appeler } from './lib/api.js'
 import { chercherSet, messageErreur } from './lib/rebrickable.js'
@@ -102,6 +102,10 @@ export default function App() {
   const visibles = useMemo(
     () => trier(filtrer(sets, { statut, texte, ...filtres }), tri),
     [sets, statut, texte, filtres, tri],
+  )
+  const ailleurs = useMemo(
+    () => trier(rechercherAilleurs(sets, statut, texte), tri),
+    [sets, statut, texte, tri],
   )
   const themesConnus = useMemo(() => themes(sets), [sets])
   const stats = useMemo(() => calculerStats(sets), [sets])
@@ -244,7 +248,7 @@ export default function App() {
         <div className="vide">
           <p>
             {filtre
-              ? 'Aucun set ne correspond à la recherche ou aux filtres.'
+              ? `Aucun set ne correspond ici${ailleurs.length > 0 ? ', mais il y en a dans l\'autre onglet' : ' à la recherche ou aux filtres'}.`
               : statut === 'possédé' ? 'Aucun set dans la collection.' : 'La wishlist est vide.'}
           </p>
           {!filtre && !lectureSeule && (
@@ -253,6 +257,17 @@ export default function App() {
             </button>
           )}
         </div>
+      )}
+
+      {ailleurs.length > 0 && (
+        <section className="ailleurs" aria-label={`Dans ${statut === 'possédé' ? 'la wishlist' : 'la collection'}`}>
+          <h2 className="ailleurs__titre">
+            Dans {statut === 'possédé' ? 'la wishlist' : 'la collection'} ({ailleurs.length})
+          </h2>
+          <ul className="liste">
+            {ailleurs.map((s) => <CarteSet key={s.id} set={s} onOuvrir={(id) => setEcran({ type: 'fiche', id })} />)}
+          </ul>
+        </section>
       )}
         </>
       )}
