@@ -1,4 +1,4 @@
-# Bricks List — règles du projet
+# Bricks-List — règles du projet
 
 Collection personnelle de sets LEGO (React 19 + Vite, PWA sur GitHub Pages).
 Cibles : Chrome sur Android (Galaxy S26 Ultra) et sur Windows. Pas d'APK, pas de
@@ -11,7 +11,7 @@ Où on en est et ce qui reste à faire : `docs/SUITE.md`.
 - `npm run dev` : serveur de développement.
 - `npm run lint` (oxlint) et `npm test` : à passer avant tout commit.
 - `CHROMIUM=/opt/pw-browsers/chromium npm run verif:ui` : construit, puis parcourt chaque
-  écran (2 thèmes × 3 largeurs) : accessibilité axe-core, cibles de 44 px, débordements,
+  écran (2 thèmes × 3 largeurs) : accessibilité axe-core, cibles de 48 px, débordements,
   navigation. À passer pour tout changement d'interface ; il bloque aussi le CI.
 - `CHROMIUM=/opt/pw-browsers/chromium npm run icones` : régénère les icônes PNG
   depuis `public/favicon.svg`.
@@ -25,7 +25,7 @@ Où on en est et ce qui reste à faire : `docs/SUITE.md`.
   jeton existe dans le thème sombre (défaut) et dans `html[data-theme='light']`, avec son
   contraste mesuré en commentaire. Le jaune en texte (`--accent`) n'est pas le jaune en
   aplat (`--accent-fond`) : le premier doit rester lisible sur fond clair.
-- De vrais `<button>`, jamais de `<div onClick>` ; cibles tactiles d'au moins 44 px.
+- De vrais `<button>`, jamais de `<div onClick>` ; cibles tactiles d'au moins 48 px.
 - Une écriture qui peut échouer (stockage, réseau) doit se voir à l'écran.
 - Toute donnée venue d'un fichier ou du stockage est validée comme entrée non fiable.
 
