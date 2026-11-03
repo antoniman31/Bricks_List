@@ -10,14 +10,15 @@ import StatsView from './components/StatsView.jsx'
 import { charger, sauver } from './lib/storage.js'
 import { ajouter, ajouterPlusieurs, acheter, compterExemplaires, modifier, supprimer } from './lib/collection.js'
 import { ETATS } from './lib/model.js'
-import { TRIS, filtrer, groupesAnnees, manquants, CHAMPS_A_COMPLETER, rechercherAilleurs, themes, trier } from './lib/recherche.js'
+import { TRIS, emplacements, filtrer, groupesAnnees, manquants, CHAMPS_A_COMPLETER, rechercherAilleurs, themes, trier } from './lib/recherche.js'
 import { calculerStats } from './lib/stats.js'
 import { appeler } from './lib/api.js'
 import { chercherSet, messageErreur } from './lib/rebrickable.js'
 import { ecrireCle, ecrireThemes, lireCle, lireThemes } from './lib/reglages.js'
 import { COULEUR_BARRE, ecrireMode, lireMode, resoudreTheme } from './lib/apparence.js'
 
-const FILTRES_VIDES = { theme: '', etat: '', annee: '', manque: '' }
+const FILTRES_VIDES = { theme: '', etat: '', annee: '', manque: '', emplacement: '', boite: '', notice: '' }
+const PRESENTE_ABSENTE = [{ valeur: 'oui', libelle: 'Présente' }, { valeur: 'non', libelle: 'Absente' }]
 
 function demarrer() {
   const r = charger()
@@ -108,6 +109,7 @@ export default function App() {
     [sets, statut, texte, tri],
   )
   const themesConnus = useMemo(() => themes(sets), [sets])
+  const emplacementsConnus = useMemo(() => emplacements(sets), [sets])
   const stats = useMemo(() => calculerStats(sets), [sets])
 
   // Les filtres d'un onglet ne veulent rien dire dans l'autre (un état n'existe
@@ -149,6 +151,15 @@ export default function App() {
       libelle: 'État',
       options: ETATS.map((e) => ({ valeur: e, libelle: e })),
     })
+  }
+  if (statut === 'possédé') {
+    // Comme « À compléter » : un filtre posé dont la dernière fiche vient de changer
+    // doit rester visible, sinon le groupe emporterait avec lui le seul moyen de l'enlever.
+    const lieux = emplacements(duOnglet)
+    if (filtres.emplacement !== '' && !lieux.includes(filtres.emplacement)) lieux.push(filtres.emplacement)
+    if (lieux.length > 0) groupes.push({ cle: 'emplacement', libelle: 'Emplacement', options: lieux.map((l) => ({ valeur: l, libelle: l })) })
+    if (filtres.boite !== '' || duOnglet.some((x) => x.boite)) groupes.push({ cle: 'boite', libelle: 'Boîte', options: PRESENTE_ABSENTE })
+    if (filtres.notice !== '' || duOnglet.some((x) => x.notice)) groupes.push({ cle: 'notice', libelle: 'Notice', options: PRESENTE_ABSENTE })
   }
   const nbFiltres = groupes.filter((g) => filtres[g.cle] !== '').length
   const filtre = texte !== '' || nbFiltres > 0
@@ -301,6 +312,7 @@ export default function App() {
           initial={ecran.id ? sets.find((s) => s.id === ecran.id) : null}
           statutParDefaut={statut}
           themesConnus={themesConnus}
+          emplacementsConnus={emplacementsConnus}
           compterExemplaires={(numero) => compterExemplaires(sets, numero)}
           aCle={cle !== ''}
           onChercher={chercher}

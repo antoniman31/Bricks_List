@@ -84,3 +84,39 @@ test('validerSets compte corrigées et rejetées, et réattribue les doublons d\
 test('validerSets ignore ce qui n\'est pas une liste', () => {
   assert.deepEqual(validerSets({ a: 1 }), { sets: [], corriges: 0, rejetes: 0 });
 });
+
+test('emplacement, boîte et notice : valeurs valides conservées pour un set possédé', () => {
+  const r = normaliserSet({ ...OK, emplacement: '  Étagère 2 ', boite: 'oui', notice: 'non' });
+  assert.equal(r.corrections, 0);
+  assert.equal(r.set.emplacement, 'Étagère 2');
+  assert.equal(r.set.boite, 'oui');
+  assert.equal(r.set.notice, 'non');
+});
+
+test('une fiche d\'avant ces champs n\'est pas corrigée : non précisé', () => {
+  const r = normaliserSet(OK);
+  assert.equal(r.corrections, 0);
+  assert.equal(r.set.emplacement, '');
+  assert.equal(r.set.boite, null);
+  assert.equal(r.set.notice, null);
+});
+
+test('boîte et notice invalides sont écartées et comptées', () => {
+  const r = normaliserSet({ ...OK, boite: 'peut-être', notice: 3 });
+  assert.equal(r.set.boite, null);
+  assert.equal(r.set.notice, null);
+  assert.equal(r.corrections, 2);
+});
+
+test('l\'emplacement est tronqué à 60 caractères et ignore un non-texte', () => {
+  assert.equal(normaliserSet({ ...OK, emplacement: 'x'.repeat(200) }).set.emplacement.length, 60);
+  assert.equal(normaliserSet({ ...OK, emplacement: 42 }).set.emplacement, '');
+});
+
+test('un set souhaité n\'a ni emplacement, ni boîte, ni notice', () => {
+  const r = normaliserSet({ ...OK, statut: 'souhaité', emplacement: 'Étagère', boite: 'oui', notice: 'oui' });
+  assert.equal(r.set.emplacement, '');
+  assert.equal(r.set.boite, null);
+  assert.equal(r.set.notice, null);
+  assert.equal(r.corrections, 0);
+});

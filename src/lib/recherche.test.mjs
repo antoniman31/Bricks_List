@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { filtrer, trier, themes, normaliserTexte, modeAnnees, cleAnnee, libelleAnnee, groupesAnnees, manquants, rechercherAilleurs } from './recherche.js';
+import { filtrer, trier, themes, normaliserTexte, modeAnnees, cleAnnee, libelleAnnee, groupesAnnees, manquants, rechercherAilleurs, emplacements } from './recherche.js';
 
 const S = [
   { id: '1', numero: '75192-1', nom: 'Faucon Millenium', theme: 'Star Wars', annee: 2017, pieces: 7541, statut: 'possédé', etat: 'scellé', dateAjout: '2026-10-01', notes: 'secret' },
@@ -148,4 +148,35 @@ test('rechercherAilleurs : texte vide ou blanc, rien', () => {
 test('rechercherAilleurs : insensible aux accents et trouve par numéro', () => {
   assert.deepEqual(ids(rechercherAilleurs(S, 'possédé', 'FONDCOMBE')), ['3']);
   assert.deepEqual(ids(rechercherAilleurs(S, 'possédé', '10316')), ['3']);
+});
+
+const RANGES = [
+  { id: 'r1', numero: '1-1', nom: 'Alpha', theme: 'T', annee: 2020, pieces: 1, statut: 'possédé', etat: 'monté', emplacement: 'Étagère 2', boite: 'oui', notice: 'non', notes: '' },
+  { id: 'r2', numero: '2-1', nom: 'Beta', theme: 'T', annee: 2020, pieces: 1, statut: 'possédé', etat: 'monté', emplacement: 'Carton A', boite: 'non', notice: 'oui', notes: '' },
+  { id: 'r3', numero: '3-1', nom: 'Gamma', theme: 'T', annee: 2020, pieces: 1, statut: 'possédé', etat: 'monté', emplacement: '', boite: null, notice: null, notes: '' },
+  { id: 'r4', numero: '4-1', nom: 'Delta', theme: 'T', annee: 2020, pieces: 1, statut: 'souhaité', etat: null, emplacement: '', boite: null, notice: null, notes: '' },
+];
+
+test('la recherche couvre l\'emplacement de rangement', () => {
+  assert.deepEqual(ids(filtrer(RANGES, { texte: 'etagere' })), ['r1']);
+  assert.deepEqual(ids(filtrer(RANGES, { texte: 'CARTON' })), ['r2']);
+});
+
+test('filtres par emplacement, boîte et notice', () => {
+  assert.deepEqual(ids(filtrer(RANGES, { emplacement: 'Carton A' })), ['r2']);
+  assert.deepEqual(ids(filtrer(RANGES, { boite: 'oui' })), ['r1']);
+  assert.deepEqual(ids(filtrer(RANGES, { notice: 'oui' })), ['r2']);
+  assert.deepEqual(ids(filtrer(RANGES, { boite: 'non', notice: 'oui' })), ['r2']);
+});
+
+test('les emplacements viennent de la collection, triés, sans doublon ni vide', () => {
+  const plus = [...RANGES, { ...RANGES[0], id: 'r5', emplacement: 'Étagère 10' }, { ...RANGES[0], id: 'r6' }];
+  assert.deepEqual(emplacements(plus), ['Carton A', 'Étagère 2', 'Étagère 10']);
+  assert.deepEqual(emplacements([]), []);
+});
+
+test('une fiche sans les nouveaux champs reste filtrable et cherchable', () => {
+  const ancien = [{ id: 'x', numero: '9-1', nom: 'Ancien', theme: '', annee: null, pieces: null, statut: 'possédé', etat: null, notes: '' }];
+  assert.deepEqual(ids(filtrer(ancien, { texte: 'ancien' })), ['x']);
+  assert.deepEqual(ids(filtrer(ancien, { emplacement: 'Carton A' })), []);
 });
