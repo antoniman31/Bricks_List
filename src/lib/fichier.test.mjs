@@ -30,3 +30,25 @@ test('partager : toute autre erreur est un échec visible', async () => {
   const nav = { canShare: () => true, share: async () => { throw new Error('boom'); } };
   assert.deepEqual(await partager('a.json', '{}', nav), { mode: 'echec' });
 });
+
+import { copierTexte } from './fichier.js';
+
+test('copierTexte : presse-papiers en premier', async () => {
+  let ecrit;
+  assert.equal(await copierTexte('abc', { clipboard: { writeText: async (t) => { ecrit = t; } } }), 'copie');
+  assert.equal(ecrit, 'abc');
+});
+
+test('copierTexte : presse-papiers refusé, repli sur le partage', async () => {
+  let partage;
+  const nav = { clipboard: { writeText: async () => { throw new Error('refusé'); } }, share: async (d) => { partage = d; } };
+  assert.equal(await copierTexte('abc', nav), 'partage');
+  assert.deepEqual(partage, { text: 'abc' });
+});
+
+test('copierTexte : partage fermé = annulé ; rien de disponible = échec visible', async () => {
+  const ferme = { share: async () => { throw Object.assign(new Error('x'), { name: 'AbortError' }); } };
+  assert.equal(await copierTexte('abc', ferme), 'annule');
+  assert.equal(await copierTexte('abc', {}), 'echec');
+  assert.equal(await copierTexte('abc', undefined), 'echec');
+});
