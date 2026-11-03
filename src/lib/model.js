@@ -7,6 +7,10 @@ const ANNEE_MIN = 1949; // premières briques LEGO à tenons
 const NOTES_MAX = 2000;
 const EMPLACEMENT_MAX = 60;
 export const OUI_NON = ['oui', 'non'];
+// Envie d'acheter un set souhaité, du plus pressé au moins pressé. Les clés sont ce
+// qui est stocké ; l'ordre du tableau est l'ordre de tri.
+export const PRIORITES = ['forte', 'un-jour', 'pas-presse'];
+export const LIBELLES_PRIORITE = { forte: 'Envie forte', 'un-jour': 'Un jour', 'pas-presse': 'Pas pressé' };
 
 function nouvelId() {
   return globalThis.crypto?.randomUUID?.() ?? `id-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -61,6 +65,10 @@ export function normaliserSet(brut, { anneeMax = new Date().getFullYear() + 2 } 
   const boite = possede && OUI_NON.includes(brut.boite) ? brut.boite : null;
   const noticeValide = brut.notice == null || OUI_NON.includes(brut.notice);
   const notice = possede && OUI_NON.includes(brut.notice) ? brut.notice : null;
+  // La priorité est l'inverse de l'état : elle n'a de sens que pour un set souhaité.
+  // Acheter un set la fait donc disparaître d'elle-même, sans code dédié.
+  const prioriteValide = brut.priorite == null || PRIORITES.includes(brut.priorite);
+  const priorite = !possede && PRIORITES.includes(brut.priorite) ? brut.priorite : null;
 
   return {
     set: {
@@ -78,6 +86,7 @@ export function normaliserSet(brut, { anneeMax = new Date().getFullYear() + 2 } 
       emplacement,
       boite: corriger(boiteValide, boite),
       notice: corriger(noticeValide, notice),
+      priorite: corriger(prioriteValide, priorite),
     },
     corrections,
   };

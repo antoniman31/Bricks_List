@@ -241,3 +241,31 @@ test('« Sans emplacement » filtre les sets possédés sans emplacement, jamais
   const l = [R('1', 'A', 'cave'), R('2', 'B', ''), R('3', 'C', '', { statut: 'souhaité', etat: null })];
   assert.deepEqual(ids(filtrer(l, { manque: 'emplacement' })), ['2']);
 });
+
+// ---------- priorité de la wishlist ----------
+import { triPourOnglet } from './recherche.js';
+const W = (id, nom, priorite, o = {}) => R(id, nom, '', { statut: 'souhaité', etat: null, priorite, ...o });
+const SOUHAITS = [W('1', 'Zèbre', 'pas-presse'), W('2', 'Beta', null), W('3', 'Alpha', 'forte'), W('4', 'Gamma', 'forte'), W('5', 'Delta', 'un-jour')];
+
+test('trier par priorité : du plus pressé au moins pressé, sans priorité en dernier, puis par nom', () => {
+  assert.deepEqual(trier(SOUHAITS, 'priorite').map((s) => s.nom), ['Alpha', 'Gamma', 'Delta', 'Zèbre', 'Beta']);
+});
+
+test('filtrer par priorité', () => {
+  assert.deepEqual(ids(filtrer(SOUHAITS, { statut: 'souhaité', priorite: 'forte' })), ['3', '4']);
+});
+
+test('« Priorité non précisée » n\'apparaît que si la fonction sert, et seulement pour la wishlist', () => {
+  assert.deepEqual(manquants([W('1', 'A', null), W('2', 'B', null)]).champs.filter((c) => c.cle === 'priorite'), []);
+  assert.deepEqual(manquants(SOUHAITS).champs.filter((c) => c.cle === 'priorite').map((c) => c.nombre), [1]);
+  assert.deepEqual(ids(filtrer(SOUHAITS, { manque: 'priorite' })), ['2']);
+  assert.deepEqual(ids(filtrer([...SOUHAITS, R('9', 'Possédé', '')], { manque: 'priorite' })), ['2']);
+});
+
+test('tri propre à un onglet : retombe sur « ajout » dans l\'autre, les tris communs restent', () => {
+  assert.equal(triPourOnglet('priorite', 'possédé'), 'ajout');
+  assert.equal(triPourOnglet('priorite', 'souhaité'), 'priorite');
+  assert.equal(triPourOnglet('emplacement', 'souhaité'), 'ajout');
+  assert.equal(triPourOnglet('emplacement', 'possédé'), 'emplacement');
+  assert.equal(triPourOnglet('nom', 'souhaité'), 'nom');
+});

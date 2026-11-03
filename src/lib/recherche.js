@@ -1,3 +1,5 @@
+import { PRIORITES } from './model.js';
+
 // Minuscules sans accents : « creatif » doit trouver « Créatif », et « Technic »
 // ne doit pas dépendre de la casse tapée.
 export function normaliserTexte(s) {
@@ -11,13 +13,22 @@ export const TRIS = [
   { cle: 'pieces', libelle: 'Pièces' },
   // Regroupe la liste par emplacement de rangement (voir grouperParEmplacement). Il n'a de
   // sens que pour la collection : un set souhaité n'est rangé nulle part.
-  { cle: 'emplacement', libelle: 'Emplacement' },
+  { cle: 'emplacement', libelle: 'Emplacement', statut: 'possédé' },
+  // Du plus pressé au moins pressé ; réservé à la wishlist, où la priorité existe.
+  { cle: 'priorite', libelle: 'Priorité', statut: 'souhaité' },
 ];
+
+// Un tri propre à un onglet n'est pas proposé dans l'autre, et la liste retombe sur
+// « ajout récent » si on y change d'onglet (le choix de l'utilisateur n'est pas écrasé).
+export function triPourOnglet(cle, statut) {
+  const t = TRIS.find((x) => x.cle === cle);
+  return t && t.statut && t.statut !== statut ? 'ajout' : cle;
+}
 
 // La recherche porte sur le nom, le thème, le numéro et l'emplacement de rangement. Les notes en sont
 // exclues volontairement : un mot d'une note faisait remonter des sets sans
 // rapport avec ce qu'on cherchait.
-export function filtrer(sets, { statut, texte = '', theme = '', etat = '', annee = '', manque = '', emplacement = '', boite = '', notice = '' } = {}) {
+export function filtrer(sets, { statut, texte = '', theme = '', etat = '', annee = '', manque = '', emplacement = '', boite = '', notice = '', priorite = '' } = {}) {
   const q = normaliserTexte(texte);
   const champManquant = CHAMPS_A_COMPLETER.find((c) => c.cle === manque);
   return sets.filter((s) => {
@@ -27,6 +38,7 @@ export function filtrer(sets, { statut, texte = '', theme = '', etat = '', annee
     if (emplacement && s.emplacement !== emplacement) return false;
     if (boite && s.boite !== boite) return false;
     if (notice && s.notice !== notice) return false;
+    if (priorite && s.priorite !== priorite) return false;
     if (annee && !correspondAnnee(s.annee, annee)) return false;
     if (champManquant && !champManquant.manque(s)) return false;
     if (!q) return true;
@@ -67,6 +79,11 @@ export function trier(sets, cle) {
         if (!a.emplacement !== !b.emplacement) return a.emplacement ? -1 : 1;
         return (a.emplacement ? comparerEmplacements(a.emplacement, b.emplacement) : 0) || comparerNoms(a, b);
       });
+    case 'priorite': {
+      // Les sets sans priorité en dernier, comme une année absente.
+      const rang = (s) => { const i = PRIORITES.indexOf(s.priorite); return i < 0 ? PRIORITES.length : i; };
+      return copie.sort((a, b) => rang(a) - rang(b) || comparerNoms(a, b));
+    }
     case 'nom':
       return copie.sort((a, b) => a.nom.localeCompare(b.nom, 'fr', { sensitivity: 'base' }));
     case 'annee':
@@ -158,17 +175,17 @@ export const CHAMPS_A_COMPLETER = [
   { cle: 'etat', libelle: 'État non précisé', manque: (s) => s.statut === 'possédé' && s.etat == null },
   // Seulement tant que la fonction sert (voir manquants) : sinon tout set « manque »
   // d'un emplacement qu'on n'a jamais eu l'idée de saisir.
-  { cle: 'emplacement', libelle: 'Sans emplacement', manque: (s) => s.statut === 'possédé' && !s.emplacement },
+  { cle: 'emplacement', libelle: 'Sans emplacement', manque: (s) => s.statut === 'possédé' && !s.emplacement, actif: (sets) => sets.some((s) => s.emplacement) },
+  { cle: 'priorite', libelle: 'Priorité non précisée', manque: (s) => s.statut === 'souhaité' && !s.priorite, actif: (sets) => sets.some((s) => s.priorite) },
 ];
 
 // `fiches` compte les sets concernés, pas la somme des colonnes : un même set
 // peut manquer de trois choses et ne fait qu'une fiche à reprendre.
 export function manquants(sets) {
-  // « Sans emplacement » n'a de sens que si au moins un set a un emplacement : avant
-  // cela, le compter reviendrait à annoncer « 43 fiches à compléter » pour une fonction
-  // que personne n'a encore utilisée.
-  const rangementUtilise = sets.some((s) => s.emplacement);
-  const actifs = CHAMPS_A_COMPLETER.filter((c) => c.cle !== 'emplacement' || rangementUtilise);
+  // Un champ d'une fonction récente (`actif`) n'est compté que si elle sert déjà : avant
+  // cela, l'inclure annoncerait « 43 fiches à compléter » pour un champ que personne
+  // n'a encore eu l'idée de remplir.
+  const actifs = CHAMPS_A_COMPLETER.filter((c) => !c.actif || c.actif(sets));
   const champs = actifs
     .map((c) => ({ cle: c.cle, libelle: c.libelle, nombre: sets.filter(c.manque).length }))
     .filter((c) => c.nombre > 0);

@@ -2,12 +2,12 @@ import { useRef, useState } from 'react'
 import Sheet from './Sheet.jsx'
 import Vignette from './Vignette.jsx'
 import { normaliserNumero } from '../lib/numero.js'
-import { normaliserSet, ETATS } from '../lib/model.js'
+import { normaliserSet, ETATS, LIBELLES_PRIORITE, PRIORITES } from '../lib/model.js'
 import { messageErreur, MESSAGES, MOTS_MIN } from '../lib/rebrickable.js'
 
 const RECHERCHE_VIDE = { etat: 'repos', message: '', avertissements: [] }
 const NOM_VIDE = { mots: '', etat: 'repos', message: '', resultats: [], page: 1, suite: false, total: 0 }
-const VIDE = { numero: '', nom: '', theme: '', annee: '', pieces: '', etat: '', notes: '', emplacement: '', boite: '', notice: '' }
+const VIDE = { numero: '', nom: '', theme: '', annee: '', pieces: '', etat: '', notes: '', emplacement: '', boite: '', notice: '', priorite: '' }
 
 function versChamps(set) {
   return {
@@ -21,6 +21,7 @@ function versChamps(set) {
     emplacement: set.emplacement ?? '',
     boite: set.boite ?? '',
     notice: set.notice ?? '',
+    priorite: set.priorite ?? '',
   }
 }
 
@@ -153,6 +154,7 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
       emplacement: statut === 'possédé' ? champs.emplacement : '',
       boite: statut === 'possédé' && champs.boite !== '' ? champs.boite : null,
       notice: statut === 'possédé' && champs.notice !== '' ? champs.notice : null,
+      priorite: statut === 'souhaité' && champs.priorite !== '' ? champs.priorite : null,
       image,
     }
     const verifie = normaliserSet(brut)
@@ -276,6 +278,15 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
               <option value="souhaité">Souhaité</option>
             </select>
           </label>
+          {statut === 'souhaité' && (
+            <label className="formulaire__champ">
+              Priorité
+              <select className="champ" value={champs.priorite} onChange={maj('priorite')}>
+                <option value="">Non précisée</option>
+                {PRIORITES.map((p) => <option key={p} value={p}>{LIBELLES_PRIORITE[p]}</option>)}
+              </select>
+            </label>
+          )}
           {statut === 'possédé' && (
             <label className="formulaire__champ">
               État

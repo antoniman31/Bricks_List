@@ -225,3 +225,9 @@ test('apercuModification : l\'aperçu et l\'application sont d\'accord', () => {
   const vraiment = LISTE.filter((s, i) => choisis.has(s.id) && JSON.stringify(s) !== JSON.stringify(apres[i])).length;
   assert.equal(a.modifies, vraiment);
 });
+
+test('acheter un set souhaité efface sa priorité', () => {
+  const [s] = ajouter([], { ...BASE, statut: 'souhaité', priorite: 'forte' }).sets;
+  assert.equal(s.priorite, 'forte');
+  assert.equal(acheter([s], s.id, 'scellé')[0].priorite, null);
+});
