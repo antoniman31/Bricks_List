@@ -4,8 +4,9 @@ import { exporter, lireImport } from '../lib/partage.js'
 import { fusionner } from '../lib/collection.js'
 import { telecharger } from '../lib/fichier.js'
 import { cleValide } from '../lib/reglages.js'
+import { LIBELLES, MODES } from '../lib/apparence.js'
 
-export default function ReglagesSheet({ sets, lectureSeule, cle, onCleChange, onTesterCle, onAppliquer, onFermer }) {
+export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, cle, onCleChange, onTesterCle, onAppliquer, onFermer }) {
   const [apercu, setApercu] = useState(null)
   const [erreur, setErreur] = useState('')
   const [resultat, setResultat] = useState('')
@@ -75,6 +76,18 @@ export default function ReglagesSheet({ sets, lectureSeule, cle, onCleChange, on
 
   return (
     <Sheet ouvert onFermer={onFermer} titre="Réglages">
+      <section className="reglage">
+        <h3 className="reglage__titre">Apparence</h3>
+        <div className="stats__puces" role="group" aria-label="Thème">
+          {MODES.map((m) => (
+            <button key={m} type="button" className="puce" aria-pressed={mode === m} onClick={() => onModeChange(m)}>
+              {LIBELLES[m]}
+            </button>
+          ))}
+        </div>
+        <p className="reglage__aide">Automatique suit le réglage clair ou sombre du téléphone.</p>
+      </section>
+
       <section className="reglage">
         <h3 className="reglage__titre">Rebrickable</h3>
         <p className="reglage__aide">

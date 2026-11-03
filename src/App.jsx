@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import CarteSet from './components/CarteSet.jsx'
 import FiltersSheet from './components/FiltersSheet.jsx'
 import FicheSet from './components/FicheSet.jsx'
@@ -14,6 +14,7 @@ import { calculerStats } from './lib/stats.js'
 import { appeler } from './lib/api.js'
 import { chercherSet, messageErreur } from './lib/rebrickable.js'
 import { ecrireCle, ecrireThemes, lireCle, lireThemes } from './lib/reglages.js'
+import { COULEUR_BARRE, ecrireMode, lireMode, resoudreTheme } from './lib/apparence.js'
 
 const ONGLETS = [
   { statut: 'possédé', libelle: 'Collection' },
@@ -38,6 +39,7 @@ export default function App() {
   const [feuille, setFeuille] = useState(false)
   const [vueStats, setVueStats] = useState(false)
   const [confirmation, setConfirmation] = useState('')
+  const [mode, setMode] = useState(lireMode)
   // Un seul écran à la fois par-dessus la liste : fiche, formulaire, réglages.
   const [ecran, setEcran] = useState(null)
 
@@ -52,6 +54,25 @@ export default function App() {
     setSets(nouveaux)
     const r = sauver(nouveaux)
     setErreurEcriture(r.ok ? '' : `${r.erreur} Les changements sont perdus à la fermeture : exporte la collection.`)
+  }
+
+  // Applique le thème résolu, et le suit si le téléphone bascule (en mode
+  // automatique) pendant que l'app est ouverte.
+  useEffect(() => {
+    const systeme = matchMedia('(prefers-color-scheme: dark)')
+    const appliquer = () => {
+      const theme = resoudreTheme(mode, systeme.matches)
+      document.documentElement.dataset.theme = theme
+      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', COULEUR_BARRE[theme])
+    }
+    appliquer()
+    systeme.addEventListener('change', appliquer)
+    return () => systeme.removeEventListener('change', appliquer)
+  }, [mode])
+
+  function changerMode(nouveau) {
+    setMode(nouveau)
+    ecrireMode(nouveau)
   }
 
   function changerCle(nouvelle) {
@@ -313,6 +334,8 @@ export default function App() {
           sets={sets}
           lectureSeule={lectureSeule}
           cle={cle}
+          mode={mode}
+          onModeChange={changerMode}
           onCleChange={changerCle}
           onTesterCle={tester}
           onAppliquer={appliquer}
