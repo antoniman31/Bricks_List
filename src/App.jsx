@@ -13,7 +13,7 @@ import { ETATS } from './lib/model.js'
 import { TRIS, emplacements, filtrer, groupesAnnees, manquants, CHAMPS_A_COMPLETER, rechercherAilleurs, themes, trier } from './lib/recherche.js'
 import { calculerStats } from './lib/stats.js'
 import { appeler } from './lib/api.js'
-import { chercherSet, messageErreur } from './lib/rebrickable.js'
+import { chercherSet, completerResultat, messageErreur, rechercherSets } from './lib/rebrickable.js'
 import { ecrireCle, ecrireThemes, lireCle, lireThemes } from './lib/reglages.js'
 import { COULEUR_BARRE, ecrireMode, lireMode, resoudreTheme } from './lib/apparence.js'
 
@@ -94,6 +94,21 @@ export default function App() {
     const cache = lireThemes()
     try {
       return await chercherSet(numero, (chemin) => appeler(chemin, cle), cache)
+    } finally {
+      ecrireThemes(cache)
+    }
+  }
+
+  // Recherche par mots du nom, une page à la fois ; le thème n'est résolu que pour le
+  // résultat choisi, avec le même cache de thèmes que la recherche par numéro.
+  function rechercherNom(mots, page) {
+    return rechercherSets(mots, (chemin) => appeler(chemin, cle), { page })
+  }
+
+  async function choisirResultat(resultat) {
+    const cache = lireThemes()
+    try {
+      return await completerResultat(resultat, (chemin) => appeler(chemin, cle), cache)
     } finally {
       ecrireThemes(cache)
     }
@@ -316,6 +331,8 @@ export default function App() {
           compterExemplaires={(numero) => compterExemplaires(sets, numero)}
           aCle={cle !== ''}
           onChercher={chercher}
+          onRechercherNom={rechercherNom}
+          onChoisirResultat={choisirResultat}
           onLot={() => setEcran({ type: 'lot' })}
           onFermer={fermer}
           onValider={(brut) => {

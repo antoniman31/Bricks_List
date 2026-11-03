@@ -1,6 +1,6 @@
 # Bricks List : où on en est, et la suite
 
-État au 3 novembre 2026. Site : https://antoniman31.github.io/Bricks_List/ (version `bb36475`).
+État au 3 novembre 2026. Site : https://antoniman31.github.io/Bricks_List/ (la version se lit en bas des Réglages).
 Ce fichier sert à reprendre le travail sans relire la conversation qui l'a produit.
 
 ## Ce qui est fait et en ligne
@@ -22,8 +22,15 @@ testé avec sa vraie collection, tout fonctionne.
   la liste filtrée correspondante ; un test vérifie que chiffre et liste coïncident.
 - **Thème** clair, sombre (noir pur) ou automatique, appliqué avant le premier rendu.
 - **Navigation** : barre du bas sur téléphone, rail à gauche dès 600 px.
-- **Qualité** : `npm run lint`, `npm test` (143 tests), `npm run verif:ui` (axe-core, cibles de
-  44 px, débordements, navigation ; 8 écrans × 2 thèmes × 3 largeurs). Les trois tournent dans
+- **« Je l'ai déjà ? »** : la recherche montre aussi les résultats de l'autre onglet (section
+  « Dans la wishlist (n) » sous la liste), sans changer d'onglet.
+- **Rangement** : emplacement de rangement (texte libre, suggestions), boîte et notice présentes ou
+  absentes, pour un set possédé ; sur la fiche, la carte, la recherche et trois filtres. Aucune
+  migration : une fiche d'avant ces champs reste « non précisé ».
+- **Recherche par nom** dans le formulaire d'ajout (API Rebrickable, 10 résultats par page, thème
+  résolu seulement pour le résultat choisi). Les noms du catalogue sont en anglais.
+- **Qualité** : `npm run lint`, `npm test` (168 tests), `npm run verif:ui` (axe-core, cibles de
+  44 px, débordements, navigation ; 10 écrans × 2 thèmes × 3 largeurs). Les trois tournent dans
   le CI avant le déploiement.
 
 ## Décisions de cadrage (ne pas rouvrir sans raison)
@@ -31,47 +38,74 @@ testé avec sa vraie collection, tout fonctionne.
 Pas de minifigs, de pièces détachées, de prix ni d'APK. Sauvegarde par export manuel (la
 synchronisation entre appareils est écartée pour l'instant). Moins de 100 sets prévus.
 
-## La suite : Brickset (vraies images de boîtes et scan de code-barres)
+## La suite
 
-Antoni est prêt à créer une clé Brickset et à déployer un relais Cloudflare. Les images de
-Rebrickable, Brickset et BrickLink sont toutes le même rendu du modèle monté sur fond blanc :
-changer de source parmi elles n'apporte pas la boîte.
+### Veille GitHub (3 novembre 2026) : ce qu'on y a appris
 
-**Ce qu'on ne sait pas, et qu'il faut mesurer avant de construire** (impossible sans clé) :
+Une quinzaine de projets proches ont été lus (surtout leurs README). Aucun n'est un standard :
+ce sont de petits projets de loisir, récents, la plupart sur serveur.
 
-1. Quelle image additionnelle de Brickset est la boîte, et existe-t-elle pour tous ses sets ?
-2. L'API Brickset permet-elle de retrouver un set par code-barres (EAN) ? Si non, le scan n'a
-   pas de source et il faut le dire plutôt que le bricoler.
+- **Aucun n'utilise le code-barres (EAN) pour retrouver un set.** BrickSeeker lit par OCR le
+  numéro imprimé sur la boîte (OCR natif iOS) ; lego-collector demande de le taper ; Nupplo
+  identifie par photo avec l'API **Brickognize**. BrickSeeker (app iOS native) a été archivée au
+  profit d'une PWA : le choix d'une PWA est cohérent avec ce que d'autres ont conclu.
+- **Brickognize** (`https://api.brickognize.com`) : gratuite, sans clé, **CORS ouvert**, route
+  `/predict/sets/`. Testée avec les rendus du Faucon (75192-1, score 0,76) et du Titanic (10294-1,
+  0,83) : bon set en premier. **Réserves** : ces rendus sont probablement dans leur index, une vraie
+  photo de boîte n'a pas été testée ; le service se dit « early beta » ; leurs conditions (site)
+  donnent une licence mondiale, perpétuelle et irrévocable sur tout contenu envoyé, **entraînement
+  de modèles compris** ; aucune condition spécifique à l'API trouvée.
+- **Rebrickable publie un catalogue complet sans clé** (28 565 sets, 0,52 Mo compressé :
+  `cdn.rebrickable.com/media/downloads/sets.csv.gz`, `themes.csv`), mais le serveur n'envoie pas
+  d'en-tête CORS : l'app ne peut pas le télécharger directement. Il faudrait un relais ou copier
+  les données dans le dépôt (conditions de redistribution non vérifiées). Écarté : avec moins de
+  100 sets, la recherche par l'API suffit.
+- **Idées reprises** : « je l'ai déjà ? » (lego-collector), recherche par nom (Nupplo, plinthos),
+  emplacement de rangement, boîte et notice (plinthos, BrickHoard, lego-collector).
+- **Idées écartées** : photos personnelles de boîtes (stockage sur l'appareil, export JSON
+  difficile), synchronisation serveur, valorisation et mode vente.
 
-**Étapes prévues**
+### Reste à décider ou à faire
 
-1. Relais CORS (`worker/`, sur le modèle de celui de game-library : aucune clé dedans, il ajoute
-   seulement l'en-tête CORS que l'API Brickset n'envoie pas) ; champs « URL du relais » et
-   « Clé Brickset » dans les Réglages, stockés sur l'appareil, jamais exportés ; un écran de
-   diagnostic qui interroge Brickset pour un set (ex. 75192) et affiche les champs utiles, sans
-   la clé. Antoni colle le résultat : on calibre sur du réel.
-2. Images de boîtes, avec repli sur le rendu actuel quand il n'y a pas de boîte.
-3. Scan de code-barres : `BarcodeDetector` de Chrome Android (absent sous Windows, où la saisie
-   du numéro reste la voie), seulement si le point 2 ci-dessus est confirmé.
-
-**À faire par Antoni (sans jamais donner de clé dans une conversation ni dans le dépôt)** :
-demander une clé sur Brickset (une validation peut être nécessaire) ; déployer le relais, soit
-avec `wrangler deploy` depuis son PC, soit en ajoutant `CLOUDFLARE_API_TOKEN` et
-`CLOUDFLARE_ACCOUNT_ID` aux secrets du dépôt comme pour game-library.
+1. **Photographier une boîte (Brickognize)** : Antoni a répondu « je ne sais pas » sur l'envoi
+   des photos. Si on la fait : option **désactivée par défaut** dans les Réglages avec
+   l'avertissement ci-dessus, envoi seulement après un geste explicite, liste de candidats avec
+   score à confirmer avant tout ajout. **Avant de coder, tester sur quelques vraies boîtes** :
+   si la bonne n'est pas dans les trois premières dans la plupart des cas, abandonner.
+2. **Vraies images de boîtes** (Brickset). Les images de Rebrickable, Brickset et BrickLink sont
+   toutes le même rendu du modèle monté sur fond blanc : changer de source parmi elles n'apporte
+   pas la boîte. Il faudrait l'API Brickset (images additionnelles), une clé et un relais
+   Cloudflare (leur API n'envoie pas de CORS). Antoni : « je verrai plus tard ».
+   - À mesurer avant de construire (impossible sans clé) : quelle image additionnelle est la
+     boîte, et existe-t-elle pour tous les sets ?
+   - Relais sur le modèle de celui de game-library (aucune clé dedans) ; champs « URL du relais »
+     et « Clé Brickset » dans les Réglages, jamais exportés ; écran de diagnostic sans la clé.
+   - À faire par Antoni, sans jamais donner de clé dans une conversation ni dans le dépôt :
+     demander une clé Brickset, déployer le relais (`wrangler deploy`, ou secrets
+     `CLOUDFLARE_API_TOKEN` et `CLOUDFLARE_ACCOUNT_ID` du dépôt).
+3. **Retrouver un set par code-barres** : seulement si l'API Brickset le permet, ce qui n'est pas
+   établi. Sinon, le scan n'a pas de source : le dire plutôt que le bricoler.
 
 ## Noms français
 
 Rebrickable et Brickset donnent les noms en anglais. Les noms français viennent de LEGO.com, qui
 n'a pas d'API publique : s'y brancher passerait par du grattage de pages, fragile et douteux
 vis-à-vis de leurs conditions. Aucune source propre n'est connue. Antoni voudrait des noms
-français « quand c'est possible » ; en attendant, un nom se corrige à la main dans la fiche. À
-décider : chercher d'abord s'il existe une source propre, ou rester sur la correction manuelle.
+français « quand c'est possible » ; en attendant, un nom se corrige à la main dans la fiche.
+Piste simple, non faite : garder le nom d'origine (anglais) à côté du nom traduit pour que la
+recherche trouve les deux (Nupplo fait l'inverse avec un dictionnaire allemand de ~1 400 mots).
+Corollaire : la recherche par nom de Rebrickable ne trouve que de l'anglais (« falcon », pas
+« faucon »), et l'écran le dit.
 
 ## Limites connues
 
 - Les images ont un fond blanc intégré : elles restent sur un panneau blanc, même en thème sombre.
 - L'écran de démarrage de la PWA installée reste noir en thème clair (un manifeste n'a qu'une couleur).
 - La durée réelle d'un lot dépend de la limite de débit de Rebrickable ; un 429 est retenté une fois.
+- Un set dont le numéro contient des lettres (rares sets promotionnels) ne peut pas être rangé :
+  l'application n'accepte que les numéros de la forme `75192-1`. La recherche par nom les écarte.
+- La recherche par nom s'appuie sur le paramètre `search` de l'API Rebrickable, testé ici avec une
+  API simulée de même forme, pas avec une vraie clé : à confirmer au premier essai réel.
 
 ## Particularités techniques utiles
 
