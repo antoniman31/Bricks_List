@@ -3,10 +3,11 @@ import CarteSet from './components/CarteSet.jsx'
 import ListeGroupee from './components/ListeGroupee.jsx'
 import { copierTexte } from './lib/fichier.js'
 import { cleEtiquette, etiquettesConnues as etiquettesDe } from './lib/etiquettes.js'
+import useLarge from './useLarge.js'
 import { autreVue, ecrireVue, lireVue } from './lib/vue.js'
 import { texteWishlist } from './lib/wishlist.js'
 import FiltersSheet from './components/FiltersSheet.jsx'
-import FicheSet from './components/FicheSet.jsx'
+import FicheSet, { FicheContenu } from './components/FicheSet.jsx'
 import FormulaireSet from './components/FormulaireSet.jsx'
 import LotSheet from './components/LotSheet.jsx'
 import ReglagesSheet from './components/ReglagesSheet.jsx'
@@ -55,6 +56,9 @@ export default function App() {
   // laisser la place au clavier (sinon barre + recherche le coiffent tous les deux).
   const [saisie, setSaisie] = useState(false)
   const [vue, setVue] = useState(lireVue)
+  const large = useLarge()
+  // Le détail du set sélectionné dans la liste, quand le panneau de droite est affiché.
+  const [detailId, setDetailId] = useState(null)
   // null : pas de sélection. Sinon { cle, ids } : `cle` décrit la vue pour laquelle les ids ont été choisis.
   const [selection, setSelection] = useState(null)
   // La dernière modification en masse, pour pouvoir l'annuler : { avant, apres }.
@@ -316,6 +320,13 @@ export default function App() {
   const contexte = `${nomSection} · ${nbAffiches} set${nbPourPluriel > 1 ? 's' : ''}`
 
   const { erreur, corriges, rejetes } = depart.info
+  // Panneau de détail : grand écran et affichage en liste. En grille (tuiles larges, pas de colonne
+  // pour un panneau) et sur téléphone, le détail s'ouvre en feuille, comme avant.
+  const panneau = large && vue === 'liste' && !vueStats
+  const ouvrirFiche = (id) => (panneau ? setDetailId(id) : setEcran({ type: 'fiche', id }))
+  // Le panneau ne montre qu'un set de la liste affichée : le set choisi, sinon le premier. Un set
+  // qui sort de la liste (filtre, achat, suppression) laisse donc la place au suivant, sans état à purger.
+  const detail = panneau && !selection ? (visibles.find((s) => s.id === detailId) ?? visibles[0] ?? null) : null
   const fiche = ecran?.type === 'fiche' ? sets.find((s) => s.id === ecran.id) : null
   const fermer = () => setEcran(null)
 
@@ -333,7 +344,7 @@ export default function App() {
   }
 
   return (
-    <div className={`appli${saisie ? ' appli--saisie' : ''}`}>
+    <div className={`appli${saisie ? ' appli--saisie' : ''}${panneau ? ' appli--panneau' : ''}`}>
       {/* En-tête permanent : le nom et le contexte restent en haut quand on défile. Le compte
           est annoncé aux lecteurs d'écran à chaque changement (recherche, filtres). */}
       <header className="entete">
@@ -465,7 +476,8 @@ export default function App() {
       {visibles.length > 0 && triEffectif === 'emplacement' ? (
         <ListeGroupee
           groupes={grouperParEmplacement(visibles)}
-          onOuvrir={(id) => setEcran({ type: 'fiche', id })}
+          onOuvrir={ouvrirFiche}
+          idCourant={detail?.id}
           selection={!!selection}
           idsChoisis={idsActifs}
           onBasculer={basculerSelection}
@@ -479,7 +491,8 @@ export default function App() {
               key={s.id}
               set={s}
               vue={vue}
-              onOuvrir={(id) => setEcran({ type: 'fiche', id })}
+              onOuvrir={ouvrirFiche}
+              courante={detail?.id === s.id}
               selection={selection ? { selectionne: idsActifs.has(s.id) } : undefined}
               onBasculer={basculerSelection}
             />
@@ -506,7 +519,7 @@ export default function App() {
             Dans {statut === 'possédé' ? 'la wishlist' : 'la collection'} ({ailleurs.length})
           </h2>
           <ul className="liste">
-            {ailleurs.map((s) => <CarteSet key={s.id} set={s} onOuvrir={(id) => setEcran({ type: 'fiche', id })} />)}
+            {ailleurs.map((s) => <CarteSet key={s.id} set={s} onOuvrir={ouvrirFiche} />)}
           </ul>
         </section>
       )}
@@ -514,6 +527,26 @@ export default function App() {
       )}
 
       </main>
+
+      {panneau && (
+        <aside className="detail" aria-label="Détail du set">
+          {detail ? (
+            <>
+              <h2 className="detail__titre">{detail.nom}</h2>
+              <FicheContenu
+                key={detail.id}
+                set={detail}
+                lectureSeule={lectureSeule}
+                onModifier={() => setEcran({ type: 'formulaire', id: detail.id })}
+                onAcheter={(etat) => appliquer(acheter(sets, detail.id, etat))}
+                onSupprimer={() => appliquer(supprimer(sets, detail.id))}
+              />
+            </>
+          ) : (
+            <p className="detail__vide">{selection ? 'Sélection en cours : coche des sets dans la liste.' : 'Aucun set à afficher.'}</p>
+          )}
+        </aside>
+      )}
 
       <FiltersSheet
         ouvert={feuille}
