@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ajouter, ajouterPlusieurs, modifier, supprimer, acheter, fusionner, compterExemplaires } from './collection.js';
+import { ajouter, ajouterPlusieurs, modifier, supprimer, acheter, fusionner, compterExemplaires, modifierPlusieurs, supprimerPlusieurs, apercuModification } from './collection.js';
 
 const BASE = { numero: '75192-1', nom: 'Faucon', theme: 'Star Wars', annee: 2017, pieces: 7541, statut: 'possédé', etat: 'scellé' };
 
@@ -118,4 +118,110 @@ test('ajouterPlusieurs ajoute à la suite des fiches existantes', () => {
   const { sets } = ajouterPlusieurs(avant, [{ ...BASE, numero: '10294' }]);
   assert.equal(sets.length, 2);
   assert.equal(sets[0].id, avant[0].id);
+});
+
+// ---------- modifications en masse ----------
+const base = (id, o = {}) => ({ id, numero: `${10000 + Number(id.slice(1))}-1`, nom: `Set ${id}`, theme: 'T', annee: 2020, pieces: 100, statut: 'possédé', etat: 'monté', notes: '', image: null, dateAjout: null, emplacement: '', boite: null, notice: null, ...o });
+const LISTE = [base('a1'), base('a2', { emplacement: 'cave', etat: 'scellé' }), base('a3', { emplacement: 'salon', boite: 'oui' }), base('a4'), base('w1', { statut: 'souhaité', etat: null }), base('w2', { statut: 'souhaité', etat: null })];
+const ids = (...l) => new Set(l);
+
+test('modifierPlusieurs : ne touche que les fiches choisies', () => {
+  const r = modifierPlusieurs(LISTE, ids('a1', 'a2'), { emplacement: 'étagère 2' });
+  assert.equal(r.find((s) => s.id === 'a1').emplacement, 'étagère 2');
+  assert.equal(r.find((s) => s.id === 'a2').emplacement, 'étagère 2');
+  assert.equal(r.find((s) => s.id === 'a3').emplacement, 'salon');
+  assert.equal(r.find((s) => s.id === 'a4').emplacement, '');
+});
+
+test('modifierPlusieurs : un champ absent des changements n\'est pas touché', () => {
+  const r = modifierPlusieurs(LISTE, ids('a2'), { boite: 'non' });
+  const a2 = r.find((s) => s.id === 'a2');
+  assert.equal(a2.boite, 'non');
+  assert.equal(a2.emplacement, 'cave');
+  assert.equal(a2.etat, 'scellé');
+});
+
+test('modifierPlusieurs : plusieurs champs d\'un coup', () => {
+  const r = modifierPlusieurs(LISTE, ids('a1', 'a4'), { emplacement: 'bureau', etat: 'démonté', boite: 'oui', notice: 'non' });
+  for (const id of ['a1', 'a4']) {
+    const s = r.find((x) => x.id === id);
+    assert.deepEqual([s.emplacement, s.etat, s.boite, s.notice], ['bureau', 'démonté', 'oui', 'non']);
+  }
+});
+
+test('modifierPlusieurs : effacer avec les valeurs vides', () => {
+  const r = modifierPlusieurs(LISTE, ids('a2', 'a3'), { emplacement: '', boite: null });
+  const [a2, a3] = ['a2', 'a3'].map((id) => r.find((s) => s.id === id));
+  assert.equal(a2.emplacement, '');
+  assert.equal(a3.emplacement, '');
+  assert.equal(a3.boite, null);
+});
+
+test('modifierPlusieurs : le modèle s\'applique aussi en masse (rien de tel pour un souhaité)', () => {
+  const r = modifierPlusieurs(LISTE, ids('w1'), { emplacement: 'salon', etat: 'scellé', boite: 'oui' });
+  const w1 = r.find((s) => s.id === 'w1');
+  assert.equal(w1.emplacement, '');
+  assert.equal(w1.etat, null);
+  assert.equal(w1.boite, null);
+});
+
+test('modifierPlusieurs : « acheté » en masse passe en possédé avec l\'état', () => {
+  const r = modifierPlusieurs(LISTE, ids('w1', 'w2'), { statut: 'possédé', etat: 'scellé' });
+  for (const id of ['w1', 'w2']) {
+    const s = r.find((x) => x.id === id);
+    assert.equal(s.statut, 'possédé');
+    assert.equal(s.etat, 'scellé');
+  }
+});
+
+test('modifierPlusieurs : ne modifie pas la liste d\'origine, ignore les ids inconnus', () => {
+  const avant = JSON.stringify(LISTE);
+  const r = modifierPlusieurs(LISTE, ids('a1', 'inconnu'), { emplacement: 'x' });
+  assert.equal(JSON.stringify(LISTE), avant);
+  assert.equal(r.length, LISTE.length);
+  assert.equal(modifierPlusieurs(LISTE, ids(), { emplacement: 'x' }).every((s, i) => s === LISTE[i]), true);
+});
+
+test('supprimerPlusieurs : retire exactement les fiches choisies', () => {
+  const r = supprimerPlusieurs(LISTE, ids('a1', 'w2', 'inconnu'));
+  assert.deepEqual(r.map((s) => s.id), ['a2', 'a3', 'a4', 'w1']);
+  assert.equal(LISTE.length, 6);
+});
+
+test('apercuModification : fiches modifiées, déjà à jour et écrasées', () => {
+  // a1 : vide → étagère (modifié, rien d'écrasé) ; a2 : cave → étagère (écrasé) ;
+  // a3 : salon → étagère (écrasé) ; a4 : déjà « étagère » (inchangé).
+  const liste = LISTE.map((s) => (s.id === 'a4' ? { ...s, emplacement: 'étagère' } : s));
+  const a = apercuModification(liste, ids('a1', 'a2', 'a3', 'a4'), { emplacement: 'étagère' });
+  assert.deepEqual(a, { total: 4, modifies: 3, inchanges: 1, ecrases: { emplacement: 2, etat: 0, boite: 0, notice: 0 } });
+});
+
+test('apercuModification : plusieurs champs comptés séparément', () => {
+  const a = apercuModification(LISTE, ids('a1', 'a2', 'a3'), { etat: 'monté', boite: 'oui' });
+  // état : a1 et a3 sont déjà monté, a2 (scellé) est écrasé ; boîte : a3 déjà « oui », a1 et a2 vides.
+  assert.equal(a.ecrases.etat, 1);
+  assert.equal(a.ecrases.boite, 0);
+  assert.equal(a.modifies, 2);
+  assert.equal(a.inchanges, 1);
+});
+
+test('apercuModification : effacer compte comme une valeur perdue', () => {
+  const a = apercuModification(LISTE, ids('a2', 'a3', 'a4'), { emplacement: '' });
+  assert.equal(a.ecrases.emplacement, 2);
+  assert.equal(a.modifies, 2);
+});
+
+test('apercuModification : suit la validation (rien d\'écrasé sur un souhaité)', () => {
+  const a = apercuModification(LISTE, ids('w1', 'w2'), { emplacement: 'cave' });
+  assert.equal(a.modifies, 0);
+  assert.equal(a.inchanges, 2);
+});
+
+test('apercuModification : l\'aperçu et l\'application sont d\'accord', () => {
+  const ch = { emplacement: 'étagère', etat: 'monté' };
+  const choisis = ids('a1', 'a2', 'a3', 'a4');
+  const a = apercuModification(LISTE, choisis, ch);
+  const apres = modifierPlusieurs(LISTE, choisis, ch);
+  const vraiment = LISTE.filter((s, i) => choisis.has(s.id) && JSON.stringify(s) !== JSON.stringify(apres[i])).length;
+  assert.equal(a.modifies, vraiment);
 });
