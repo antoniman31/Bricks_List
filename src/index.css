@@ -631,3 +631,12 @@ button:not(:disabled):active, .champ:active { box-shadow: inset 0 0 0 999px var(
 .detail__vide { margin: 0; color: var(--texte-doux); }
 /* Le set affiché dans le panneau est repéré dans la liste. */
 .carte[aria-current='true'] { outline: 2px solid var(--accent-fond); outline-offset: -2px; }
+
+
+/* Petit téléphone (360 px) : quatre boutons de 48 px prennent 192 px, le logo et le nom se serrent
+   pour que tout tienne sur une ligne ; la ligne de contexte passe en points de suspension. */
+@media (max-width: 380px) {
+  .entete { gap: 8px; padding-left: 12px; }
+  .entete__logo { width: 32px; height: 32px; }
+  .entete .appli__titre { font-size: 1.125rem; }
+}
