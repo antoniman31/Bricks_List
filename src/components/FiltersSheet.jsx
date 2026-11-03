@@ -31,12 +31,21 @@ function Groupe({ groupe, valeur, ouvert, onBasculer, onChoisir }) {
   )
 }
 
-export default function FiltersSheet({ ouvert, onFermer, groupes, filtres, onChanger, onReinitialiser, nbResultats }) {
+export default function FiltersSheet({ ouvert, onFermer, groupes, filtres, onChanger, onReinitialiser, nbResultats, tris, tri, onTri }) {
   const [groupeOuvert, setGroupeOuvert] = useState(null)
   const actifs = groupes.filter((g) => filtres[g.cle] !== '').length
 
   return (
-    <Sheet ouvert={ouvert} onFermer={onFermer} titre="Filtres">
+    <Sheet ouvert={ouvert} onFermer={onFermer} titre="Filtres et tri">
+      {/* Le tri vit ici, avec les filtres : une seule feuille pour « montre-moi autre chose ». */}
+      <div className="rubrique">
+        <h3 className="rubrique__titre">Trier par</h3>
+        <div className="groupe__options">
+          {tris.map((t) => (
+            <button key={t.cle} type="button" className="puce" aria-pressed={t.cle === tri} onClick={() => onTri(t.cle)}>{t.libelle}</button>
+          ))}
+        </div>
+      </div>
       {groupes.map((g) => (
         <Groupe
           key={g.cle}
