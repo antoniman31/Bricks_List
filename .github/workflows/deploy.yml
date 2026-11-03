@@ -1,0 +1,87 @@
+name: Vérification et déploiement
+
+# Les vérifications tournent aussi sur les pull requests. Auparavant, le
+# workflow ne se déclenchait que sur un push vers `main` : lint et build ne
+# s'exécutaient donc qu'APRÈS la fusion, c'est-à-dire au moment où ils
+# déploient déjà. Une pull request qui ne compile pas n'était visible qu'une
+# fois le site cassé — c'est exactement ce qui s'est produit à la fusion de la
+# #1, où `npm run lint` a fait échouer le déploiement cinq fois de suite.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Aucun secret n'est nécessaire : les clés API sont saisies par l'utilisateur dans
+# l'application et stockées sur son appareil, jamais dans le dépôt ni dans le build.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Un déploiement à la fois par référence : les pushes sur `main` restent
+# sérialisés, sans qu'une pull request attende celle d'à côté.
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verifier:
+    name: Vérifier et construire
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installer les dépendances
+        # npm ci : le build est reproductible et échoue si le lockfile ne
+        # correspond plus à package.json. `npm install` laissait au contraire
+        # npm résoudre librement, donc une version mineure d'une dépendance
+        # transitive pouvait casser un déploiement sans qu'aucun commit ne
+        # touche au projet.
+        #
+        # Le lockfile porte désormais les binaires natifs Linux de Rollup, qui
+        # manquaient quand il était généré sous Windows — c'était la cause de
+        # l'échec de npm ci. Si tu installes sous Windows, npm y ajoutera les
+        # binaires win32 : commite le lockfile mis à jour, il portera alors les
+        # deux plateformes.
+        run: npm ci --no-audit --no-fund
+
+      - name: Vérifier le code
+        run: npm run lint
+
+      - name: Tests
+        # Le Worker et les fonctions qui décident du sort de la bibliothèque :
+        # migration jouée à chaque chargement, validation des imports,
+        # rétrocompatibilité. C'est là qu'une régression mange des données.
+        run: npm test
+
+      - name: Construire le site
+        run: npm run build
+
+      - uses: actions/configure-pages@v5
+        if: github.event_name != 'pull_request'
+
+      - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request'
+        with:
+          path: dist
+
+  deploy:
+    name: Publier sur GitHub Pages
+    # Une pull request se vérifie mais ne publie rien : elle n'a pas à écraser
+    # le site en ligne avant d'avoir été relue.
+    if: github.event_name != 'pull_request'
+    needs: verifier
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

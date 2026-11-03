@@ -1,2 +1,22 @@
-# Bricks_List
-Application pour gérer sa collection de LEGO
+# Bricks List
+
+Collection personnelle de sets LEGO : catalogue, wishlist et statistiques.
+Application React + Vite installable en PWA, sans backend ; les données vivent
+dans le `localStorage` du navigateur et s'exportent en JSON.
+
+## Feuille de route
+
+1. **Socle** : ajout par numéro de set (Rebrickable), liste, recherche, filtres,
+   fiche, wishlist, export/import JSON.
+2. **Statistiques** : sets, pièces, répartition par thème, année et état.
+3. **Scan de code-barres** (Chrome Android, `BarcodeDetector` + Brickset).
+
+## Développement
+
+```
+npm install
+npm run dev
+npm run lint && npm test
+```
+
+Le site se déploie sur GitHub Pages à chaque fusion sur `main`.

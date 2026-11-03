@@ -1,0 +1,34 @@
+# Bricks List — règles du projet
+
+Collection personnelle de sets LEGO (React 19 + Vite, PWA sur GitHub Pages).
+Cibles : Chrome sur Android (Galaxy S26 Ultra) et sur Windows. Pas d'APK, pas de
+minifigs, pas de pièces détachées, pas de prix (décisions de cadrage).
+
+## Commandes
+
+- `npm run dev` : serveur de développement.
+- `npm run lint` (oxlint) et `npm test` : à passer avant tout commit.
+- `CHROMIUM=/opt/pw-browsers/chromium npm run icones` : régénère les icônes PNG
+  depuis `public/favicon.svg`.
+
+## Conventions
+
+- Commentaires en français qui expliquent le **pourquoi**, pas ce que la ligne fait.
+- Un module de `src/lib/` a son `*.test.mjs` à côté. La logique pure vit dans
+  `src/lib/`, ce qui touche au réseau reste mince (`api.js`).
+- Couleurs et tailles par jetons CSS (`src/index.css`), jamais de valeur en dur.
+- De vrais `<button>`, jamais de `<div onClick>` ; cibles tactiles d'au moins 44 px.
+- Une écriture qui peut échouer (stockage, réseau) doit se voir à l'écran.
+- Toute donnée venue d'un fichier ou du stockage est validée comme entrée non fiable.
+
+## Façon de travailler
+
+- Branche `claude/…`, commits descriptifs, PR en brouillon, fusion par squash.
+- Proposer d'abord, attendre un « ok » explicite avant de modifier quoi que ce soit.
+- Exporter la collection avant toute opération destructive.
+
+## Limites de sécurité
+
+- Jamais de clé dans la conversation ni dans le dépôt : la clé Rebrickable se saisit
+  dans les réglages de l'app et reste dans le stockage de l'appareil.
+- Ne jamais commiter un export de collection ou un `.env`.
