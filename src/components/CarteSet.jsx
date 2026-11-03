@@ -1,6 +1,6 @@
-// Sans image, un bloc affiche le numéro : la carte garde la même hauteur et le
-// set reste identifiable. Toute la carte est un vrai <button> (clavier, lecteur
-// d'écran) et ouvre la fiche.
+// Toute la carte est un vrai <button> (clavier, lecteur d'écran) et ouvre la fiche.
+import Vignette from './Vignette.jsx'
+
 export default function CarteSet({ set, onOuvrir }) {
   const details = [
     set.theme || null,
@@ -11,11 +11,7 @@ export default function CarteSet({ set, onOuvrir }) {
   return (
     <li>
       <button type="button" className="carte" onClick={() => onOuvrir(set.id)}>
-        {set.image ? (
-          <img className="carte__image" src={set.image} alt="" loading="lazy" />
-        ) : (
-          <div className="carte__image carte__image--vide" aria-hidden="true">{set.numero}</div>
-        )}
+        <Vignette image={set.image} numero={set.numero} />
         <div className="carte__texte">
           <p className="carte__nom">{set.nom}</p>
           <p className="carte__details">{set.numero}{details.length > 0 && ` · ${details.join(' · ')}`}</p>

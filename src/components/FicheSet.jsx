@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Sheet from './Sheet.jsx'
+import Vignette from './Vignette.jsx'
 import { ETATS } from '../lib/model.js'
 
 function Ligne({ libelle, valeur }) {
@@ -18,9 +19,7 @@ export default function FicheSet({ set, lectureSeule, onModifier, onAcheter, onS
 
   return (
     <Sheet ouvert onFermer={onFermer} titre={set.nom}>
-      {set.image
-        ? <img className="fiche__image" src={set.image} alt="" />
-        : <div className="fiche__image fiche__image--vide" aria-hidden="true">{set.numero}</div>}
+      <Vignette image={set.image} numero={set.numero} variante="fiche" />
 
       <dl className="fiche">
         <Ligne libelle="Numéro" valeur={set.numero} />

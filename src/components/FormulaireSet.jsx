@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import Sheet from './Sheet.jsx'
+import Vignette from './Vignette.jsx'
 import { normaliserNumero } from '../lib/numero.js'
 import { normaliserSet, ETATS } from '../lib/model.js'
 import { messageErreur, MESSAGES } from '../lib/rebrickable.js'
@@ -137,7 +138,7 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
             </span>
           )}
           {recherche.avertissements.map((a) => <span key={a} className="formulaire__aide" role="status">{a}</span>)}
-          {image && <img className="formulaire__apercu" src={image} alt="" />}
+          {image && <Vignette image={image} numero={champs.numero} variante="apercu" />}
         </div>
         <label className="formulaire__champ">
           Nom
