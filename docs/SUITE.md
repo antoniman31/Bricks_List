@@ -57,10 +57,16 @@ testé avec sa vraie collection, tout fonctionne.
     sinon le tap était perdu quand le clavier se refermait.
   - *Feuille « Filtres et tri »* : le tri y est rangé avec les filtres (plus de sélecteur dans la page).
   - *Liste ou grille* : un seul bouton dans l'en-tête, choix retenu (`bl_vue`, hors export).
+  - *Icônes* : Material Symbols de Google (arrondies, graisse 400, licence Apache-2.0), tracés copiés dans
+    `src/components/Icones.jsx` (pas de dépendance). Réglages = roue crantée (l'ancienne icône ressemblait
+    à un soleil). Collection = boîte (`inventory_2`).
+  - *Bouton de thème* dans l'en-tête : auto, clair, sombre, puis auto ; l'icône montre l'état actuel, pas
+    de message visible (nom du bouton + zone `role=status` pour les lecteurs d'écran). Les puces des
+    Réglages restent et suivent le même réglage. À 360 px le logo passe à 32 px et le nom à 18 px.
   - *840 px et plus, en liste* : liste à gauche, détail du set à droite (`FicheContenu`, `useLarge`).
     En grille et sous 840 px, le détail reste une feuille.
-- **Qualité** : `npm run lint`, `npm test` (267 tests), `npm run verif:ui` (axe-core, cibles de
-  48 px, débordements, navigation, recherche visible clavier ouvert ; 23 écrans × 2 thèmes × 4
+- **Qualité** : `npm run lint`, `npm test` (270 tests), `npm run verif:ui` (axe-core, cibles de
+  48 px, débordements, navigation, recherche visible clavier ouvert ; 24 écrans × 2 thèmes × 4
   largeurs : 360, 412, 900, 1280). Les trois tournent dans le CI avant le déploiement.
 
 ## Décisions de cadrage (ne pas rouvrir sans raison)

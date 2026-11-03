@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { resoudreTheme, modeValide, lireMode, ecrireMode, MODES, COULEUR_BARRE } from './apparence.js';
+import { modeSuivant, resoudreTheme, modeValide, lireMode, ecrireMode, MODES, COULEUR_BARRE } from './apparence.js';
 
 function faux(initial) {
   const d = new Map(initial ? [['bl_theme', initial]] : []);
@@ -51,4 +51,20 @@ test('une valeur invalide n\'est jamais écrite telle quelle', () => {
 test('la barre d\'état suit le fond de chaque thème', () => {
   assert.equal(COULEUR_BARRE.dark, '#000000');
   assert.match(COULEUR_BARRE.light, /^#[0-9a-f]{6}$/);
+});
+
+test('modeSuivant : auto, clair, sombre, puis retour à auto', () => {
+  assert.equal(modeSuivant('auto'), 'light');
+  assert.equal(modeSuivant('light'), 'dark');
+  assert.equal(modeSuivant('dark'), 'auto');
+});
+
+test('modeSuivant : un mode inconnu repart de l\'automatique sans lever d\'erreur', () => {
+  assert.equal(modeSuivant('violet'), 'auto');
+  assert.equal(modeSuivant(undefined), 'auto');
+  assert.equal(modeSuivant(null), 'auto');
+});
+
+test('modeSuivant : trois appuis ramènent au point de départ', () => {
+  for (const m of ['auto', 'light', 'dark']) assert.equal(modeSuivant(modeSuivant(modeSuivant(m))), m);
 });

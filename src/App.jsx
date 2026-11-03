@@ -26,7 +26,7 @@ import { calculerStats } from './lib/stats.js'
 import { appeler } from './lib/api.js'
 import { chercherSet, completerResultat, messageErreur, rechercherSets } from './lib/rebrickable.js'
 import { ecrireCle, ecrireThemes, lireCle, lireThemes } from './lib/reglages.js'
-import { COULEUR_BARRE, ecrireMode, lireMode, resoudreTheme } from './lib/apparence.js'
+import { COULEUR_BARRE, LIBELLES, ecrireMode, lireMode, modeSuivant, resoudreTheme } from './lib/apparence.js'
 
 const FILTRES_VIDES = { theme: '', etat: '', annee: '', manque: '', emplacement: '', boite: '', notice: '', priorite: '', etiquette: '' }
 const AUCUN = new Set()
@@ -353,6 +353,7 @@ export default function App() {
           <h1 className="appli__titre">Bricks-List</h1>
           <p className="entete__contexte" aria-live="polite">{contexte}</p>
         </div>
+        <p className="visuellement-cache" role="status">Thème : {LIBELLES[mode].toLowerCase()}</p>
         <div className="entete__actions">
           {!vueStats && !selection && visibles.length > 0 && !lectureSeule && (
             <button type="button" className="icone-btn" aria-label="Sélectionner des sets" onClick={() => setSelection({ cle: cleVue, ids: new Set() })}>
@@ -365,6 +366,17 @@ export default function App() {
               <Icone nom={vue === 'liste' ? 'grille' : 'liste'} />
             </button>
           )}
+          {/* L'icône montre le thème actuel ; un appui passe au suivant (auto, clair, sombre). Pas de
+              message visible : le changement se voit à l'écran, et le nom du bouton + la zone
+              ci-dessous le disent aux lecteurs d'écran. */}
+          <button
+            type="button"
+            className="icone-btn"
+            aria-label={`Thème : ${LIBELLES[mode].toLowerCase()}. Passer à ${LIBELLES[modeSuivant(mode)].toLowerCase()}`}
+            onClick={() => changerMode(modeSuivant(mode))}
+          >
+            <Icone nom={mode === 'auto' ? 'auto' : mode === 'light' ? 'clair' : 'sombre'} />
+          </button>
           <button type="button" className="icone-btn" aria-label="Réglages" onClick={() => setEcran({ type: 'reglages' })}>
             <Icone nom="reglages" />
           </button>

@@ -129,6 +129,8 @@ const ECRANS = {
   'grille par emplacement': async (p) => { await p.click(GRILLE); await trier(p, 'Emplacement'); await p.waitForSelector('.rangee .liste--grille'); },
   // À 840 px et plus : le panneau de détail à droite (le deuxième set choisi) ; dessous, la feuille.
   'détail d\'un set': async (p) => { await p.locator('.carte').nth(1).click(); },
+  // Le bouton de thème de l'en-tête : un appui (auto vers clair), l'écran doit rester conforme.
+  'bouton de thème': async (p) => { await p.click('button[aria-label^="Thème"]'); await p.waitForTimeout(150); },
   'stats': async (p) => { await p.click('.nav__item:has-text("Stats")'); await p.waitForSelector('.stats'); },
   'wishlist': async (p) => { await p.click('.nav__item:has-text("Wishlist")'); },
   'recherche (résultats de l\'autre onglet)': async (p) => { await p.fill('input[type=search]', 'Souhait'); await p.waitForSelector('.ailleurs'); await p.locator('input[type=search]').blur(); },

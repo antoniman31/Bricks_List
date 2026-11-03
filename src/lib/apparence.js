@@ -16,6 +16,10 @@ export const COULEUR_BARRE = { light: '#f3f4f7', dark: '#000000' };
 export const resoudreTheme = (mode, systemeSombre) =>
   mode === 'auto' ? (systemeSombre ? 'dark' : 'light') : mode === 'light' ? 'light' : 'dark';
 
+// Le bouton de l'en-tête passe d'un mode au suivant : auto, clair, sombre, puis auto.
+// Un mode inconnu repart de l'automatique plutôt que de lever une erreur.
+export const modeSuivant = (mode) => MODES[(MODES.indexOf(mode) + 1) % MODES.length] ?? 'auto';
+
 // Une valeur inconnue (stockage corrompu) retombe sur l'automatique plutôt que
 // d'imposer un thème arbitraire.
 export const modeValide = (v) => (MODES.includes(v) ? v : 'auto');
