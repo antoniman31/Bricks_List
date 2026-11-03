@@ -16,7 +16,7 @@ function barre(cle, libelle, sets, filtre) {
 // Regroupe par clé ; les sets sans valeur forment une dernière barre « Non
 // renseigné » qui mène au filtre « à compléter » correspondant, au lieu d'être
 // comptés comme un zéro ou oubliés.
-function repartir(sets, cleDe, libelleDe, filtreDe, champManquant, trierBarres) {
+function repartir(sets, cleDe, libelleDe, filtreDe, champManquant, trierBarres, libelleVide = 'Non renseigné') {
   const groupes = new Map();
   const vides = [];
   for (const s of sets) {
@@ -27,7 +27,7 @@ function repartir(sets, cleDe, libelleDe, filtreDe, champManquant, trierBarres) 
   }
   const barres = [...groupes].map(([cle, liste]) => barre(cle, libelleDe(cle), liste, filtreDe(cle)));
   barres.sort(trierBarres);
-  if (vides.length > 0) barres.push(barre('', 'Non renseigné', vides, { manque: champManquant }));
+  if (vides.length > 0) barres.push(barre('', libelleVide, vides, { manque: champManquant }));
   return barres;
 }
 
@@ -55,6 +55,12 @@ export function calculerStats(sets) {
       (a, b) => a.cle.localeCompare(b.cle)),
     etats: repartir(possedes, (s) => s.etat, (e) => e, (e) => ({ etat: e }), 'etat',
       (a, b) => ETATS.indexOf(a.cle) - ETATS.indexOf(b.cle)),
+    // Seulement si la fonction sert : sans aucun emplacement, une seule barre « Non rangé »
+    // qui répéterait le nombre total de sets n'apprendrait rien.
+    emplacements: possedes.some((s) => s.emplacement)
+      ? repartir(possedes, (s) => s.emplacement, (e) => e, (e) => ({ emplacement: e }), 'emplacement',
+        (a, b) => a.libelle.localeCompare(b.libelle, 'fr', { sensitivity: 'base', numeric: true }), 'Non rangé')
+      : [],
     aCompleter: manquants(possedes),
     wishlist: {
       sets: souhaites.length,

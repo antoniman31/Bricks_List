@@ -339,6 +339,15 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
 
 /* Résultats de l'autre onglet : « je l'ai déjà ? » sans changer d'onglet. */
 .ailleurs { margin-top: calc(var(--espace) * 2); }
+/* Liste regroupée par emplacement */
+.rangees { margin-top: var(--espace); display: grid; gap: 16px; }
+.rangee__entete { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.rangee__titre { margin: 0; font-size: 1rem; color: var(--texte-doux); flex: 1; min-width: 0; }
+.rangee__titre--fixe { padding: 12px 0; overflow-wrap: anywhere; }
+.rangee__bascule { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 0; background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; overflow-wrap: anywhere; }
+.rangee__fleche { flex: none; transition: transform 0.15s; }
+.rangee__fleche--ouverte { transform: rotate(90deg); }
+.rangee .liste { margin-top: 0; }
 .ailleurs__titre { margin: 0; font-size: 1rem; color: var(--texte-doux); }
 
 /* Recherche par nom : résultats de l'API, un set par ligne, touchable en entier. */

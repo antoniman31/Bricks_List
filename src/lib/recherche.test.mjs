@@ -180,3 +180,64 @@ test('une fiche sans les nouveaux champs reste filtrable et cherchable', () => {
   assert.deepEqual(ids(filtrer(ancien, { texte: 'ancien' })), ['x']);
   assert.deepEqual(ids(filtrer(ancien, { emplacement: 'Carton A' })), []);
 });
+
+// ---------- regroupement par emplacement ----------
+import { grouperParEmplacement, NON_RANGE } from './recherche.js';
+const R = (id, nom, emplacement, o = {}) => ({ id, nom, numero: `${id}-1`, theme: 'T', annee: 2020, pieces: 1, statut: 'possédé', etat: 'monté', emplacement, boite: null, notice: null, notes: '', dateAjout: null, ...o });
+const RANGEMENT = [R('1', 'Zèbre', 'étagère 10'), R('2', 'Alpha', 'étagère 2'), R('3', 'Beta', ''), R('4', 'Gamma', 'Étagère 2'), R('5', 'Delta', 'étagère 2'), R('6', 'Epsilon', 'cave'), R('7', 'Aaron', '')];
+
+test('grouperParEmplacement : ordre naturel, « Non rangé » en dernier', () => {
+  const g = grouperParEmplacement(RANGEMENT);
+  assert.deepEqual(g.map((x) => x.libelle), ['cave', 'étagère 2', 'Étagère 2', 'étagère 10', NON_RANGE]);
+});
+
+test('grouperParEmplacement : les sets de chaque groupe sont par nom', () => {
+  const g = grouperParEmplacement(RANGEMENT);
+  assert.deepEqual(g.find((x) => x.cle === 'étagère 2').sets.map((s) => s.nom), ['Alpha', 'Delta']);
+  assert.deepEqual(g.find((x) => x.cle === '').sets.map((s) => s.nom), ['Aaron', 'Beta']);
+});
+
+test('grouperParEmplacement : chaque set est dans exactement un groupe', () => {
+  const g = grouperParEmplacement(RANGEMENT);
+  assert.equal(g.reduce((t, x) => t + x.sets.length, 0), RANGEMENT.length);
+  assert.equal(new Set(g.flatMap((x) => x.sets.map((s) => s.id))).size, RANGEMENT.length);
+});
+
+test('grouperParEmplacement : sans aucun emplacement, un seul groupe « Non rangé »', () => {
+  const g = grouperParEmplacement([R('1', 'A', ''), R('2', 'B', '')]);
+  assert.deepEqual(g.map((x) => [x.libelle, x.sets.length]), [[NON_RANGE, 2]]);
+});
+
+test('grouperParEmplacement : liste vide, aucun groupe ; un set sans la propriété est non rangé', () => {
+  assert.deepEqual(grouperParEmplacement([]), []);
+  assert.equal(grouperParEmplacement([{ id: 'x', nom: 'Ancien' }])[0].libelle, NON_RANGE);
+});
+
+test('grouperParEmplacement : ne modifie pas la liste d\'origine', () => {
+  const avant = JSON.stringify(RANGEMENT);
+  grouperParEmplacement(RANGEMENT);
+  assert.equal(JSON.stringify(RANGEMENT), avant);
+});
+
+test('trier par emplacement : rangés d\'abord (ordre naturel puis nom), non rangés à la fin', () => {
+  assert.deepEqual(trier(RANGEMENT, 'emplacement').map((s) => s.nom), ['Epsilon', 'Alpha', 'Delta', 'Gamma', 'Zèbre', 'Aaron', 'Beta']);
+});
+
+test('trier par emplacement est cohérent avec le regroupement', () => {
+  const dansLOrdre = trier(RANGEMENT, 'emplacement').map((s) => s.id);
+  assert.deepEqual(grouperParEmplacement(trier(RANGEMENT, 'emplacement')).flatMap((g) => g.sets.map((s) => s.id)), dansLOrdre);
+});
+
+test('« Sans emplacement » n\'apparaît que si la fonction sert', () => {
+  const sans = [R('1', 'A', ''), R('2', 'B', '')];
+  assert.deepEqual(manquants(sans).champs.map((c) => c.cle), []);
+  assert.equal(manquants(sans).fiches, 0);
+  const avec = [R('1', 'A', 'cave'), R('2', 'B', ''), R('3', 'C', '')];
+  assert.deepEqual(manquants(avec).champs.map((c) => [c.cle, c.nombre]), [['emplacement', 2]]);
+  assert.equal(manquants(avec).fiches, 2);
+});
+
+test('« Sans emplacement » filtre les sets possédés sans emplacement, jamais un souhaité', () => {
+  const l = [R('1', 'A', 'cave'), R('2', 'B', ''), R('3', 'C', '', { statut: 'souhaité', etat: null })];
+  assert.deepEqual(ids(filtrer(l, { manque: 'emplacement' })), ['2']);
+});

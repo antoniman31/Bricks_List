@@ -94,3 +94,47 @@ test('« à compléter » : les chiffres collent au filtre', () => {
 test('wishlist : sets et pièces à acquérir', () => {
   assert.deepEqual(calculerStats(COLLECTION).wishlist, { sets: 2, pieces: 2000, sansPieces: 1 });
 });
+
+// ---------- répartition par emplacement ----------
+const rg = (o) => set({ theme: 'T', annee: 2020, pieces: 100, etat: 'monté', ...o });
+const RANGE = [
+  rg({ nom: 'A', emplacement: 'étagère 2', pieces: 100 }),
+  rg({ nom: 'B', emplacement: 'étagère 2', pieces: null }),
+  rg({ nom: 'C', emplacement: 'étagère 10' }),
+  rg({ nom: 'D', emplacement: 'cave' }),
+  rg({ nom: 'E', emplacement: '' }),
+  rg({ nom: 'F', emplacement: '' }),
+  rg({ nom: 'Souhait', statut: 'souhaité', etat: null, emplacement: '' }),
+];
+
+test('emplacements : vide tant que la fonction ne sert pas', () => {
+  assert.deepEqual(calculerStats(COLLECTION).emplacements, []);
+});
+
+test('emplacements : ordre naturel puis « Non rangé » en dernier', () => {
+  assert.deepEqual(calculerStats(RANGE).emplacements.map((b) => b.libelle), ['cave', 'étagère 2', 'étagère 10', 'Non rangé']);
+});
+
+test('emplacements : chaque barre égale la liste filtrée correspondante', () => {
+  for (const b of calculerStats(RANGE).emplacements) {
+    const liste = filtrer(RANGE, { statut: 'possédé', ...b.filtre });
+    assert.equal(b.sets, liste.length, b.libelle);
+    assert.equal(b.pieces, liste.reduce((t, x) => t + (x.pieces ?? 0), 0), `${b.libelle} : pièces`);
+    assert.equal(b.piecesInconnues, liste.filter((x) => x.pieces == null).length, `${b.libelle} : inconnues`);
+  }
+});
+
+test('emplacements : la somme des barres est le nombre de sets possédés', () => {
+  assert.equal(calculerStats(RANGE).emplacements.reduce((t, b) => t + b.sets, 0), 6);
+});
+
+test('emplacements : « Non rangé » mène au filtre « sans emplacement »', () => {
+  const vide = calculerStats(RANGE).emplacements.at(-1);
+  assert.deepEqual(vide.filtre, { manque: 'emplacement' });
+  assert.equal(vide.sets, 2);
+});
+
+test('« à compléter » compte « sans emplacement » une fois la fonction utilisée', () => {
+  const { aCompleter } = calculerStats(RANGE);
+  assert.deepEqual(aCompleter.champs.filter((c) => c.cle === 'emplacement').map((c) => c.nombre), [2]);
+});
