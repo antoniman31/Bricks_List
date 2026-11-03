@@ -276,3 +276,12 @@ test('trier par date d\'achat : plus récent d\'abord, sans date en dernier, pui
   assert.equal(triPourOnglet('achat', 'souhaité'), 'ajout');
   assert.equal(triPourOnglet('achat', 'possédé'), 'achat');
 });
+
+// ---------- étiquettes ----------
+test('filtrer par étiquette (casse et accents ignorés) et recherche texte', () => {
+  const l = [R('1', 'A', '', { etiquettes: ['Cadeau'] }), R('2', 'B', '', { etiquettes: ['à revendre'] }), R('3', 'C', '')];
+  assert.deepEqual(ids(filtrer(l, { etiquette: 'cadéau' })), ['1']);
+  assert.deepEqual(ids(filtrer(l, { etiquette: 'inconnue' })), []);
+  assert.deepEqual(ids(filtrer(l, { texte: 'revendre' })), ['2']);
+  assert.deepEqual(ids(filtrer(l, {})), ['1', '2', '3']);
+});

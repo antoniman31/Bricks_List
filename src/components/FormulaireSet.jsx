@@ -3,11 +3,12 @@ import Sheet from './Sheet.jsx'
 import Vignette from './Vignette.jsx'
 import { normaliserNumero } from '../lib/numero.js'
 import { normaliserSet, ETATS, LIBELLES_PRIORITE, PRIORITES } from '../lib/model.js'
+import { analyserSaisie, basculerDansSaisie, cleEtiquette, formaterSaisie, preparerSaisie } from '../lib/etiquettes.js'
 import { messageErreur, MESSAGES, MOTS_MIN } from '../lib/rebrickable.js'
 
 const RECHERCHE_VIDE = { etat: 'repos', message: '', avertissements: [] }
 const NOM_VIDE = { mots: '', etat: 'repos', message: '', resultats: [], page: 1, suite: false, total: 0 }
-const VIDE = { numero: '', nom: '', theme: '', annee: '', pieces: '', etat: '', notes: '', emplacement: '', boite: '', notice: '', priorite: '', dateAchat: '', dateMontage: '' }
+const VIDE = { numero: '', nom: '', theme: '', annee: '', pieces: '', etat: '', notes: '', emplacement: '', boite: '', notice: '', priorite: '', dateAchat: '', dateMontage: '', etiquettes: '' }
 
 function versChamps(set) {
   return {
@@ -24,13 +25,14 @@ function versChamps(set) {
     priorite: set.priorite ?? '',
     dateAchat: set.dateAchat ?? '',
     dateMontage: set.dateMontage ?? '',
+    etiquettes: formaterSaisie(set.etiquettes ?? []),
   }
 }
 
 // Sert à l'ajout et à la modification. La validation finale est celle du
 // modèle (normaliserSet) : un set qui passe ici est un set que le stockage
 // acceptera, sans deuxième jeu de règles à tenir à jour.
-export default function FormulaireSet({ initial, statutParDefaut, themesConnus, emplacementsConnus, compterExemplaires, aCle, onChercher, onRechercherNom, onChoisirResultat, onLot, onValider, onFermer }) {
+export default function FormulaireSet({ initial, statutParDefaut, themesConnus, emplacementsConnus, etiquettesConnues, compterExemplaires, aCle, onChercher, onRechercherNom, onChoisirResultat, onLot, onValider, onFermer }) {
   const [champs, setChamps] = useState(initial ? versChamps(initial) : VIDE)
   const [statut, setStatut] = useState(initial?.statut ?? statutParDefaut)
   const [erreur, setErreur] = useState('')
@@ -144,6 +146,9 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
       if (v !== '' && !/^\d+$/.test(v)) return setErreur(`${libelle} doit être un nombre entier.`)
     }
 
+    const etiquettes = preparerSaisie(champs.etiquettes)
+    if (etiquettes.erreur) return setErreur(etiquettes.erreur)
+
     const brut = {
       numero,
       nom: champs.nom,
@@ -159,6 +164,7 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
       priorite: statut === 'souhaité' && champs.priorite !== '' ? champs.priorite : null,
       dateAchat: statut === 'possédé' && champs.dateAchat !== '' ? champs.dateAchat : null,
       dateMontage: statut === 'possédé' && champs.dateMontage !== '' ? champs.dateMontage : null,
+      etiquettes: etiquettes.liste,
       image,
     }
     const verifie = normaliserSet(brut)
@@ -339,6 +345,26 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
               </label>
             </div>
           </>
+        )}
+        <label className="formulaire__champ">
+          Étiquettes
+          <input className="champ" autoComplete="off" placeholder="cadeau, à offrir…" value={champs.etiquettes} onChange={maj('etiquettes')} />
+          <span className="formulaire__aide">Sépare-les par une virgule : 8 au plus, 30 caractères chacune.</span>
+        </label>
+        {etiquettesConnues.length > 0 && (
+          <div className="stats__puces" role="group" aria-label="Étiquettes déjà utilisées">
+            {etiquettesConnues.map((e) => (
+              <button
+                key={e}
+                type="button"
+                className="puce"
+                aria-pressed={analyserSaisie(champs.etiquettes).some((x) => cleEtiquette(x) === cleEtiquette(e))}
+                onClick={() => setChamps((c) => ({ ...c, etiquettes: basculerDansSaisie(c.etiquettes, e) }))}
+              >
+                {e}
+              </button>
+            ))}
+          </div>
         )}
         <label className="formulaire__champ">
           Notes

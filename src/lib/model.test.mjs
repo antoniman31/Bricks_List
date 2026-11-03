@@ -165,3 +165,19 @@ test('dates : un set souhaité n\'en a pas, sans compter de correction', () => {
   assert.equal(r.set.dateAchat, null);
   assert.equal(r.corrections, 0);
 });
+
+// ---------- étiquettes ----------
+test('étiquettes : gardées pour les deux statuts, absentes = [] sans correction', () => {
+  assert.deepEqual(normaliserSet({ numero: '75192-1', nom: 'F', statut: 'possédé', etiquettes: ['à revendre'] }).set.etiquettes, ['à revendre']);
+  assert.deepEqual(normaliserSet({ numero: '75192-1', nom: 'F', statut: 'souhaité', etiquettes: ['cadeau'] }).set.etiquettes, ['cadeau']);
+  const r = normaliserSet({ numero: '75192-1', nom: 'F' });
+  assert.deepEqual(r.set.etiquettes, []);
+  assert.equal(r.corrections, 0);
+});
+
+test('étiquettes : valeur non fiable nettoyée et comptée', () => {
+  const r = normaliserSet({ numero: '75192-1', nom: 'F', etiquettes: ['a', 'A', 5, ''] });
+  assert.deepEqual(r.set.etiquettes, ['a']);
+  assert.equal(r.corrections, 1);
+  assert.deepEqual(normaliserSet({ numero: '75192-1', nom: 'F', etiquettes: 'cadeau' }).set.etiquettes, []);
+});

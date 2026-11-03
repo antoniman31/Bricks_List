@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import CarteSet from './components/CarteSet.jsx'
 import ListeGroupee from './components/ListeGroupee.jsx'
 import { copierTexte } from './lib/fichier.js'
+import { cleEtiquette, etiquettesConnues as etiquettesDe } from './lib/etiquettes.js'
 import { texteWishlist } from './lib/wishlist.js'
 import FiltersSheet from './components/FiltersSheet.jsx'
 import FicheSet from './components/FicheSet.jsx'
@@ -24,7 +25,7 @@ import { chercherSet, completerResultat, messageErreur, rechercherSets } from '.
 import { ecrireCle, ecrireThemes, lireCle, lireThemes } from './lib/reglages.js'
 import { COULEUR_BARRE, ecrireMode, lireMode, resoudreTheme } from './lib/apparence.js'
 
-const FILTRES_VIDES = { theme: '', etat: '', annee: '', manque: '', emplacement: '', boite: '', notice: '', priorite: '' }
+const FILTRES_VIDES = { theme: '', etat: '', annee: '', manque: '', emplacement: '', boite: '', notice: '', priorite: '', etiquette: '' }
 const AUCUN = new Set()
 const PRESENTE_ABSENTE = [{ valeur: 'oui', libelle: 'Présente' }, { valeur: 'non', libelle: 'Absente' }]
 
@@ -160,6 +161,7 @@ export default function App() {
   )
   const themesConnus = useMemo(() => themes(sets), [sets])
   const emplacementsConnus = useMemo(() => emplacements(sets), [sets])
+  const etiquettesUtilisees = useMemo(() => etiquettesDe(sets), [sets])
   const stats = useMemo(() => calculerStats(sets), [sets])
 
   // La sélection n'est valable que pour la vue où elle a été faite. Changer la recherche,
@@ -289,6 +291,10 @@ export default function App() {
     if (filtres.boite !== '' || duOnglet.some((x) => x.boite)) groupes.push({ cle: 'boite', libelle: 'Boîte', options: PRESENTE_ABSENTE })
     if (filtres.notice !== '' || duOnglet.some((x) => x.notice)) groupes.push({ cle: 'notice', libelle: 'Notice', options: PRESENTE_ABSENTE })
   }
+  // Comme l'emplacement : un filtre posé dont la dernière fiche vient de changer reste visible.
+  const etiquettesOnglet = etiquettesDe(duOnglet)
+  if (filtres.etiquette !== '' && !etiquettesOnglet.some((e) => cleEtiquette(e) === cleEtiquette(filtres.etiquette))) etiquettesOnglet.push(filtres.etiquette)
+  if (etiquettesOnglet.length > 0) groupes.push({ cle: 'etiquette', libelle: 'Étiquette', options: etiquettesOnglet.map((e) => ({ valeur: e, libelle: e })) })
   const nbFiltres = groupes.filter((g) => filtres[g.cle] !== '').length
   const filtre = texte !== '' || nbFiltres > 0
 
@@ -495,6 +501,7 @@ export default function App() {
           statutParDefaut={statut}
           themesConnus={themesConnus}
           emplacementsConnus={emplacementsConnus}
+          etiquettesConnues={etiquettesUtilisees}
           compterExemplaires={(numero) => compterExemplaires(sets, numero)}
           aCle={cle !== ''}
           onChercher={chercher}
