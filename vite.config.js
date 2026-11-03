@@ -32,9 +32,10 @@ export default defineConfig({
         display: 'standalone',
         orientation: 'portrait',
         // Ces couleurs habillent l'app avant son exécution (écran de démarrage,
-        // barre système) : elles doivent suivre le fond réel du thème sombre.
-        background_color: '#0f1014',
-        theme_color: '#0f1014',
+        // barre système). Un manifeste n'en porte qu'une : le noir du thème sombre,
+        // le thème clair corrige la barre d'état dès que l'app démarre.
+        background_color: '#000000',
+        theme_color: '#000000',
         icons: [
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
