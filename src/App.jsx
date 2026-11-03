@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import CarteSet from './components/CarteSet.jsx'
+import ListeGroupee from './components/ListeGroupee.jsx'
 import FiltersSheet from './components/FiltersSheet.jsx'
 import FicheSet from './components/FicheSet.jsx'
 import FormulaireSet from './components/FormulaireSet.jsx'
@@ -13,7 +14,7 @@ import StatsView from './components/StatsView.jsx'
 import { charger, sauver } from './lib/storage.js'
 import { ajouter, ajouterPlusieurs, acheter, compterExemplaires, modifier, modifierPlusieurs, supprimer, supprimerPlusieurs } from './lib/collection.js'
 import { ETATS } from './lib/model.js'
-import { TRIS, emplacements, filtrer, groupesAnnees, manquants, CHAMPS_A_COMPLETER, rechercherAilleurs, themes, trier } from './lib/recherche.js'
+import { TRIS, emplacements, filtrer, groupesAnnees, grouperParEmplacement, manquants, CHAMPS_A_COMPLETER, rechercherAilleurs, themes, trier } from './lib/recherche.js'
 import { calculerStats } from './lib/stats.js'
 import { appeler } from './lib/api.js'
 import { chercherSet, completerResultat, messageErreur, rechercherSets } from './lib/rebrickable.js'
@@ -123,13 +124,16 @@ export default function App() {
   }
 
   const duOnglet = useMemo(() => sets.filter((s) => s.statut === statut), [sets, statut])
+  // Le regroupement par emplacement n'existe que pour la collection : un set souhaité
+  // n'est rangé nulle part. Le choix de l'utilisateur est gardé, pas écrasé.
+  const triEffectif = tri === 'emplacement' && statut !== 'possédé' ? 'ajout' : tri
   const visibles = useMemo(
-    () => trier(filtrer(sets, { statut, texte, ...filtres }), tri),
-    [sets, statut, texte, filtres, tri],
+    () => trier(filtrer(sets, { statut, texte, ...filtres }), triEffectif),
+    [sets, statut, texte, filtres, triEffectif],
   )
   const ailleurs = useMemo(
-    () => trier(rechercherAilleurs(sets, statut, texte), tri),
-    [sets, statut, texte, tri],
+    () => trier(rechercherAilleurs(sets, statut, texte), triEffectif),
+    [sets, statut, texte, triEffectif],
   )
   const themesConnus = useMemo(() => themes(sets), [sets])
   const emplacementsConnus = useMemo(() => emplacements(sets), [sets])
@@ -156,6 +160,14 @@ export default function App() {
     const ids = new Set(idsActifs)
     if (ids.has(id)) ids.delete(id)
     else ids.add(id)
+    setSelection({ cle: cleVue, ids })
+  }
+
+  // Un groupe entièrement choisi se décoche, sinon il se complète.
+  function choisirGroupe(idsGroupe) {
+    const ids = new Set(idsActifs)
+    if (idsGroupe.every((id) => ids.has(id))) idsGroupe.forEach((id) => ids.delete(id))
+    else idsGroupe.forEach((id) => ids.add(id))
     setSelection({ cle: cleVue, ids })
   }
 
@@ -340,8 +352,8 @@ export default function App() {
           )}
           <label className="tri">
             Tri
-            <select className="champ" value={tri} onChange={(e) => setTri(e.target.value)}>
-              {TRIS.map((t) => <option key={t.cle} value={t.cle}>{t.libelle}</option>)}
+            <select className="champ" value={triEffectif} onChange={(e) => setTri(e.target.value)}>
+              {TRIS.filter((t) => t.cle !== 'emplacement' || statut === 'possédé').map((t) => <option key={t.cle} value={t.cle}>{t.libelle}</option>)}
             </select>
           </label>
         </div>
@@ -357,7 +369,16 @@ export default function App() {
         />
       )}
 
-      {visibles.length > 0 ? (
+      {visibles.length > 0 && triEffectif === 'emplacement' ? (
+        <ListeGroupee
+          groupes={grouperParEmplacement(visibles)}
+          onOuvrir={(id) => setEcran({ type: 'fiche', id })}
+          selection={!!selection}
+          idsChoisis={idsActifs}
+          onBasculer={basculerSelection}
+          onChoisirGroupe={choisirGroupe}
+        />
+      ) : visibles.length > 0 ? (
         <ul className="liste">
           {visibles.map((s) => (
             <CarteSet

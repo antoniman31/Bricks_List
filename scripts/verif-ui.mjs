@@ -88,6 +88,12 @@ async function verifier(page, largeur) {
 
 const ECRANS = {
   'liste': async () => {},
+  'liste par emplacement': async (p) => { await p.selectOption('select.champ', 'emplacement'); await p.waitForSelector('.rangee'); },
+  'liste par emplacement (sélection)': async (p) => {
+    await p.selectOption('select.champ', 'emplacement');
+    await p.click('button:has-text("Sélectionner")');
+    await p.locator('.rangee button:has-text("Choisir ce groupe")').first().click();
+  },
   'stats': async (p) => { await p.click('.nav__item:has-text("Stats")'); await p.waitForSelector('.stats'); },
   'wishlist': async (p) => { await p.click('.nav__item:has-text("Wishlist")'); },
   'recherche (résultats de l\'autre onglet)': async (p) => { await p.fill('input[type=search]', 'Souhait'); await p.waitForSelector('.ailleurs'); },

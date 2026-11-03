@@ -9,6 +9,9 @@ export const TRIS = [
   { cle: 'nom', libelle: 'Nom' },
   { cle: 'annee', libelle: 'Année' },
   { cle: 'pieces', libelle: 'Pièces' },
+  // Regroupe la liste par emplacement de rangement (voir grouperParEmplacement). Il n'a de
+  // sens que pour la collection : un set souhaité n'est rangé nulle part.
+  { cle: 'emplacement', libelle: 'Emplacement' },
 ];
 
 // La recherche porte sur le nom, le thème, le numéro et l'emplacement de rangement. Les notes en sont
@@ -51,9 +54,19 @@ function comparerNombres(a, b) {
   return b - a;
 }
 
+// Ordre naturel : « étagère 2 » avant « étagère 10 », sans tenir compte de la casse ni des accents.
+const comparerEmplacements = (a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base', numeric: true });
+const comparerNoms = (a, b) => a.nom.localeCompare(b.nom, 'fr', { sensitivity: 'base' });
+
 export function trier(sets, cle) {
   const copie = [...sets];
   switch (cle) {
+    case 'emplacement':
+      // Les sets rangés d'abord, par emplacement puis par nom ; les non rangés à la fin.
+      return copie.sort((a, b) => {
+        if (!a.emplacement !== !b.emplacement) return a.emplacement ? -1 : 1;
+        return (a.emplacement ? comparerEmplacements(a.emplacement, b.emplacement) : 0) || comparerNoms(a, b);
+      });
     case 'nom':
       return copie.sort((a, b) => a.nom.localeCompare(b.nom, 'fr', { sensitivity: 'base' }));
     case 'annee':
@@ -69,6 +82,27 @@ export function trier(sets, cle) {
 // apparaît dès qu'un set le porte, sans toucher au code.
 export function themes(sets) {
   return [...new Set(sets.map((s) => s.theme).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }));
+}
+
+// Découpe une liste en groupes par emplacement : un groupe par emplacement dans l'ordre
+// naturel, puis « Non rangé » en dernier (c'est là que tombe un set sans emplacement).
+// Deux écritures qui ne diffèrent que par la casse (« Salon », « salon ») font deux
+// groupes : un filtre sur l'emplacement les distingue aussi, les deux doivent concorder.
+export const NON_RANGE = 'Non rangé';
+
+export function grouperParEmplacement(sets) {
+  const parLieu = new Map();
+  const nonranges = [];
+  for (const s of sets) {
+    if (!s.emplacement) { nonranges.push(s); continue; }
+    if (!parLieu.has(s.emplacement)) parLieu.set(s.emplacement, []);
+    parLieu.get(s.emplacement).push(s);
+  }
+  const groupes = [...parLieu]
+    .sort(([a], [b]) => comparerEmplacements(a, b))
+    .map(([lieu, liste]) => ({ cle: lieu, libelle: lieu, sets: [...liste].sort(comparerNoms) }));
+  if (nonranges.length > 0) groupes.push({ cle: '', libelle: NON_RANGE, sets: [...nonranges].sort(comparerNoms) });
+  return groupes;
 }
 
 // Les emplacements déjà utilisés : proposés en suggestion dans le formulaire et en
@@ -122,14 +156,22 @@ export const CHAMPS_A_COMPLETER = [
   { cle: 'pieces', libelle: 'Sans pièces', manque: (s) => s.pieces == null },
   // L'état n'existe que pour un set possédé : un set souhaité n'en a pas à compléter.
   { cle: 'etat', libelle: 'État non précisé', manque: (s) => s.statut === 'possédé' && s.etat == null },
+  // Seulement tant que la fonction sert (voir manquants) : sinon tout set « manque »
+  // d'un emplacement qu'on n'a jamais eu l'idée de saisir.
+  { cle: 'emplacement', libelle: 'Sans emplacement', manque: (s) => s.statut === 'possédé' && !s.emplacement },
 ];
 
 // `fiches` compte les sets concernés, pas la somme des colonnes : un même set
 // peut manquer de trois choses et ne fait qu'une fiche à reprendre.
 export function manquants(sets) {
-  const champs = CHAMPS_A_COMPLETER
+  // « Sans emplacement » n'a de sens que si au moins un set a un emplacement : avant
+  // cela, le compter reviendrait à annoncer « 43 fiches à compléter » pour une fonction
+  // que personne n'a encore utilisée.
+  const rangementUtilise = sets.some((s) => s.emplacement);
+  const actifs = CHAMPS_A_COMPLETER.filter((c) => c.cle !== 'emplacement' || rangementUtilise);
+  const champs = actifs
     .map((c) => ({ cle: c.cle, libelle: c.libelle, nombre: sets.filter(c.manque).length }))
     .filter((c) => c.nombre > 0);
-  const fiches = sets.filter((s) => CHAMPS_A_COMPLETER.some((c) => c.manque(s))).length;
+  const fiches = sets.filter((s) => actifs.some((c) => c.manque(s))).length;
   return { champs, fiches };
 }

@@ -41,7 +41,7 @@ function Bloc({ titre, children }) {
 
 export default function StatsView({ stats, onOuvrir, onVoirWishlist }) {
   const [tousLesThemes, setTousLesThemes] = useState(false)
-  const { resume, themes, annees, etats, aCompleter, wishlist } = stats
+  const { resume, themes, annees, etats, emplacements, aCompleter, wishlist } = stats
 
   if (resume.sets === 0) {
     return (
@@ -105,6 +105,12 @@ export default function StatsView({ stats, onOuvrir, onVoirWishlist }) {
       {etats.length > 0 && (
         <Bloc titre="Par état">
           <Barres barres={etats} onOuvrir={onOuvrir} />
+        </Bloc>
+      )}
+
+      {emplacements.length > 0 && (
+        <Bloc titre="Par emplacement">
+          <Barres barres={emplacements} onOuvrir={onOuvrir} />
         </Bloc>
       )}
 
