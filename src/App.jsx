@@ -6,6 +6,7 @@ import FicheSet from './components/FicheSet.jsx'
 import FormulaireSet from './components/FormulaireSet.jsx'
 import LotSheet from './components/LotSheet.jsx'
 import ReglagesSheet from './components/ReglagesSheet.jsx'
+import { demanderPersistance, etatSauvegarde, libelleDelai, lireDerniereSauvegarde, noterSauvegarde } from './lib/sauvegarde.js'
 import Navigation from './components/Navigation.jsx'
 import BarreSelection from './components/BarreSelection.jsx'
 import BarreActionsMasse from './components/BarreActionsMasse.jsx'
@@ -43,6 +44,8 @@ export default function App() {
   const [vueStats, setVueStats] = useState(false)
   const [confirmation, setConfirmation] = useState('')
   const [mode, setMode] = useState(lireMode)
+  const [derniereSauvegarde, setDerniereSauvegarde] = useState(() => lireDerniereSauvegarde())
+  const [persistance, setPersistance] = useState('inconnu')
   // null : pas de sélection. Sinon { cle, ids } : `cle` décrit la vue pour laquelle les ids ont été choisis.
   const [selection, setSelection] = useState(null)
   // La dernière modification en masse, pour pouvoir l'annuler : { avant, apres }.
@@ -54,6 +57,7 @@ export default function App() {
   // on ne propose aucune écriture, sinon la première modification les
   // écraserait avec une collection presque vide.
   const lectureSeule = Boolean(depart.info.illisible)
+  const rappel = etatSauvegarde({ nbSets: sets.length, derniere: derniereSauvegarde })
 
   // Toute modification passe par ici : elle est affichée tout de suite, puis
   // enregistrée, et un échec d'écriture se voit au lieu de se perdre.
@@ -61,6 +65,23 @@ export default function App() {
     setSets(nouveaux)
     const r = sauver(nouveaux)
     setErreurEcriture(r.ok ? '' : `${r.erreur} Les changements sont perdus à la fermeture : exporte la collection.`)
+  }
+
+  // Chrome tranche seul si le stockage est protégé : on le demande une fois au démarrage
+  // et on affiche son verdict dans les Réglages.
+  useEffect(() => {
+    let actif = true
+    demanderPersistance().then((v) => { if (actif) setPersistance(v) })
+    return () => { actif = false }
+  }, [])
+
+  // Appelé par les Réglages après un export réussi. Un échec d'écriture de la date
+  // n'empêche pas la sauvegarde elle-même : on le rend à l'appelant pour l'afficher.
+  function sauvegardeFaite() {
+    const maintenant = new Date()
+    const r = noterSauvegarde(maintenant)
+    if (r.ok) setDerniereSauvegarde(maintenant.toISOString())
+    return r
   }
 
   // Applique le thème résolu, et le suit si le téléphone bascule (en mode
@@ -305,6 +326,12 @@ export default function App() {
       <main className="contenu">
       {erreur && <p className="avis avis--erreur" role="alert">{erreur}{lectureSeule && ' Les modifications sont désactivées pour ne rien écraser.'}</p>}
       {erreurEcriture && <p className="avis avis--erreur" role="alert">{erreurEcriture}</p>}
+      {rappel.rappel && !selection && ecran?.type !== 'reglages' && (
+        <p className="avis" role="status">
+          Dernière sauvegarde : {libelleDelai(rappel.jours)}.{' '}
+          <button type="button" className="lien lien--bouton" onClick={() => setEcran({ type: 'reglages' })}>Sauvegarder</button>
+        </p>
+      )}
       {confirmation && (
         <p className="avis" role="status">
           {confirmation}{' '}
@@ -505,6 +532,9 @@ export default function App() {
           onCleChange={changerCle}
           onTesterCle={tester}
           onAppliquer={appliquer}
+          derniereSauvegarde={derniereSauvegarde}
+          persistance={persistance}
+          onSauvegardeFaite={sauvegardeFaite}
           onFermer={fermer}
         />
       )}

@@ -2,14 +2,17 @@ import { useState } from 'react'
 import Sheet from './Sheet.jsx'
 import { exporter, lireImport } from '../lib/partage.js'
 import { fusionner } from '../lib/collection.js'
-import { telecharger } from '../lib/fichier.js'
+import { partageDisponible, partager, telecharger } from '../lib/fichier.js'
+import { etatSauvegarde, libelleDelai } from '../lib/sauvegarde.js'
 import { cleValide } from '../lib/reglages.js'
 import { LIBELLES, MODES } from '../lib/apparence.js'
 
-export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, cle, onCleChange, onTesterCle, onAppliquer, onFermer }) {
+export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, cle, onCleChange, onTesterCle, onAppliquer, derniereSauvegarde, persistance, onSauvegardeFaite, onFermer }) {
   const [apercu, setApercu] = useState(null)
   const [erreur, setErreur] = useState('')
   const [resultat, setResultat] = useState('')
+  // L'export s'affiche dans sa section, le résultat d'un import dans la sienne.
+  const [resultatExport, setResultatExport] = useState('')
   const [confirmerRemplacement, setConfirmerRemplacement] = useState(false)
   const [saisieCle, setSaisieCle] = useState('')
   const [etatCle, setEtatCle] = useState({ type: '', message: '' })
@@ -39,10 +42,25 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
     setEtatCle(r.ok ? { type: 'ok', message: 'Clé valide : Rebrickable répond.' } : { type: 'erreur', message: r.message })
   }
 
+  // La date de sauvegarde ne se note qu'après un export qui a eu lieu ; si l'écriture
+  // de cette date échoue, la sauvegarde reste valable mais on le dit.
+  function noter(message) {
+    const r = onSauvegardeFaite()
+    setResultatExport(r.ok ? message : `${message} La date de sauvegarde n'a pas pu être enregistrée.`)
+  }
+
   function exporterMaintenant() {
     const { nom, contenu } = exporter(sets)
     telecharger(nom, contenu)
-    setResultat(`${sets.length} set${sets.length > 1 ? 's' : ''} exporté${sets.length > 1 ? 's' : ''} dans ${nom}.`)
+    noter(`${sets.length} set${sets.length > 1 ? 's' : ''} exporté${sets.length > 1 ? 's' : ''} dans ${nom}.`)
+  }
+
+  async function partagerMaintenant() {
+    const { nom, contenu } = exporter(sets)
+    const r = await partager(nom, contenu)
+    if (r.mode === 'annule') return setResultatExport('Partage annulé : rien n\'a été sauvegardé.')
+    if (r.mode === 'echec') return setResultatExport('Le partage a échoué : réessaie, ou utilise « Exporter la collection ».')
+    noter(r.mode === 'partage' ? `Sauvegarde partagée (${nom}).` : `Partage indisponible ici : ${nom} a été téléchargé.`)
   }
 
   async function choisirFichier(e) {
@@ -125,7 +143,21 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
       <section className="reglage">
         <h3 className="reglage__titre">Sauvegarde</h3>
         <p className="reglage__aide">Les données restent dans ce navigateur. Exporte-les pour les garder ou les passer d'un appareil à l'autre.</p>
-        <button type="button" className="bouton" onClick={exporterMaintenant} disabled={sets.length === 0}>Exporter la collection</button>
+        <p className="reglage__aide">
+          Dernière sauvegarde : {libelleDelai(etatSauvegarde({ nbSets: sets.length, derniere: derniereSauvegarde }).jours)}.
+        </p>
+        <p className="reglage__aide">
+          {persistance === 'protege' && 'Stockage protégé : Chrome ne l\'effacera pas pour faire de la place.'}
+          {persistance === 'non-garanti' && 'Stockage non garanti : Chrome peut l\'effacer si l\'appareil manque de place. Installe l\'app sur l\'écran d\'accueil et garde une sauvegarde à jour.'}
+          {persistance === 'inconnu' && 'Protection du stockage : inconnue sur ce navigateur. Garde une sauvegarde à jour.'}
+        </p>
+        <div className="sheet__pied">
+          <button type="button" className="bouton" onClick={exporterMaintenant} disabled={sets.length === 0}>Exporter la collection</button>
+          {partageDisponible() && (
+            <button type="button" className="bouton bouton--plein" onClick={partagerMaintenant} disabled={sets.length === 0}>Partager la sauvegarde</button>
+          )}
+        </div>
+        {resultatExport && <p className="avis" role="status">{resultatExport}</p>}
       </section>
 
       <section className="reglage">
@@ -148,7 +180,7 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
               <>
                 <p>Remplacer tes {sets.length} set{sets.length > 1 ? 's' : ''} par ces {apercu.sets.length} ? Les sets absents du fichier seront perdus.</p>
                 <div className="sheet__pied">
-                  <button type="button" className="bouton" onClick={exporterMaintenant}>Exporter d'abord</button>
+                  <button type="button" className="bouton" onClick={() => { exporterMaintenant(); setResultat('Collection exportée avant le remplacement.') }}>Exporter d'abord</button>
                   <button type="button" className="bouton bouton--danger" onClick={appliquerRemplacement}>Confirmer</button>
                 </div>
                 <button type="button" className="bouton" onClick={() => setConfirmerRemplacement(false)}>Annuler</button>
