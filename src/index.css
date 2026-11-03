@@ -1,3 +1,16 @@
+/* Fredoka (Google Fonts, licence SIL OFL 1.1), sous-ensemble latin, graisse variable.
+   Embarquée dans l'app plutôt que chargée chez Google : elle marche hors ligne, et aucune
+   requête ne part vers un tiers à chaque ouverture. Réservée au nom de l'app et aux titres :
+   en petit et en texte courant, une police arrondie se lit moins bien. */
+@font-face {
+  font-family: 'Fredoka';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('./fonts/fredoka-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 /* Couleurs et tailles par jetons, jamais de valeur écrite en dur dans un
    composant : un thème clair pourra les corriger au même endroit. */
 :root {
@@ -17,7 +30,18 @@
   --vignette: #ffffff;         /* fond des images de sets : leur blanc est intégré à l'image */
   --sur-accent: #15161a;       /* 11,1:1 sur --accent-fond */
   --danger: #ff6b6d;
-  --cible-min: 44px;
+  /* « Conteneur » à la Material 3 : fond teinté pour l'élément sélectionné (section affichée,
+     puce active), moins criard qu'un aplat jaune. 8,6:1 pour le texte dessus, et l'accent
+     lui-même y reste lisible (6,4:1). */
+  --accent-conteneur: #4a3f0a;
+  --sur-accent-conteneur: #ffe88a;
+  /* Couches d'état : une teinte posée sur le fond du contrôle, au survol et à l'appui. */
+  --survol: rgb(242 243 245 / 0.08);
+  --appui: rgb(242 243 245 / 0.14);
+  --cible-min: 48px;           /* Android : 48 dp au moins, même si le visuel est plus petit */
+  --rayon-carte: 16px;
+  --rayon-pilule: 999px;
+  --police-titre: 'Fredoka', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --barre-basse: 64px;
   --rail: 96px;
   --rayon: 12px;
@@ -40,6 +64,10 @@ html[data-theme='light'] {
   --accent: #7a5800;           /* 6,5:1 sur surface */
   --remplissage: #a97c00;
   --danger: #b3261e;           /* 6,5:1 */
+  --accent-conteneur: #ffe08a; /* texte dessus --sur-accent-conteneur : 10,4:1 ; l'accent y reste à 5,1:1 */
+  --sur-accent-conteneur: #3b2d00;
+  --survol: rgb(20 22 28 / 0.08);
+  --appui: rgb(20 22 28 / 0.14);
   color-scheme: light;
 }
 
@@ -66,7 +94,7 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
 .contenu { margin-top: var(--espace); }
 
 .appli__entete { display: flex; align-items: baseline; justify-content: space-between; }
-.appli__titre { margin: 0; font-size: 1.5rem; }
+.appli__titre { margin: 0; font-family: var(--police-titre); font-weight: 600; font-size: 1.5rem; letter-spacing: -0.01em; }
 .appli__version { color: var(--texte-doux); font-size: 0.75rem; }
 
 .avis {
@@ -95,7 +123,7 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
 .bouton {
   padding: 0 16px;
   border: 1px solid var(--bordure-champ);
-  border-radius: var(--rayon);
+  border-radius: var(--rayon-pilule);
   background: var(--surface);
 }
 .bouton:disabled { opacity: 0.4; cursor: default; }
@@ -109,13 +137,14 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
   display: flex;
   gap: var(--espace);
   padding: 8px;
-  border-radius: var(--rayon);
-  background: var(--surface);
+  border-radius: var(--rayon-carte);
+  /* Carte pleine, teintée : elle se détache du fond par son niveau de surface, pas par un contour. */
+  background: var(--surface-haute);
 }
 .carte__texte { min-width: 0; }
 .carte__nom { margin: 0; font-weight: 600; }
 .carte__details { margin: 2px 0 0; color: var(--texte-doux); font-size: 0.8125rem; }
-.carte__etat { margin: 4px 0 0; font-size: 0.75rem; color: var(--accent); }
+.carte__etat { margin: 4px 0 0; font-size: 0.8125rem; color: var(--accent); }
 .carte__majuscule { text-transform: capitalize; }
 .carte__emplacement { overflow-wrap: anywhere; }
 
@@ -130,7 +159,7 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
   padding: 0;
   border: 0;
   border-top: 1px solid var(--bordure);
-  border-radius: var(--rayon) var(--rayon) 0 0;
+  border-radius: 28px 28px 0 0;
   background: var(--surface);
   color: var(--texte);
 }
@@ -159,12 +188,12 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
   border-radius: 999px;
   background: var(--surface-haute);
 }
-.puce[aria-pressed='true'] { background: var(--accent-fond); border-color: var(--accent-fond); color: var(--sur-accent); font-weight: 600; }
+.puce[aria-pressed='true'] { background: var(--accent-conteneur); border-color: var(--accent-conteneur); color: var(--sur-accent-conteneur); font-weight: 600; }
 
 /* Écrans de la 3a : fiche, formulaire, réglages */
 .appli__actions { display: flex; gap: 8px; }
 
-.carte { width: 100%; border: 1px solid var(--bordure); text-align: left; color: inherit; }
+.carte { width: 100%; border: 0; text-align: left; color: inherit; }
 .avis p { margin: 0 0 8px; }
 .avis .sheet__pied { margin-top: 8px; }
 .avis .bouton { margin-top: 8px; }
@@ -317,9 +346,9 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
   font-size: 0.75rem;
 }
 .nav__icone { display: grid; place-items: center; width: 56px; height: 28px; border-radius: 14px; }
-/* La section affichée : pastille jaune derrière l'icône, texte plein. */
+/* La section affichée : pastille teintée derrière l'icône, texte plein. */
 .nav__item[aria-current='page'] { color: var(--texte); font-weight: 600; }
-.nav__item[aria-current='page'] .nav__icone { background: var(--accent-fond); color: var(--sur-accent); }
+.nav__item[aria-current='page'] .nav__icone { background: var(--accent-conteneur); color: var(--sur-accent-conteneur); }
 
 @media (min-width: 600px) {
   #root { padding-left: var(--rail); }
@@ -344,7 +373,7 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
 .rangee__entete { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .rangee__titre { margin: 0; font-size: 1rem; color: var(--texte-doux); flex: 1; min-width: 0; }
 .rangee__titre--fixe { padding: 12px 0; overflow-wrap: anywhere; }
-.rangee__bascule { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 0; background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; overflow-wrap: anywhere; }
+.rangee__bascule { display: flex; align-items: center; gap: 8px; width: 100%; min-height: var(--cible-min); padding: 0; background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; overflow-wrap: anywhere; }
 .rangee__fleche { flex: none; transition: transform 0.15s; }
 .rangee__fleche--ouverte { transform: rotate(90deg); }
 .rangee .liste { margin-top: 0; }
@@ -421,3 +450,23 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
 .masse__nom { min-width: 0; overflow-wrap: anywhere; }
 .masse__numero { flex: none; color: var(--texte-doux); font-size: 0.8125rem; }
 .masse__attention { color: var(--accent); }
+
+
+/* Titres en Fredoka : le nom de l'app, les titres d'écran et de bloc. */
+.sheet__titre, .bloc__titre, .stats h2 { font-family: var(--police-titre); font-weight: 600; }
+
+/* Retour au toucher et au survol (couches d'état Material). La teinte est posée par-dessus le
+   fond du contrôle, quel qu'il soit, sans toucher à ses couleurs : c'est ce qui évite d'avoir
+   à calculer une variante « survol » pour chaque fond. Au survol seulement sur un appareil qui
+   a une souris ; à l'appui, partout, pour que le toucher réponde. */
+html { -webkit-tap-highlight-color: transparent; }
+button:not(:disabled):active, .champ:active { box-shadow: inset 0 0 0 999px var(--appui); }
+@media (hover: hover) {
+  button:not(:disabled):hover { box-shadow: inset 0 0 0 999px var(--survol); }
+  button:not(:disabled):active { box-shadow: inset 0 0 0 999px var(--appui); }
+}
+
+/* Pas de mouvement pour qui l'a demandé. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}

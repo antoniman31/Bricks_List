@@ -1,4 +1,4 @@
-# Bricks List
+# Bricks-List
 
 Collection personnelle de sets LEGO : catalogue, wishlist et statistiques.
 Application React + Vite installable en PWA, sans backend ; les données vivent

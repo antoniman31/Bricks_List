@@ -1,6 +1,6 @@
 // Parcourt chaque écran de l'application, dans les deux thèmes et trois largeurs,
 // et vérifie ce qu'une relecture de code ne voit pas : accessibilité (axe-core,
-// WCAG 2.1 A et AA, dont les contrastes), cibles tactiles d'au moins 44 px,
+// WCAG 2.1 A et AA, dont les contrastes), cibles tactiles d'au moins 48 px,
 // débordements horizontaux, et position de la navigation (barre du bas / rail).
 //
 // Lance `vite preview` sur le dossier `dist` : construire d'abord (`npm run build`).
@@ -64,7 +64,7 @@ async function verifier(page, largeur) {
       // Une case ou un champ fichier se touche par son <label> : c'est lui la cible.
       const cible = el.matches('input[type=checkbox], input[type=file]') ? el.closest('label') ?? el : el;
       const r = cible.getBoundingClientRect(); const s = getComputedStyle(cible);
-      if (visible(r, s) && r.height < 43.5) petits.push(`${el.tagName.toLowerCase()} « ${(el.textContent || el.getAttribute('aria-label') || el.placeholder || '').trim().slice(0, 24)} » ${Math.round(r.height)} px`);
+      if (visible(r, s) && r.height < 47.5) petits.push(`${el.tagName.toLowerCase()} « ${(el.textContent || el.getAttribute('aria-label') || el.placeholder || '').trim().slice(0, 24)} » ${Math.round(r.height)} px`);
     }
     const nav = document.querySelector('.nav')?.getBoundingClientRect();
     const dialogue = document.querySelector('dialog[open]');
@@ -79,7 +79,7 @@ async function verifier(page, largeur) {
     };
   }, largeur);
 
-  const ecarts = [...axe.map((a) => `axe : ${a}`), ...mesures.petits.map((p) => `cible < 44 px : ${p}`)];
+  const ecarts = [...axe.map((a) => `axe : ${a}`), ...mesures.petits.map((p) => `cible < 48 px : ${p}`)];
   if (mesures.debordePage) ecarts.push('débordement horizontal de la page');
   if (mesures.debordeFeuille) ecarts.push('feuille qui déborde de l\'écran');
   if (!mesures.nav) ecarts.push('navigation absente');

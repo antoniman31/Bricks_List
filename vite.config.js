@@ -25,8 +25,8 @@ export default defineConfig({
         // et le jour où celui-ci change l'app installée devient un fantôme que
         // plus rien ne met à jour.
         id: '/Bricks_List/',
-        name: 'Bricks List',
-        short_name: 'Bricks List',
+        name: 'Bricks-List',
+        short_name: 'Bricks-List',
         description: 'Collection de sets LEGO : catalogue, wishlist et statistiques.',
         lang: 'fr',
         display: 'standalone',

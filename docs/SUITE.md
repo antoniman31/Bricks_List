@@ -1,4 +1,4 @@
-# Bricks List : où on en est, et la suite
+# Bricks-List : où on en est, et la suite
 
 État au 3 novembre 2026. Site : https://antoniman31.github.io/Bricks_List/ (la version se lit en bas des Réglages).
 Ce fichier sert à reprendre le travail sans relire la conversation qui l'a produit.
@@ -44,7 +44,7 @@ testé avec sa vraie collection, tout fonctionne.
 - **Étiquettes libres** (8 au plus, 30 caractères) : saisie sur la fiche avec puces des étiquettes
   existantes, filtre, recherche texte. Pas encore d'édition en masse.
 - **Qualité** : `npm run lint`, `npm test` (258 tests), `npm run verif:ui` (axe-core, cibles de
-  44 px, débordements, navigation ; 18 écrans × 2 thèmes × 3 largeurs). Les trois tournent dans
+  48 px, débordements, navigation ; 18 écrans × 2 thèmes × 3 largeurs). Les trois tournent dans
   le CI avant le déploiement.
 
 ## Décisions de cadrage (ne pas rouvrir sans raison)

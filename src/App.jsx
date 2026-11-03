@@ -318,7 +318,7 @@ export default function App() {
   return (
     <div className="appli">
       <header className="appli__entete">
-        <h1 className="appli__titre">Bricks List</h1>
+        <h1 className="appli__titre">Bricks-List</h1>
         <div className="appli__actions">
           <button type="button" className="bouton bouton--plein" disabled={lectureSeule} onClick={() => setEcran({ type: 'formulaire', id: null })}>
             Ajouter
