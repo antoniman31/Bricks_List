@@ -136,6 +136,10 @@ Corollaire : la recherche par nom de Rebrickable ne trouve que de l'anglais (« 
   l'application n'accepte que les numéros de la forme `75192-1`. La recherche par nom les écarte.
 - La recherche par nom s'appuie sur le paramètre `search` de l'API Rebrickable. Antoni a confirmé
   que l'API réelle fonctionne dans l'ensemble.
+- Sur le Galaxy S26 (Chrome Android), le partage d'un fichier JSON est refusé alors que `canShare()`
+  répond oui (testé par Antoni le 3 novembre 2026). Le partage retombe sur un fichier `.txt`
+  (`text/plain`, même contenu), choix retenu dans `bl_partage_texte` ; l'import accepte `.txt`.
+  Le nom exact de l'erreur n'a pas été relevé.
 - Les emplacements sont comparés au caractère près : « Salon » et « salon » font deux groupes.
 
 ## Particularités techniques utiles
