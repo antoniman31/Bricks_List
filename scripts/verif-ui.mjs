@@ -96,6 +96,9 @@ async function verifier(page, largeur) {
 
 // Les contrôles principaux n'ont plus de texte visible à toutes les largeurs : on les vise par leur nom accessible.
 const AJOUTER = 'button[aria-label="Ajouter un set"]';
+// Le + ouvre l'ajout rapide ; le formulaire complet est derrière « Plus d'options ».
+const PLUS_OPTIONS = 'dialog[open] button:has-text("Plus d\'options")';
+const FORMULAIRE = async (p) => { await p.click(AJOUTER); await p.click(PLUS_OPTIONS); await p.waitForSelector('.sheet--plein'); };
 const REGLAGES = 'button[aria-label="Réglages"]';
 const FILTRES = 'button[aria-label^="Filtres"]';
 const GRILLE = 'button[aria-label="Afficher en grille"]';
@@ -168,11 +171,18 @@ const ECRANS = {
     await p.click('.fiche__ligne--edit:has(dt:text-is("Étiquettes")) .fiche__valeur');
     await p.waitForSelector('.fiche__edition');
   },
-  'formulaire (erreur)': async (p) => { await p.click(AJOUTER); await p.click('button[type=submit]'); },
+  'ajout rapide': async (p) => { await p.click(AJOUTER); await p.waitForSelector('#rapide-numero'); },
+  'ajout rapide (numéro saisi)': async (p) => {
+    await p.click(AJOUTER);
+    await p.fill('#rapide-numero', '75192');
+    await p.click('dialog[open] .puce:has-text("Nouveau")');
+    await p.waitForSelector('input[aria-label="Nom du nouvel emplacement"]');
+  },
+  'formulaire (erreur)': async (p) => { await FORMULAIRE(p); await p.click('dialog[open] button[type=submit]'); },
   'formulaire (recherche par nom)': async (p) => {
     await p.evaluate(() => localStorage.setItem('bl_rebrickable', 'cle-de-test-0123456789'));
     await p.reload(); await p.waitForSelector('.carte');
-    await p.click(AJOUTER);
+    await FORMULAIRE(p);
     await p.fill('#champ-recherche-nom', 'millennium falcon'); await p.keyboard.press('Enter'); await p.waitForSelector('.resultat');
   },
   'sélection (cartes cochées)': async (p) => {
@@ -204,7 +214,7 @@ const ECRANS = {
   },
   'formulaire (abandon)': async (p) => {
     await p.click(AJOUTER);
-    await p.fill('#champ-numero', '75192');
+    await p.fill('#rapide-numero', '75192');
     await p.click('dialog[open] button[aria-label="Fermer"]');
     await p.waitForSelector('.sheet__garde');
   },

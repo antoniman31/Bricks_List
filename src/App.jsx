@@ -11,6 +11,7 @@ import FiltersSheet from './components/FiltersSheet.jsx'
 import FicheSet, { FicheContenu } from './components/FicheSet.jsx'
 import FormulaireSet from './components/FormulaireSet.jsx'
 import LotSheet from './components/LotSheet.jsx'
+import AjoutRapide from './components/AjoutRapide.jsx'
 import ReglagesSheet from './components/ReglagesSheet.jsx'
 import { demanderPersistance, etatSauvegarde, libelleDelai, lireDerniereSauvegarde, noterSauvegarde } from './lib/sauvegarde.js'
 import Navigation from './components/Navigation.jsx'
@@ -429,7 +430,7 @@ export default function App() {
               </button>
             </>
           )}
-          <button type="button" className="fab" aria-label="Ajouter un set" disabled={lectureSeule} onMouseDown={garderFocus} onClick={() => setEcran({ type: 'formulaire', id: null })}>
+          <button type="button" className="fab" aria-label="Ajouter un set" disabled={lectureSeule} onMouseDown={garderFocus} onClick={() => setEcran({ type: 'rapide' })}>
             <Icone nom="plus" />
             <span className="fab__libelle" aria-hidden="true">Ajouter</span>
           </button>
@@ -536,7 +537,7 @@ export default function App() {
               : statut === 'possédé' ? 'Aucun set dans la collection.' : 'La wishlist est vide.'}
           </p>
           {!filtre && !lectureSeule && (
-            <button type="button" className="bouton bouton--plein" onClick={() => setEcran({ type: 'formulaire', id: null })}>
+            <button type="button" className="bouton bouton--plein" onClick={() => setEcran({ type: 'rapide' })}>
               Ajouter un set
             </button>
           )}
@@ -619,9 +620,30 @@ export default function App() {
         />
       )}
 
+      {ecran?.type === 'rapide' && (
+        <AjoutRapide
+          statut={statut}
+          aCle={cle !== ''}
+          lieux={emplacementsConnus}
+          compterExemplaires={(numero) => compterExemplaires(sets, numero)}
+          onChercher={chercher}
+          onLot={() => setEcran({ type: 'lot' })}
+          onPlus={(valeurs) => setEcran({ type: 'formulaire', id: null, valeurs })}
+          onFermer={fermer}
+          onAjouter={(brut) => {
+            appliquer(ajouter(sets, brut).sets)
+            setConfirmation('')
+            setFiltres(FILTRES_VIDES)
+            setTexte('')
+            fermer()
+          }}
+        />
+      )}
+
       {ecran?.type === 'formulaire' && (
         <FormulaireSet
           initial={ecran.id ? sets.find((s) => s.id === ecran.id) : null}
+          valeurs={ecran.valeurs}
           statutParDefaut={statut}
           themesConnus={themesConnus}
           emplacementsConnus={emplacementsConnus}
@@ -631,7 +653,6 @@ export default function App() {
           onChercher={chercher}
           onRechercherNom={rechercherNom}
           onChoisirResultat={choisirResultat}
-          onLot={() => setEcran({ type: 'lot' })}
           onFermer={fermer}
           onValider={(brut) => {
             if (ecran.id) {
