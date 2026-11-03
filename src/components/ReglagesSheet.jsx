@@ -3,12 +3,40 @@ import Sheet from './Sheet.jsx'
 import { exporter, lireImport } from '../lib/partage.js'
 import { fusionner } from '../lib/collection.js'
 import { telecharger } from '../lib/fichier.js'
+import { cleValide } from '../lib/reglages.js'
 
-export default function ReglagesSheet({ sets, lectureSeule, onAppliquer, onFermer }) {
+export default function ReglagesSheet({ sets, lectureSeule, cle, onCleChange, onTesterCle, onAppliquer, onFermer }) {
   const [apercu, setApercu] = useState(null)
   const [erreur, setErreur] = useState('')
   const [resultat, setResultat] = useState('')
   const [confirmerRemplacement, setConfirmerRemplacement] = useState(false)
+  const [saisieCle, setSaisieCle] = useState('')
+  const [etatCle, setEtatCle] = useState({ type: '', message: '' })
+  const [test, setTest] = useState(false)
+
+  const saisieValide = cleValide(saisieCle)
+
+  function enregistrerCle() {
+    const r = onCleChange(saisieCle.trim())
+    if (!r.ok) return setEtatCle({ type: 'erreur', message: r.erreur })
+    setSaisieCle('')
+    setEtatCle({ type: 'ok', message: 'Clé enregistrée sur cet appareil.' })
+  }
+
+  function supprimerCle() {
+    const r = onCleChange('')
+    setEtatCle(r.ok ? { type: 'ok', message: 'Clé supprimée.' } : { type: 'erreur', message: r.erreur })
+  }
+
+  // Teste la clé saisie si elle l'est, sinon celle qui est enregistrée : on peut
+  // ainsi vérifier une clé avant de l'enregistrer.
+  async function testerCle() {
+    setTest(true)
+    setEtatCle({ type: '', message: '' })
+    const r = await onTesterCle(saisieValide ? saisieCle.trim() : cle)
+    setTest(false)
+    setEtatCle(r.ok ? { type: 'ok', message: 'Clé valide : Rebrickable répond.' } : { type: 'erreur', message: r.message })
+  }
 
   function exporterMaintenant() {
     const { nom, contenu } = exporter(sets)
@@ -47,6 +75,40 @@ export default function ReglagesSheet({ sets, lectureSeule, onAppliquer, onFerme
 
   return (
     <Sheet ouvert onFermer={onFermer} titre="Réglages">
+      <section className="reglage">
+        <h3 className="reglage__titre">Rebrickable</h3>
+        <p className="reglage__aide">
+          La clé permet de remplir un set à partir de son numéro. Elle reste sur cet appareil et n'est jamais exportée.
+          Compte gratuit sur rebrickable.com, puis Settings, API.
+        </p>
+        {cle && <p className="reglage__aide">Clé enregistrée (se termine par {cle.slice(-4)}).</p>}
+        <label className="formulaire__champ">
+          {cle ? 'Remplacer la clé' : 'Clé API'}
+          <input
+            className="champ"
+            type="password"
+            autoComplete="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            value={saisieCle}
+            onChange={(e) => { setSaisieCle(e.target.value); setEtatCle({ type: '', message: '' }) }}
+          />
+        </label>
+        {saisieCle !== '' && !saisieValide && (
+          <p className="reglage__aide reglage__aide--erreur">Cette clé ne ressemble pas à une clé d'API (aucun espace ni accent).</p>
+        )}
+        <div className="sheet__pied">
+          <button type="button" className="bouton" disabled={test || (!saisieValide && !cle)} onClick={testerCle}>
+            {test ? 'Test…' : 'Tester'}
+          </button>
+          <button type="button" className="bouton bouton--plein" disabled={!saisieValide} onClick={enregistrerCle}>Enregistrer</button>
+        </div>
+        {cle && <button type="button" className="bouton bouton--danger" onClick={supprimerCle}>Supprimer la clé</button>}
+        {etatCle.message && (
+          <p className={`avis${etatCle.type === 'erreur' ? ' avis--erreur' : ''}`} role={etatCle.type === 'erreur' ? 'alert' : 'status'}>{etatCle.message}</p>
+        )}
+      </section>
+
       <section className="reglage">
         <h3 className="reglage__titre">Sauvegarde</h3>
         <p className="reglage__aide">Les données restent dans ce navigateur. Exporte-les pour les garder ou les passer d'un appareil à l'autre.</p>
