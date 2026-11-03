@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ajouter, modifier, supprimer, acheter, fusionner, compterExemplaires } from './collection.js';
+import { ajouter, ajouterPlusieurs, modifier, supprimer, acheter, fusionner, compterExemplaires } from './collection.js';
 
 const BASE = { numero: '75192-1', nom: 'Faucon', theme: 'Star Wars', annee: 2017, pieces: 7541, statut: 'possédé', etat: 'scellé' };
 
@@ -95,4 +95,27 @@ test('réimporter son propre export ne crée pas de doublons', () => {
   const r = fusionner([a], [a]);
   assert.equal(r.sets.length, 1);
   assert.equal(r.ajoutes, 0);
+});
+
+test('ajouterPlusieurs garde l\'ordre de la liste, avec des ids distincts', () => {
+  const bruts = ['75192', '10294', '21330'].map((numero) => ({ ...BASE, numero, nom: `Set ${numero}` }));
+  const { sets, ajoutes } = ajouterPlusieurs([], bruts, new Date('2026-11-03T10:00:00.000Z'));
+  assert.equal(sets.length, 3);
+  assert.equal(ajoutes.length, 3);
+  assert.equal(new Set(sets.map((s) => s.id)).size, 3);
+  const dates = sets.map((s) => Date.parse(s.dateAjout));
+  assert.ok(dates[0] < dates[1] && dates[1] < dates[2]);
+});
+
+test('ajouterPlusieurs ignore une fiche invalide sans bloquer les autres', () => {
+  const { sets, ajoutes } = ajouterPlusieurs([], [BASE, { ...BASE, numero: 'zzz' }, { ...BASE, numero: '10294' }]);
+  assert.equal(sets.length, 2);
+  assert.equal(ajoutes.length, 2);
+});
+
+test('ajouterPlusieurs ajoute à la suite des fiches existantes', () => {
+  const { sets: avant } = ajouter([], BASE);
+  const { sets } = ajouterPlusieurs(avant, [{ ...BASE, numero: '10294' }]);
+  assert.equal(sets.length, 2);
+  assert.equal(sets[0].id, avant[0].id);
 });

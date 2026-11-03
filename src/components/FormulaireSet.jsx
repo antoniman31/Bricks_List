@@ -22,7 +22,7 @@ function versChamps(set) {
 // Sert à l'ajout et à la modification. La validation finale est celle du
 // modèle (normaliserSet) : un set qui passe ici est un set que le stockage
 // acceptera, sans deuxième jeu de règles à tenir à jour.
-export default function FormulaireSet({ initial, statutParDefaut, themesConnus, compterExemplaires, aCle, onChercher, onValider, onFermer }) {
+export default function FormulaireSet({ initial, statutParDefaut, themesConnus, compterExemplaires, aCle, onChercher, onLot, onValider, onFermer }) {
   const [champs, setChamps] = useState(initial ? versChamps(initial) : VIDE)
   const [statut, setStatut] = useState(initial?.statut ?? statutParDefaut)
   const [erreur, setErreur] = useState('')
@@ -66,7 +66,9 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
       }))
       setImage(set.image)
       setErreur('')
-      setRecherche({ etat: 'ok', message: 'Rempli depuis Rebrickable : vérifie et ajoute.', avertissements })
+      // En modification, la recherche remplace nom, thème, année, pièces et image,
+      // mais jamais le statut, l'état ni les notes : ce sont des choix de l'utilisateur.
+      setRecherche({ etat: 'ok', message: `Rempli depuis Rebrickable : vérifie et ${initial ? 'enregistre' : 'ajoute'}.`, avertissements })
     } catch (e) {
       if (mien !== jeton.current) return
       setRecherche({ etat: 'erreur', message: `${messageErreur(e)} Tu peux saisir à la main.`, avertissements: [] })
@@ -113,17 +115,20 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
   return (
     <Sheet ouvert onFermer={onFermer} titre={initial ? 'Modifier le set' : 'Ajouter un set'}>
       <form className="formulaire" onSubmit={valider} noValidate>
+        {!initial && onLot && (
+          <button type="button" className="bouton" onClick={onLot}>Ajouter plusieurs sets d'un coup…</button>
+        )}
         <div className="formulaire__champ">
           <label htmlFor="champ-numero">Numéro</label>
           <div className="formulaire__recherche">
             <input id="champ-numero" className="champ" inputMode="numeric" autoComplete="off" placeholder="75192" value={champs.numero} onChange={maj('numero')} />
-            {!initial && aCle && (
+            {aCle && (
               <button type="button" className="bouton" disabled={recherche.etat === 'charge'} onClick={chercher}>
                 {recherche.etat === 'charge' ? '…' : 'Chercher'}
               </button>
             )}
           </div>
-          {!initial && !aCle && (
+          {!aCle && (
             <span className="formulaire__aide">Pour remplir automatiquement, ajoute ta clé Rebrickable dans les Réglages.</span>
           )}
           {recherche.message && (

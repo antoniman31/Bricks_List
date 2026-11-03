@@ -3,10 +3,11 @@ import CarteSet from './components/CarteSet.jsx'
 import FiltersSheet from './components/FiltersSheet.jsx'
 import FicheSet from './components/FicheSet.jsx'
 import FormulaireSet from './components/FormulaireSet.jsx'
+import LotSheet from './components/LotSheet.jsx'
 import ReglagesSheet from './components/ReglagesSheet.jsx'
 import StatsView from './components/StatsView.jsx'
 import { charger, sauver } from './lib/storage.js'
-import { ajouter, acheter, compterExemplaires, modifier, supprimer } from './lib/collection.js'
+import { ajouter, ajouterPlusieurs, acheter, compterExemplaires, modifier, supprimer } from './lib/collection.js'
 import { ETATS } from './lib/model.js'
 import { TRIS, filtrer, groupesAnnees, manquants, CHAMPS_A_COMPLETER, themes, trier } from './lib/recherche.js'
 import { calculerStats } from './lib/stats.js'
@@ -36,6 +37,7 @@ export default function App() {
   const [tri, setTri] = useState('ajout')
   const [feuille, setFeuille] = useState(false)
   const [vueStats, setVueStats] = useState(false)
+  const [confirmation, setConfirmation] = useState('')
   // Un seul écran à la fois par-dessus la liste : fiche, formulaire, réglages.
   const [ecran, setEcran] = useState(null)
 
@@ -133,6 +135,19 @@ export default function App() {
   const fiche = ecran?.type === 'fiche' ? sets.find((s) => s.id === ecran.id) : null
   const fermer = () => setEcran(null)
 
+  // Les sets d'un lot arrivent d'un coup : on affiche l'onglet où ils atterrissent,
+  // sans filtre qui les cacherait, et on dit combien ont été ajoutés.
+  function ajouterLot(bruts, statutDuLot) {
+    const { sets: nouveaux, ajoutes } = ajouterPlusieurs(sets, bruts)
+    appliquer(nouveaux)
+    setVueStats(false)
+    setStatut(statutDuLot)
+    setFiltres(FILTRES_VIDES)
+    setTexte('')
+    setConfirmation(`${ajoutes.length} set${ajoutes.length > 1 ? 's' : ''} ajouté${ajoutes.length > 1 ? 's' : ''}.`)
+    fermer()
+  }
+
   return (
     <div className="appli">
       <header className="appli__entete">
@@ -147,6 +162,11 @@ export default function App() {
 
       {erreur && <p className="avis avis--erreur" role="alert">{erreur}{lectureSeule && ' Les modifications sont désactivées pour ne rien écraser.'}</p>}
       {erreurEcriture && <p className="avis avis--erreur" role="alert">{erreurEcriture}</p>}
+      {confirmation && (
+        <p className="avis" role="status">
+          {confirmation} <button type="button" className="lien lien--bouton" onClick={() => setConfirmation('')}>Fermer</button>
+        </p>
+      )}
       {(corriges > 0 || rejetes > 0) && (
         <p className="avis" role="status">
           {corriges} fiche{corriges > 1 ? 's' : ''} corrigée{corriges > 1 ? 's' : ''}, {rejetes} ignorée{rejetes > 1 ? 's' : ''} au chargement.
@@ -259,6 +279,7 @@ export default function App() {
           compterExemplaires={(numero) => compterExemplaires(sets, numero)}
           aCle={cle !== ''}
           onChercher={chercher}
+          onLot={() => setEcran({ type: 'lot' })}
           onFermer={fermer}
           onValider={(brut) => {
             if (ecran.id) {
@@ -266,12 +287,24 @@ export default function App() {
               setEcran({ type: 'fiche', id: ecran.id })
             } else {
               appliquer(ajouter(sets, brut).sets)
+              setConfirmation('')
               setStatut(brut.statut)
               setFiltres(FILTRES_VIDES)
               setTexte('')
               fermer()
             }
           }}
+        />
+      )}
+
+      {ecran?.type === 'lot' && (
+        <LotSheet
+          sets={sets}
+          aCle={cle !== ''}
+          statutParDefaut={statut}
+          onChercher={chercher}
+          onAjouter={ajouterLot}
+          onFermer={fermer}
         />
       )}
 
