@@ -143,6 +143,12 @@ const ECRANS = {
     });
     await p.waitForSelector('.maj');
   },
+  // Le bouton « Vérifier les mises à jour » des Réglages : le serveur de test sert le même build, donc « à jour ».
+  'réglages (vérification de version)': async (p) => {
+    await p.click(REGLAGES);
+    await p.click('dialog[open] button:has-text("Vérifier les mises à jour")');
+    await p.waitForSelector('dialog[open] [role=status]:has-text("dernière version")');
+  },
   'stats': async (p) => { await p.click('.nav__item:has-text("Stats")'); await p.waitForSelector('.stats'); },
   'wishlist': async (p) => { await p.click('.nav__item:has-text("Wishlist")'); },
   'recherche (résultats de l\'autre onglet)': async (p) => { await p.fill('input[type=search]', 'Souhait'); await p.waitForSelector('.ailleurs'); await p.locator('input[type=search]').blur(); },

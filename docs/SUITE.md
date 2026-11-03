@@ -72,10 +72,13 @@ testé avec sa vraie collection, tout fonctionne.
   disponible » (Plus tard, Recharger) s'affiche si l'app est restée ouverte pendant une publication, et
   seulement si le serveur annonce un autre fichier de code que celui de la page. Au retour au premier plan,
   l'app cherche une mise à jour (au plus une fois par minute). `src/lib/miseAJour.js`.
+  Dans les Réglages, « Vérifier les mises à jour » compare le fichier de code affiché à celui du serveur : il
+  recharge seul s'il y en a un autre, dit « dernière version » sinon, et signale un échec (hors ligne) au lieu
+  de répondre « à jour » par défaut (`verifierMiseAJour`).
   *Limite* : si on installe l'app puis qu'on coupe le réseau avant le deuxième lancement, la page d'accueil
   n'est pas encore en cache.
-- **Qualité** : `npm run lint`, `npm test` (282 tests), `npm run verif:ui` (axe-core, cibles de
-  48 px, débordements, navigation, recherche visible clavier ouvert ; 25 écrans × 2 thèmes × 4
+- **Qualité** : `npm run lint`, `npm test` (288 tests), `npm run verif:ui` (axe-core, cibles de
+  48 px, débordements, navigation, recherche visible clavier ouvert ; 26 écrans × 2 thèmes × 4
   largeurs : 360, 412, 900, 1280). Les trois tournent dans le CI avant le déploiement.
 
 ## Décisions de cadrage (ne pas rouvrir sans raison)

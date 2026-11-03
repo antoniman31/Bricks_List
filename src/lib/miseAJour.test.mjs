@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { surveillerMisesAJour, pageObsolete } from './miseAJour.js';
+import { surveillerMisesAJour, pageObsolete, verifierMiseAJour } from './miseAJour.js';
 
 // Faux service worker : un EventTarget avec un `controller` et un `ready` dont `update` est espionné.
 function fauxSw({ controller = null, updateRefuse = false } = {}) {
@@ -124,4 +124,41 @@ test('pageObsolete : serveur illisible ou réponse sans fichier de code = on pro
   assert.equal(await pageObsolete({ doc: docAvec('/Bricks_List/assets/index-AAA.js'), chercher: serveurAvec('', false), adresse: '/' }), true);
   assert.equal(await pageObsolete({ doc: docAvec('/Bricks_List/assets/index-AAA.js'), chercher: serveurAvec('<html>rien</html>'), adresse: '/' }), false);
   assert.equal(await pageObsolete({ doc: { querySelector: () => null }, chercher: serveurAvec('x'), adresse: '/' }), true);
+});
+
+// ---------- verifierMiseAJour : le bouton « Vérifier les mises à jour » ----------
+const reponseOk = (html) => async () => ({ ok: true, text: async () => html });
+const swAvec = (update) => ({ getRegistration: async () => ({ update }) });
+
+test('verifierMiseAJour : même fichier de code = à jour, et on demande un nouveau worker', async () => {
+  let maj = 0;
+  const r = await verifierMiseAJour({ sw: swAvec(async () => { maj += 1; }), doc: docAvec('/B/assets/index-AAA.js'), chercher: reponseOk('<script src="/B/assets/index-AAA.js">'), adresse: '/B/' });
+  assert.equal(r, 'a-jour');
+  assert.equal(maj, 1);
+});
+
+test('verifierMiseAJour : un autre fichier de code chez le serveur = nouvelle version', async () => {
+  const r = await verifierMiseAJour({ sw: swAvec(async () => {}), doc: docAvec('/B/assets/index-AAA.js'), chercher: reponseOk('<script src="/B/assets/index-BBB.js">'), adresse: '/B/' });
+  assert.equal(r, 'obsolete');
+});
+
+test('verifierMiseAJour : réseau coupé ou worker qui refuse = hors ligne, pas « à jour »', async () => {
+  const coupe = async () => { throw new TypeError('Failed to fetch'); };
+  assert.equal(await verifierMiseAJour({ sw: swAvec(async () => {}), doc: docAvec('/B/assets/index-AAA.js'), chercher: coupe, adresse: '/B/' }), 'hors-ligne');
+  assert.equal(await verifierMiseAJour({ sw: swAvec(coupe), doc: docAvec('/B/assets/index-AAA.js'), chercher: reponseOk('<script src="/B/assets/index-AAA.js">'), adresse: '/B/' }), 'hors-ligne');
+});
+
+test('verifierMiseAJour : réponse en erreur (404, 500) = hors ligne', async () => {
+  const erreur = async () => ({ ok: false, text: async () => 'erreur' });
+  assert.equal(await verifierMiseAJour({ sw: swAvec(async () => {}), doc: docAvec('/B/assets/index-AAA.js'), chercher: erreur, adresse: '/B/' }), 'hors-ligne');
+});
+
+test('verifierMiseAJour : rien à comparer (mode développement) = inconnu', async () => {
+  assert.equal(await verifierMiseAJour({ sw: swAvec(async () => {}), doc: { querySelector: () => null }, chercher: reponseOk('<script src="/B/assets/index-AAA.js">'), adresse: '/B/' }), 'inconnu');
+  assert.equal(await verifierMiseAJour({ sw: swAvec(async () => {}), doc: docAvec('/B/assets/index-AAA.js'), chercher: reponseOk('<html>rien</html>'), adresse: '/B/' }), 'inconnu');
+});
+
+test('verifierMiseAJour : sans service worker, on compare quand même la page', async () => {
+  const r = await verifierMiseAJour({ sw: undefined, doc: docAvec('/B/assets/index-AAA.js'), chercher: reponseOk('<script src="/B/assets/index-BBB.js">'), adresse: '/B/' });
+  assert.equal(r, 'obsolete');
 });
