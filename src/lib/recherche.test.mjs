@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { filtrer, trier, themes, normaliserTexte, modeAnnees, cleAnnee, libelleAnnee, groupesAnnees, manquants, rechercherAilleurs, emplacements } from './recherche.js';
+import { filtrer, trier, themes, normaliserTexte, modeAnnees, cleAnnee, libelleAnnee, groupesAnnees, manquants, rechercherAilleurs, emplacements, comptesEmplacements } from './recherche.js';
 
 const S = [
   { id: '1', numero: '75192-1', nom: 'Faucon Millenium', theme: 'Star Wars', annee: 2017, pieces: 7541, statut: 'possédé', etat: 'scellé', dateAjout: '2026-10-01', notes: 'secret' },
@@ -284,4 +284,10 @@ test('filtrer par étiquette (casse et accents ignorés) et recherche texte', ()
   assert.deepEqual(ids(filtrer(l, { etiquette: 'inconnue' })), []);
   assert.deepEqual(ids(filtrer(l, { texte: 'revendre' })), ['2']);
   assert.deepEqual(ids(filtrer(l, {})), ['1', '2', '3']);
+});
+
+test('comptesEmplacements : compte les sets par emplacement, trié, sans les sets non rangés', () => {
+  const sets = [{ emplacement: 'Étagère 2' }, { emplacement: 'Carton A' }, { emplacement: 'Étagère 2' }, { emplacement: '' }, {}];
+  assert.deepEqual(comptesEmplacements(sets), [{ nom: 'Carton A', n: 1 }, { nom: 'Étagère 2', n: 2 }]);
+  assert.deepEqual(comptesEmplacements([]), []);
 });
