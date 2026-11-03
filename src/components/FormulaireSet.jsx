@@ -6,7 +6,7 @@ import { normaliserSet, ETATS } from '../lib/model.js'
 import { messageErreur, MESSAGES } from '../lib/rebrickable.js'
 
 const RECHERCHE_VIDE = { etat: 'repos', message: '', avertissements: [] }
-const VIDE = { numero: '', nom: '', theme: '', annee: '', pieces: '', etat: '', notes: '' }
+const VIDE = { numero: '', nom: '', theme: '', annee: '', pieces: '', etat: '', notes: '', emplacement: '', boite: '', notice: '' }
 
 function versChamps(set) {
   return {
@@ -17,13 +17,16 @@ function versChamps(set) {
     pieces: set.pieces ?? '',
     etat: set.etat ?? '',
     notes: set.notes,
+    emplacement: set.emplacement ?? '',
+    boite: set.boite ?? '',
+    notice: set.notice ?? '',
   }
 }
 
 // Sert à l'ajout et à la modification. La validation finale est celle du
 // modèle (normaliserSet) : un set qui passe ici est un set que le stockage
 // acceptera, sans deuxième jeu de règles à tenir à jour.
-export default function FormulaireSet({ initial, statutParDefaut, themesConnus, compterExemplaires, aCle, onChercher, onLot, onValider, onFermer }) {
+export default function FormulaireSet({ initial, statutParDefaut, themesConnus, emplacementsConnus, compterExemplaires, aCle, onChercher, onLot, onValider, onFermer }) {
   const [champs, setChamps] = useState(initial ? versChamps(initial) : VIDE)
   const [statut, setStatut] = useState(initial?.statut ?? statutParDefaut)
   const [erreur, setErreur] = useState('')
@@ -95,6 +98,9 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
       statut,
       etat: statut === 'possédé' && champs.etat !== '' ? champs.etat : null,
       notes: champs.notes,
+      emplacement: statut === 'possédé' ? champs.emplacement : '',
+      boite: statut === 'possédé' && champs.boite !== '' ? champs.boite : null,
+      notice: statut === 'possédé' && champs.notice !== '' ? champs.notice : null,
       image,
     }
     const verifie = normaliserSet(brut)
@@ -179,6 +185,35 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
             </label>
           )}
         </div>
+        {statut === 'possédé' && (
+          <>
+            <label className="formulaire__champ">
+              Emplacement de rangement
+              <input className="champ" list="emplacements-connus" autoComplete="off" maxLength={60} placeholder="Étagère 2, carton A…" value={champs.emplacement} onChange={maj('emplacement')} />
+              <datalist id="emplacements-connus">
+                {emplacementsConnus.map((e) => <option key={e} value={e} />)}
+              </datalist>
+            </label>
+            <div className="formulaire__ligne">
+              <label className="formulaire__champ">
+                Boîte
+                <select className="champ" value={champs.boite} onChange={maj('boite')}>
+                  <option value="">Non précisé</option>
+                  <option value="oui">Présente</option>
+                  <option value="non">Absente</option>
+                </select>
+              </label>
+              <label className="formulaire__champ">
+                Notice
+                <select className="champ" value={champs.notice} onChange={maj('notice')}>
+                  <option value="">Non précisé</option>
+                  <option value="oui">Présente</option>
+                  <option value="non">Absente</option>
+                </select>
+              </label>
+            </div>
+          </>
+        )}
         <label className="formulaire__champ">
           Notes
           <textarea className="champ champ--texte" rows={3} value={champs.notes} onChange={maj('notes')} />

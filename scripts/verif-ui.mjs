@@ -28,6 +28,7 @@ for (let i = 0; i < 16; i += 1) {
     id: `p${i}`, numero: `${10000 + i}-1`, nom: `Set numéro ${i} avec un nom assez long pour passer à la ligne`,
     theme: i % 7 === 3 ? '' : THEMES_SETS[i % 5], annee: i % 6 === 2 ? null : 2008 + ((i * 3) % 17),
     pieces: i % 5 === 1 ? null : 300 + i * 211, statut: 'possédé', etat: ['scellé', 'monté', 'démonté', 'incomplet', null][i % 5],
+    emplacement: i % 3 === 0 ? 'étagère 2' : '', boite: ['oui', 'non', null][i % 3], notice: [null, 'oui', 'non'][i % 3],
     notes: 'une note', image: i % 2 ? 'https://cdn.rebrickable.com/media/sets/test.png' : null, dateAjout: `2026-0${1 + (i % 9)}-10T00:00:00.000Z`,
   });
 }
@@ -90,7 +91,7 @@ const ECRANS = {
   'stats': async (p) => { await p.click('.nav__item:has-text("Stats")'); await p.waitForSelector('.stats'); },
   'wishlist': async (p) => { await p.click('.nav__item:has-text("Wishlist")'); },
   'recherche (résultats de l\'autre onglet)': async (p) => { await p.fill('input[type=search]', 'Souhait'); await p.waitForSelector('.ailleurs'); },
-  'filtres': async (p) => { await p.click('button:has-text("Filtres")'); await p.click('.groupe__ligne:has-text("Thème")'); },
+  'filtres': async (p) => { await p.click('button:has-text("Filtres")'); await p.click('.groupe__ligne:has-text("Emplacement")'); },
   'fiche': async (p) => { await p.locator('.carte').first().click(); },
   'formulaire (erreur)': async (p) => { await p.click('header >> text=Ajouter'); await p.click('button[type=submit]'); },
   'réglages': async (p) => { await p.click('header >> text=Réglages'); },

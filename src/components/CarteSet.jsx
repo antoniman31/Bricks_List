@@ -15,7 +15,13 @@ export default function CarteSet({ set, onOuvrir }) {
         <div className="carte__texte">
           <p className="carte__nom">{set.nom}</p>
           <p className="carte__details">{set.numero}{details.length > 0 && ` · ${details.join(' · ')}`}</p>
-          {set.etat && <p className="carte__etat">{set.etat}</p>}
+          {(set.etat || set.emplacement) && (
+            <p className="carte__etat">
+              {set.etat && <span className="carte__majuscule">{set.etat}</span>}
+              {set.etat && set.emplacement && ' · '}
+              {set.emplacement && <span className="carte__emplacement">{set.emplacement}</span>}
+            </p>
+          )}
         </div>
       </button>
     </li>

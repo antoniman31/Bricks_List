@@ -115,7 +115,9 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
 .carte__texte { min-width: 0; }
 .carte__nom { margin: 0; font-weight: 600; }
 .carte__details { margin: 2px 0 0; color: var(--texte-doux); font-size: 0.8125rem; }
-.carte__etat { margin: 4px 0 0; font-size: 0.75rem; color: var(--accent); text-transform: capitalize; }
+.carte__etat { margin: 4px 0 0; font-size: 0.75rem; color: var(--accent); }
+.carte__majuscule { text-transform: capitalize; }
+.carte__emplacement { overflow-wrap: anywhere; }
 
 .vide { margin: 32px 0; text-align: center; color: var(--texte-doux); }
 

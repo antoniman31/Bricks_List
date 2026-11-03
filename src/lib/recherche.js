@@ -11,20 +11,23 @@ export const TRIS = [
   { cle: 'pieces', libelle: 'Pièces' },
 ];
 
-// La recherche porte sur le nom, le thème et le numéro. Les notes en sont
+// La recherche porte sur le nom, le thème, le numéro et l'emplacement de rangement. Les notes en sont
 // exclues volontairement : un mot d'une note faisait remonter des sets sans
 // rapport avec ce qu'on cherchait.
-export function filtrer(sets, { statut, texte = '', theme = '', etat = '', annee = '', manque = '' } = {}) {
+export function filtrer(sets, { statut, texte = '', theme = '', etat = '', annee = '', manque = '', emplacement = '', boite = '', notice = '' } = {}) {
   const q = normaliserTexte(texte);
   const champManquant = CHAMPS_A_COMPLETER.find((c) => c.cle === manque);
   return sets.filter((s) => {
     if (statut && s.statut !== statut) return false;
     if (theme && s.theme !== theme) return false;
     if (etat && s.etat !== etat) return false;
+    if (emplacement && s.emplacement !== emplacement) return false;
+    if (boite && s.boite !== boite) return false;
+    if (notice && s.notice !== notice) return false;
     if (annee && !correspondAnnee(s.annee, annee)) return false;
     if (champManquant && !champManquant.manque(s)) return false;
     if (!q) return true;
-    return normaliserTexte(`${s.nom} ${s.theme} ${s.numero}`).includes(q);
+    return normaliserTexte(`${s.nom} ${s.theme} ${s.numero} ${s.emplacement ?? ''}`).includes(q);
   });
 }
 
@@ -66,6 +69,12 @@ export function trier(sets, cle) {
 // apparaît dès qu'un set le porte, sans toucher au code.
 export function themes(sets) {
   return [...new Set(sets.map((s) => s.theme).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }));
+}
+
+// Les emplacements déjà utilisés : proposés en suggestion dans le formulaire et en
+// filtre. Comme les thèmes, ils viennent de la collection, pas d'une liste fermée.
+export function emplacements(sets) {
+  return [...new Set(sets.map((s) => s.emplacement).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base', numeric: true }));
 }
 
 // Les années se regroupent par décennie dès que la collection s'étale sur plus de

@@ -5,6 +5,8 @@ export const ETATS = ['scellé', 'monté', 'démonté', 'incomplet'];
 
 const ANNEE_MIN = 1949; // premières briques LEGO à tenons
 const NOTES_MAX = 2000;
+const EMPLACEMENT_MAX = 60;
+export const OUI_NON = ['oui', 'non'];
 
 function nouvelId() {
   return globalThis.crypto?.randomUUID?.() ?? `id-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -50,6 +52,15 @@ export function normaliserSet(brut, { anneeMax = new Date().getFullYear() + 2 } 
   const image = typeof brut.image === 'string' && brut.image.startsWith('https://') ? brut.image : null;
   const dateAjout = typeof brut.dateAjout === 'string' && !Number.isNaN(Date.parse(brut.dateAjout)) ? brut.dateAjout : null;
   const notes = typeof brut.notes === 'string' ? brut.notes.slice(0, NOTES_MAX) : '';
+  // Emplacement de rangement, boîte et notice : comme l'état, ils n'ont de sens que
+  // pour un set qu'on possède. Les fiches d'avant ces champs n'en ont pas : ce n'est
+  // pas une erreur, elles gardent simplement « non précisé ».
+  const possede = statut === 'possédé';
+  const emplacement = possede && typeof brut.emplacement === 'string' ? brut.emplacement.trim().slice(0, EMPLACEMENT_MAX) : '';
+  const boiteValide = brut.boite == null || OUI_NON.includes(brut.boite);
+  const boite = possede && OUI_NON.includes(brut.boite) ? brut.boite : null;
+  const noticeValide = brut.notice == null || OUI_NON.includes(brut.notice);
+  const notice = possede && OUI_NON.includes(brut.notice) ? brut.notice : null;
 
   return {
     set: {
@@ -64,6 +75,9 @@ export function normaliserSet(brut, { anneeMax = new Date().getFullYear() + 2 } 
       etat: corriger(etatValide, etat),
       dateAjout: corriger(brut.dateAjout == null || dateAjout !== null, dateAjout),
       notes,
+      emplacement,
+      boite: corriger(boiteValide, boite),
+      notice: corriger(noticeValide, notice),
     },
     corrections,
   };
