@@ -101,8 +101,10 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
 .vide { margin: 32px 0; text-align: center; color: var(--texte-doux); }
 
 .sheet {
-  width: 100%;
-  max-width: 720px;
+  /* 100vw et non 100% : un <dialog> modal se dimensionne sur son contenu, et
+     un champ à largeur intrinsèque suffisait à le rendre plus large que l'écran. */
+  width: min(100vw, 720px);
+  max-width: 100vw;
   margin: auto auto 0;
   padding: 0;
   border: 0;
@@ -111,7 +113,7 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
   color: var(--texte);
 }
 .sheet::backdrop { background: rgb(0 0 0 / 0.6); }
-.sheet__corps { padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); max-height: 80vh; overflow-y: auto; }
+.sheet__corps { min-width: 0; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); max-height: 80vh; overflow-y: auto; }
 .sheet__entete { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--espace); }
 .sheet__titre { margin: 0; font-size: 1.125rem; }
 .sheet__pied { display: flex; gap: 8px; justify-content: space-between; margin-top: 16px; }
@@ -136,3 +138,40 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
   background: var(--surface-haute);
 }
 .puce[aria-pressed='true'] { background: var(--accent); border-color: var(--accent); color: var(--sur-accent); font-weight: 600; }
+
+/* Écrans de la 3a : fiche, formulaire, réglages */
+.appli__actions { display: flex; gap: 8px; }
+
+.carte { width: 100%; border: 0; text-align: left; color: inherit; }
+.avis p { margin: 0 0 8px; }
+.avis .sheet__pied { margin-top: 8px; }
+.avis .bouton { margin-top: 8px; }
+.avis .sheet__pied .bouton { margin-top: 0; }
+
+.vide { display: grid; gap: var(--espace); justify-items: center; }
+.vide p { margin: 0; }
+
+.bouton--danger { color: var(--danger); border-color: var(--danger); background: transparent; }
+.bouton--fichier { display: inline-flex; align-items: center; min-height: var(--cible-min); margin-top: 8px; cursor: pointer; }
+.visuellement-cache { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; }
+.bouton--fichier:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.formulaire { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--espace); }
+.formulaire__champ { display: grid; gap: 4px; min-width: 0; color: var(--texte-doux); font-size: 0.875rem; }
+.formulaire__champ .champ { width: 100%; min-width: 0; }
+.formulaire__ligne { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--espace); }
+.champ--texte { padding: 8px 12px; resize: vertical; }
+
+.fiche__image { display: block; width: 100%; max-height: 180px; margin-bottom: var(--espace); border-radius: 8px; object-fit: contain; background: var(--surface-haute); }
+.fiche__image--vide { display: grid; place-items: center; height: 120px; color: var(--texte-doux); }
+.fiche { margin: 0; }
+.fiche__ligne { display: flex; justify-content: space-between; gap: var(--espace); padding: 8px 0; border-bottom: 1px solid var(--bordure); }
+.fiche dt { color: var(--texte-doux); }
+.fiche dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
+.fiche__achat { display: grid; gap: 8px; margin-top: var(--espace); }
+.lien { display: inline-flex; align-items: center; min-height: var(--cible-min); margin-top: 8px; color: var(--accent); }
+
+.reglage { margin-bottom: 20px; }
+.reglage__titre { margin: 0 0 4px; font-size: 1rem; }
+.reglage__aide { margin: 0 0 8px; color: var(--texte-doux); font-size: 0.875rem; }
+.reglage__version { margin: 0; color: var(--texte-doux); font-size: 0.75rem; }

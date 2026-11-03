@@ -1,8 +1,12 @@
 import { useMemo, useState } from 'react'
 import CarteSet from './components/CarteSet.jsx'
 import FiltersSheet from './components/FiltersSheet.jsx'
-import { charger } from './lib/storage.js'
-import { SEED } from './lib/seed.js'
+import FicheSet from './components/FicheSet.jsx'
+import FormulaireSet from './components/FormulaireSet.jsx'
+import ReglagesSheet from './components/ReglagesSheet.jsx'
+import { charger, sauver } from './lib/storage.js'
+import { ajouter, acheter, compterExemplaires, modifier, supprimer } from './lib/collection.js'
+import { ETATS } from './lib/model.js'
 import { TRIS, annees, filtrer, themes, trier } from './lib/recherche.js'
 
 const ONGLETS = [
@@ -13,23 +17,40 @@ const FILTRES_VIDES = { theme: '', etat: '', annee: '' }
 
 function demarrer() {
   const r = charger()
-  return { sets: r.sets ?? SEED, exemples: r.sets === null, info: r }
+  return { sets: r.sets ?? [], info: r }
 }
 
 export default function App() {
   const [depart] = useState(demarrer)
-  const sets = depart.sets
+  const [sets, setSets] = useState(depart.sets)
+  const [erreurEcriture, setErreurEcriture] = useState('')
   const [statut, setStatut] = useState('possédé')
   const [texte, setTexte] = useState('')
   const [filtres, setFiltres] = useState(FILTRES_VIDES)
   const [tri, setTri] = useState('ajout')
   const [feuille, setFeuille] = useState(false)
+  // Un seul écran à la fois par-dessus la liste : fiche, formulaire, réglages.
+  const [ecran, setEcran] = useState(null)
+
+  // Des données illisibles ne sont jamais remplacées : tant qu'elles sont là,
+  // on ne propose aucune écriture, sinon la première modification les
+  // écraserait avec une collection presque vide.
+  const lectureSeule = Boolean(depart.info.illisible)
+
+  // Toute modification passe par ici : elle est affichée tout de suite, puis
+  // enregistrée, et un échec d'écriture se voit au lieu de se perdre.
+  function appliquer(nouveaux) {
+    setSets(nouveaux)
+    const r = sauver(nouveaux)
+    setErreurEcriture(r.ok ? '' : `${r.erreur} Les changements sont perdus à la fermeture : exporte la collection.`)
+  }
 
   const duOnglet = useMemo(() => sets.filter((s) => s.statut === statut), [sets, statut])
   const visibles = useMemo(
     () => trier(filtrer(sets, { statut, texte, ...filtres }), tri),
     [sets, statut, texte, filtres, tri],
   )
+  const themesConnus = useMemo(() => themes(sets), [sets])
 
   // Les filtres d'un onglet ne veulent rien dire dans l'autre (un état n'existe
   // pas pour un set souhaité) : changer d'onglet les remet à zéro, sinon un
@@ -48,26 +69,33 @@ export default function App() {
     groupes.splice(1, 0, {
       cle: 'etat',
       libelle: 'État',
-      options: ['scellé', 'monté', 'démonté', 'incomplet'].map((e) => ({ valeur: e, libelle: e })),
+      options: ETATS.map((e) => ({ valeur: e, libelle: e })),
     })
   }
   const nbFiltres = groupes.filter((g) => filtres[g.cle] !== '').length
   const filtre = texte !== '' || nbFiltres > 0
 
   const { erreur, corriges, rejetes } = depart.info
+  const fiche = ecran?.type === 'fiche' ? sets.find((s) => s.id === ecran.id) : null
+  const fermer = () => setEcran(null)
 
   return (
     <div className="appli">
       <header className="appli__entete">
         <h1 className="appli__titre">Bricks List</h1>
-        <span className="appli__version">{__COMMIT__}</span>
+        <div className="appli__actions">
+          <button type="button" className="bouton bouton--plein" disabled={lectureSeule} onClick={() => setEcran({ type: 'formulaire', id: null })}>
+            Ajouter
+          </button>
+          <button type="button" className="bouton" onClick={() => setEcran({ type: 'reglages' })}>Réglages</button>
+        </div>
       </header>
 
-      {erreur && <p className="avis avis--erreur" role="alert">{erreur} Des exemples sont affichés et rien n'est modifié.</p>}
-      {!erreur && depart.exemples && <p className="avis">Collection vide : ce sont des sets d'exemple.</p>}
+      {erreur && <p className="avis avis--erreur" role="alert">{erreur}{lectureSeule && ' Les modifications sont désactivées pour ne rien écraser.'}</p>}
+      {erreurEcriture && <p className="avis avis--erreur" role="alert">{erreurEcriture}</p>}
       {(corriges > 0 || rejetes > 0) && (
         <p className="avis" role="status">
-          {corriges} fiche{corriges > 1 ? 's' : ''} corrigée{corriges > 1 ? 's' : ''}, {rejetes} ignorée{rejetes > 1 ? 's' : ''}.
+          {corriges} fiche{corriges > 1 ? 's' : ''} corrigée{corriges > 1 ? 's' : ''}, {rejetes} ignorée{rejetes > 1 ? 's' : ''} au chargement.
         </p>
       )}
 
@@ -114,14 +142,21 @@ export default function App() {
 
       {visibles.length > 0 ? (
         <ul className="liste">
-          {visibles.map((s) => <CarteSet key={s.id} set={s} />)}
+          {visibles.map((s) => <CarteSet key={s.id} set={s} onOuvrir={(id) => setEcran({ type: 'fiche', id })} />)}
         </ul>
       ) : (
-        <p className="vide">
-          {filtre
-            ? 'Aucun set ne correspond à la recherche ou aux filtres.'
-            : statut === 'possédé' ? 'Aucun set dans la collection.' : 'La wishlist est vide.'}
-        </p>
+        <div className="vide">
+          <p>
+            {filtre
+              ? 'Aucun set ne correspond à la recherche ou aux filtres.'
+              : statut === 'possédé' ? 'Aucun set dans la collection.' : 'La wishlist est vide.'}
+          </p>
+          {!filtre && !lectureSeule && (
+            <button type="button" className="bouton bouton--plein" onClick={() => setEcran({ type: 'formulaire', id: null })}>
+              Ajouter un set
+            </button>
+          )}
+        </div>
       )}
 
       <FiltersSheet
@@ -133,6 +168,44 @@ export default function App() {
         onReinitialiser={() => setFiltres(FILTRES_VIDES)}
         nbResultats={visibles.length}
       />
+
+      {fiche && (
+        <FicheSet
+          key={fiche.id}
+          set={fiche}
+          lectureSeule={lectureSeule}
+          onFermer={fermer}
+          onModifier={() => setEcran({ type: 'formulaire', id: fiche.id })}
+          onAcheter={(etat) => { appliquer(acheter(sets, fiche.id, etat)); fermer() }}
+          onSupprimer={() => { appliquer(supprimer(sets, fiche.id)); fermer() }}
+        />
+      )}
+
+      {ecran?.type === 'formulaire' && (
+        <FormulaireSet
+          initial={ecran.id ? sets.find((s) => s.id === ecran.id) : null}
+          statutParDefaut={statut}
+          themesConnus={themesConnus}
+          compterExemplaires={(numero) => compterExemplaires(sets, numero)}
+          onFermer={fermer}
+          onValider={(brut) => {
+            if (ecran.id) {
+              appliquer(modifier(sets, ecran.id, brut))
+              setEcran({ type: 'fiche', id: ecran.id })
+            } else {
+              appliquer(ajouter(sets, brut).sets)
+              setStatut(brut.statut)
+              setFiltres(FILTRES_VIDES)
+              setTexte('')
+              fermer()
+            }
+          }}
+        />
+      )}
+
+      {ecran?.type === 'reglages' && (
+        <ReglagesSheet sets={sets} lectureSeule={lectureSeule} onAppliquer={appliquer} onFermer={fermer} />
+      )}
     </div>
   )
 }
