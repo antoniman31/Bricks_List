@@ -175,3 +175,12 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
 .reglage__titre { margin: 0 0 4px; font-size: 1rem; }
 .reglage__aide { margin: 0 0 8px; color: var(--texte-doux); font-size: 0.875rem; }
 .reglage__version { margin: 0; color: var(--texte-doux); font-size: 0.75rem; }
+
+/* Recherche Rebrickable et clé API (3b) */
+.formulaire__recherche { display: flex; gap: 8px; }
+.formulaire__recherche .champ { flex: 1; min-width: 0; }
+.formulaire__aide { color: var(--texte-doux); font-size: 0.8125rem; }
+.formulaire__aide--erreur, .reglage__aide--erreur { color: var(--danger); }
+.formulaire__apercu { width: 96px; height: 96px; object-fit: contain; border-radius: 8px; background: var(--surface-haute); }
+.reglage .bouton--danger { margin-top: 8px; }
+.reglage .avis { margin-top: 8px; }

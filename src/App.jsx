@@ -8,6 +8,9 @@ import { charger, sauver } from './lib/storage.js'
 import { ajouter, acheter, compterExemplaires, modifier, supprimer } from './lib/collection.js'
 import { ETATS } from './lib/model.js'
 import { TRIS, annees, filtrer, themes, trier } from './lib/recherche.js'
+import { appeler } from './lib/api.js'
+import { chercherSet, messageErreur } from './lib/rebrickable.js'
+import { ecrireCle, ecrireThemes, lireCle, lireThemes } from './lib/reglages.js'
 
 const ONGLETS = [
   { statut: 'possédé', libelle: 'Collection' },
@@ -24,6 +27,7 @@ export default function App() {
   const [depart] = useState(demarrer)
   const [sets, setSets] = useState(depart.sets)
   const [erreurEcriture, setErreurEcriture] = useState('')
+  const [cle, setCle] = useState(lireCle)
   const [statut, setStatut] = useState('possédé')
   const [texte, setTexte] = useState('')
   const [filtres, setFiltres] = useState(FILTRES_VIDES)
@@ -43,6 +47,32 @@ export default function App() {
     setSets(nouveaux)
     const r = sauver(nouveaux)
     setErreurEcriture(r.ok ? '' : `${r.erreur} Les changements sont perdus à la fermeture : exporte la collection.`)
+  }
+
+  function changerCle(nouvelle) {
+    const r = ecrireCle(nouvelle)
+    if (r.ok) setCle(nouvelle)
+    return r
+  }
+
+  async function tester(cleATester) {
+    try {
+      await appeler('/themes/1/', cleATester)
+      return { ok: true }
+    } catch (e) {
+      return { ok: false, message: messageErreur(e) }
+    }
+  }
+
+  // Le cache de thèmes est sauvegardé même si la recherche échoue en route : les
+  // thèmes déjà obtenus ne seront pas redemandés à la tentative suivante.
+  async function chercher(numero) {
+    const cache = lireThemes()
+    try {
+      return await chercherSet(numero, (chemin) => appeler(chemin, cle), cache)
+    } finally {
+      ecrireThemes(cache)
+    }
   }
 
   const duOnglet = useMemo(() => sets.filter((s) => s.statut === statut), [sets, statut])
@@ -187,6 +217,8 @@ export default function App() {
           statutParDefaut={statut}
           themesConnus={themesConnus}
           compterExemplaires={(numero) => compterExemplaires(sets, numero)}
+          aCle={cle !== ''}
+          onChercher={chercher}
           onFermer={fermer}
           onValider={(brut) => {
             if (ecran.id) {
@@ -204,7 +236,15 @@ export default function App() {
       )}
 
       {ecran?.type === 'reglages' && (
-        <ReglagesSheet sets={sets} lectureSeule={lectureSeule} onAppliquer={appliquer} onFermer={fermer} />
+        <ReglagesSheet
+          sets={sets}
+          lectureSeule={lectureSeule}
+          cle={cle}
+          onCleChange={changerCle}
+          onTesterCle={tester}
+          onAppliquer={appliquer}
+          onFermer={fermer}
+        />
       )}
     </div>
   )

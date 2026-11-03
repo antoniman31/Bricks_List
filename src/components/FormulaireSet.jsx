@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import Sheet from './Sheet.jsx'
 import { normaliserNumero } from '../lib/numero.js'
 import { normaliserSet, ETATS } from '../lib/model.js'
+import { messageErreur, MESSAGES } from '../lib/rebrickable.js'
 
+const RECHERCHE_VIDE = { etat: 'repos', message: '', avertissements: [] }
 const VIDE = { numero: '', nom: '', theme: '', annee: '', pieces: '', etat: '', notes: '' }
 
 function versChamps(set) {
@@ -20,18 +22,55 @@ function versChamps(set) {
 // Sert à l'ajout et à la modification. La validation finale est celle du
 // modèle (normaliserSet) : un set qui passe ici est un set que le stockage
 // acceptera, sans deuxième jeu de règles à tenir à jour.
-export default function FormulaireSet({ initial, statutParDefaut, themesConnus, compterExemplaires, onValider, onFermer }) {
+export default function FormulaireSet({ initial, statutParDefaut, themesConnus, compterExemplaires, aCle, onChercher, onValider, onFermer }) {
   const [champs, setChamps] = useState(initial ? versChamps(initial) : VIDE)
   const [statut, setStatut] = useState(initial?.statut ?? statutParDefaut)
   const [erreur, setErreur] = useState('')
   const [doublonConfirme, setDoublonConfirme] = useState(false)
   const [avertissement, setAvertissement] = useState('')
+  const [image, setImage] = useState(initial?.image ?? null)
+  const [recherche, setRecherche] = useState(RECHERCHE_VIDE)
+  // Numérote les recherches : une réponse qui arrive après que le numéro a changé
+  // appartient à un autre set et ne doit pas remplir le formulaire.
+  const jeton = useRef(0)
 
   const maj = (cle) => (e) => {
+    if (cle === 'numero') {
+      jeton.current += 1
+      setRecherche(RECHERCHE_VIDE)
+      // L'image n'appartient qu'au numéro pour lequel elle a été trouvée.
+      setImage(initial && normaliserNumero(e.target.value) === initial.numero ? initial.image : null)
+    }
     setChamps((c) => ({ ...c, [cle]: e.target.value }))
     setErreur('')
     setAvertissement('')
     setDoublonConfirme(false)
+  }
+
+  async function chercher() {
+    const numero = normaliserNumero(champs.numero)
+    if (!numero) return setRecherche({ etat: 'erreur', message: MESSAGES.numero, avertissements: [] })
+    jeton.current += 1
+    const mien = jeton.current
+    setRecherche({ etat: 'charge', message: 'Recherche…', avertissements: [] })
+    try {
+      const { set, avertissements } = await onChercher(numero)
+      if (mien !== jeton.current) return
+      setChamps((c) => ({
+        ...c,
+        numero: set.numero,
+        nom: set.nom,
+        theme: set.theme || c.theme,
+        annee: set.annee ?? '',
+        pieces: set.pieces ?? '',
+      }))
+      setImage(set.image)
+      setErreur('')
+      setRecherche({ etat: 'ok', message: 'Rempli depuis Rebrickable : vérifie et ajoute.', avertissements })
+    } catch (e) {
+      if (mien !== jeton.current) return
+      setRecherche({ etat: 'erreur', message: `${messageErreur(e)} Tu peux saisir à la main.`, avertissements: [] })
+    }
   }
 
   function valider(e) {
@@ -53,7 +92,7 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
       statut,
       etat: statut === 'possédé' && champs.etat !== '' ? champs.etat : null,
       notes: champs.notes,
-      image: initial?.image ?? null,
+      image,
     }
     const verifie = normaliserSet(brut)
     if (!verifie || verifie.corrections > 0) return setErreur('Une valeur est hors limites : vérifie l\'année (depuis 1949) et les pièces.')
@@ -74,10 +113,27 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
   return (
     <Sheet ouvert onFermer={onFermer} titre={initial ? 'Modifier le set' : 'Ajouter un set'}>
       <form className="formulaire" onSubmit={valider} noValidate>
-        <label className="formulaire__champ">
-          Numéro
-          <input className="champ" inputMode="numeric" autoComplete="off" placeholder="75192" value={champs.numero} onChange={maj('numero')} />
-        </label>
+        <div className="formulaire__champ">
+          <label htmlFor="champ-numero">Numéro</label>
+          <div className="formulaire__recherche">
+            <input id="champ-numero" className="champ" inputMode="numeric" autoComplete="off" placeholder="75192" value={champs.numero} onChange={maj('numero')} />
+            {!initial && aCle && (
+              <button type="button" className="bouton" disabled={recherche.etat === 'charge'} onClick={chercher}>
+                {recherche.etat === 'charge' ? '…' : 'Chercher'}
+              </button>
+            )}
+          </div>
+          {!initial && !aCle && (
+            <span className="formulaire__aide">Pour remplir automatiquement, ajoute ta clé Rebrickable dans les Réglages.</span>
+          )}
+          {recherche.message && (
+            <span className={`formulaire__aide${recherche.etat === 'erreur' ? ' formulaire__aide--erreur' : ''}`} role={recherche.etat === 'erreur' ? 'alert' : 'status'}>
+              {recherche.message}
+            </span>
+          )}
+          {recherche.avertissements.map((a) => <span key={a} className="formulaire__aide" role="status">{a}</span>)}
+          {image && <img className="formulaire__apercu" src={image} alt="" />}
+        </div>
         <label className="formulaire__champ">
           Nom
           <input className="champ" autoComplete="off" value={champs.nom} onChange={maj('nom')} />
