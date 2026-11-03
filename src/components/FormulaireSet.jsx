@@ -3,9 +3,10 @@ import Sheet from './Sheet.jsx'
 import Vignette from './Vignette.jsx'
 import { normaliserNumero } from '../lib/numero.js'
 import { normaliserSet, ETATS } from '../lib/model.js'
-import { messageErreur, MESSAGES } from '../lib/rebrickable.js'
+import { messageErreur, MESSAGES, MOTS_MIN } from '../lib/rebrickable.js'
 
 const RECHERCHE_VIDE = { etat: 'repos', message: '', avertissements: [] }
+const NOM_VIDE = { mots: '', etat: 'repos', message: '', resultats: [], page: 1, suite: false, total: 0 }
 const VIDE = { numero: '', nom: '', theme: '', annee: '', pieces: '', etat: '', notes: '', emplacement: '', boite: '', notice: '' }
 
 function versChamps(set) {
@@ -26,7 +27,7 @@ function versChamps(set) {
 // Sert à l'ajout et à la modification. La validation finale est celle du
 // modèle (normaliserSet) : un set qui passe ici est un set que le stockage
 // acceptera, sans deuxième jeu de règles à tenir à jour.
-export default function FormulaireSet({ initial, statutParDefaut, themesConnus, emplacementsConnus, compterExemplaires, aCle, onChercher, onLot, onValider, onFermer }) {
+export default function FormulaireSet({ initial, statutParDefaut, themesConnus, emplacementsConnus, compterExemplaires, aCle, onChercher, onRechercherNom, onChoisirResultat, onLot, onValider, onFermer }) {
   const [champs, setChamps] = useState(initial ? versChamps(initial) : VIDE)
   const [statut, setStatut] = useState(initial?.statut ?? statutParDefaut)
   const [erreur, setErreur] = useState('')
@@ -34,9 +35,12 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
   const [avertissement, setAvertissement] = useState('')
   const [image, setImage] = useState(initial?.image ?? null)
   const [recherche, setRecherche] = useState(RECHERCHE_VIDE)
+  const [nom, setNom] = useState(NOM_VIDE)
   // Numérote les recherches : une réponse qui arrive après que le numéro a changé
   // appartient à un autre set et ne doit pas remplir le formulaire.
   const jeton = useRef(0)
+  // Même principe pour la recherche par nom : on ne garde que la réponse la plus récente.
+  const jetonNom = useRef(0)
 
   const maj = (cle) => (e) => {
     if (cle === 'numero') {
@@ -51,6 +55,24 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
     setDoublonConfirme(false)
   }
 
+  // Remplit le formulaire avec un set venu de Rebrickable, que ce soit par numéro ou
+  // par choix dans une liste de résultats. En modification, la recherche remplace nom,
+  // thème, année, pièces et image, mais jamais le statut, l'état ni les notes : ce sont
+  // des choix de l'utilisateur.
+  function remplir(set, avertissements) {
+    setChamps((c) => ({
+      ...c,
+      numero: set.numero,
+      nom: set.nom,
+      theme: set.theme || c.theme,
+      annee: set.annee ?? '',
+      pieces: set.pieces ?? '',
+    }))
+    setImage(set.image)
+    setErreur('')
+    setRecherche({ etat: 'ok', message: `Rempli depuis Rebrickable : vérifie et ${initial ? 'enregistre' : 'ajoute'}.`, avertissements })
+  }
+
   async function chercher() {
     const numero = normaliserNumero(champs.numero)
     if (!numero) return setRecherche({ etat: 'erreur', message: MESSAGES.numero, avertissements: [] })
@@ -60,22 +82,52 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
     try {
       const { set, avertissements } = await onChercher(numero)
       if (mien !== jeton.current) return
-      setChamps((c) => ({
-        ...c,
-        numero: set.numero,
-        nom: set.nom,
-        theme: set.theme || c.theme,
-        annee: set.annee ?? '',
-        pieces: set.pieces ?? '',
-      }))
-      setImage(set.image)
-      setErreur('')
-      // En modification, la recherche remplace nom, thème, année, pièces et image,
-      // mais jamais le statut, l'état ni les notes : ce sont des choix de l'utilisateur.
-      setRecherche({ etat: 'ok', message: `Rempli depuis Rebrickable : vérifie et ${initial ? 'enregistre' : 'ajoute'}.`, avertissements })
+      remplir(set, avertissements)
     } catch (e) {
       if (mien !== jeton.current) return
       setRecherche({ etat: 'erreur', message: `${messageErreur(e)} Tu peux saisir à la main.`, avertissements: [] })
+    }
+  }
+
+  async function chercherParNom(page = 1) {
+    const mots = nom.mots.trim()
+    if (mots.length < MOTS_MIN) return setNom((n) => ({ ...n, etat: 'erreur', message: MESSAGES.requete }))
+    jetonNom.current += 1
+    const mien = jetonNom.current
+    setNom((n) => ({ ...n, etat: 'charge', message: 'Recherche…' }))
+    try {
+      const r = await onRechercherNom(mots, page)
+      if (mien !== jetonNom.current) return
+      setNom((n) => ({
+        ...n,
+        etat: 'ok',
+        message: r.resultats.length === 0 && page === 1 ? 'Aucun set trouvé. Les noms sont en anglais : « falcon », pas « faucon ».' : '',
+        resultats: page === 1 ? r.resultats : [...n.resultats, ...r.resultats],
+        page,
+        suite: r.suite,
+        total: r.total,
+      }))
+    } catch (e) {
+      if (mien !== jetonNom.current) return
+      setNom((n) => ({ ...n, etat: 'erreur', message: `${messageErreur(e)} Tu peux saisir à la main.` }))
+    }
+  }
+
+  // Le thème n'est résolu qu'ici, pour le résultat choisi : le résoudre pour toute la
+  // page ferait dix appels pour un seul utile.
+  async function choisirResultat(resultat) {
+    jeton.current += 1
+    const mien = jeton.current
+    jetonNom.current += 1
+    setNom((n) => ({ ...n, etat: 'charge', message: 'Récupération du thème…' }))
+    try {
+      const { set, avertissements } = await onChoisirResultat(resultat)
+      if (mien !== jeton.current) return
+      remplir(set, avertissements)
+      setNom(NOM_VIDE)
+    } catch (e) {
+      if (mien !== jeton.current) return
+      setNom((n) => ({ ...n, etat: 'erreur', message: `${messageErreur(e)} Tu peux saisir à la main.` }))
     }
   }
 
@@ -146,6 +198,55 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
           {recherche.avertissements.map((a) => <span key={a} className="formulaire__aide" role="status">{a}</span>)}
           {image && <Vignette image={image} numero={champs.numero} variante="apercu" />}
         </div>
+        {!initial && aCle && (
+          <div className="formulaire__champ">
+            <label htmlFor="champ-recherche-nom">Ou chercher par nom</label>
+            <div className="formulaire__recherche">
+              <input
+                id="champ-recherche-nom"
+                className="champ"
+                autoComplete="off"
+                placeholder="millennium falcon"
+                value={nom.mots}
+                onChange={(e) => { jetonNom.current += 1; setNom((n) => ({ ...n, mots: e.target.value, etat: n.etat === 'charge' ? 'repos' : n.etat, message: '' })) }}
+                // Entrée lance la recherche : sans cela elle validerait tout le formulaire.
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); chercherParNom(1) } }}
+              />
+              <button type="button" className="bouton" disabled={nom.etat === 'charge'} onClick={() => chercherParNom(1)}>
+                {nom.etat === 'charge' ? '…' : 'Chercher'}
+              </button>
+            </div>
+            <span className="formulaire__aide">Les noms sont en anglais : « falcon », pas « faucon ».</span>
+            {nom.message && (
+              <span className={`formulaire__aide${nom.etat === 'erreur' ? ' formulaire__aide--erreur' : ''}`} role={nom.etat === 'erreur' ? 'alert' : 'status'}>
+                {nom.message}
+              </span>
+            )}
+            {nom.resultats.length > 0 && (
+              <>
+                <span className="formulaire__aide" role="status">{nom.resultats.length} sur {nom.total.toLocaleString('fr-FR')} résultat{nom.total > 1 ? 's' : ''}</span>
+                <ul className="resultats">
+                  {nom.resultats.map((r) => (
+                    <li key={r.numero}>
+                      <button type="button" className="resultat" onClick={() => choisirResultat(r)}>
+                        <Vignette image={r.image} numero={r.numero} variante="mini" />
+                        <span className="resultat__texte">
+                          <span className="resultat__nom">{r.nom}</span>
+                          <span className="resultat__details">{[r.numero, r.annee, r.pieces != null ? `${r.pieces.toLocaleString('fr-FR')} pièces` : null].filter((d) => d != null).join(' · ')}</span>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                {nom.suite && (
+                  <button type="button" className="bouton" disabled={nom.etat === 'charge'} onClick={() => chercherParNom(nom.page + 1)}>
+                    Plus de résultats
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        )}
         <label className="formulaire__champ">
           Nom
           <input className="champ" autoComplete="off" value={champs.nom} onChange={maj('nom')} />

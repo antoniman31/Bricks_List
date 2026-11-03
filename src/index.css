@@ -340,3 +340,23 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
 /* Résultats de l'autre onglet : « je l'ai déjà ? » sans changer d'onglet. */
 .ailleurs { margin-top: calc(var(--espace) * 2); }
 .ailleurs__titre { margin: 0; font-size: 1rem; color: var(--texte-doux); }
+
+/* Recherche par nom : résultats de l'API, un set par ligne, touchable en entier. */
+.vignette--mini { width: 72px; }
+.resultats { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.resultat {
+  display: flex;
+  gap: var(--espace);
+  align-items: center;
+  width: 100%;
+  min-height: 64px;
+  padding: 6px;
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon);
+  background: var(--surface-haute);
+  text-align: left;
+  color: inherit;
+}
+.resultat__texte { display: grid; min-width: 0; }
+.resultat__nom { font-weight: 600; overflow-wrap: anywhere; }
+.resultat__details { color: var(--texte-doux); font-size: 0.8125rem; }

@@ -94,6 +94,12 @@ const ECRANS = {
   'filtres': async (p) => { await p.click('button:has-text("Filtres")'); await p.click('.groupe__ligne:has-text("Emplacement")'); },
   'fiche': async (p) => { await p.locator('.carte').first().click(); },
   'formulaire (erreur)': async (p) => { await p.click('header >> text=Ajouter'); await p.click('button[type=submit]'); },
+  'formulaire (recherche par nom)': async (p) => {
+    await p.evaluate(() => localStorage.setItem('bl_rebrickable', 'cle-de-test-0123456789'));
+    await p.reload(); await p.waitForSelector('.carte');
+    await p.click('header >> text=Ajouter');
+    await p.fill('#champ-recherche-nom', 'millennium falcon'); await p.keyboard.press('Enter'); await p.waitForSelector('.resultat');
+  },
   'réglages': async (p) => { await p.click('header >> text=Réglages'); },
   'lot (vérification)': async (p) => {
     await p.click('header >> text=Ajouter'); await p.click('button:has-text("Ajouter plusieurs sets")');
@@ -111,13 +117,24 @@ try {
     for (const largeur of LARGEURS) {
       const ctx = await navigateur.newContext({ colorScheme: theme, viewport: { width: largeur, height: 900 } });
       await ctx.route('https://cdn.rebrickable.com/**', (r) => r.fulfill({ status: 200, contentType: 'image/png', body: PNG }));
+      // Un Rebrickable de test : une recherche par nom paginée, et un thème.
+      await ctx.route('https://rebrickable.com/api/v3/lego/**', (r) => {
+        const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'authorization, accept, content-type', 'access-control-allow-methods': 'GET, OPTIONS' };
+        if (r.request().method() === 'OPTIONS') return r.fulfill({ status: 204, headers: cors });
+        const u = new globalThis.URL(r.request().url());
+        const json = (corps) => r.fulfill({ status: 200, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify(corps) });
+        if (u.pathname.startsWith('/api/v3/lego/themes/')) return json({ id: 158, parent_id: null, name: 'Star Wars' });
+        return json({ count: 25, next: 'https://rebrickable.com/api/v3/lego/sets/?page=2', previous: null, results: [75192, 10179, 7965].map((n, i) => ({ set_num: `${n}-1`, name: `Millennium Falcon version ${i + 1} avec un nom assez long pour passer à la ligne`, year: 2017 - i, theme_id: 158, num_parts: 7541 - i * 1000, set_img_url: 'https://cdn.rebrickable.com/media/sets/x.png' })) });
+      });
       for (const [nom, aller] of Object.entries(ECRANS)) {
         const page = await ctx.newPage();
         page.setDefaultTimeout(4000);
         const erreursPage = [];
         page.on('pageerror', (e) => erreursPage.push(String(e)));
         await page.goto(URL);
-        await page.evaluate((s) => { localStorage.setItem('bl_v1', JSON.stringify({ version: 1, sets: s })); localStorage.setItem('bl_theme', 'auto'); }, SETS);
+        // Chaque écran part d'un état identique : les pages d'un même contexte partagent leur
+        // stockage, et une clé laissée par un écran précédent changerait le suivant.
+        await page.evaluate((s) => { localStorage.clear(); localStorage.setItem('bl_v1', JSON.stringify({ version: 1, sets: s })); localStorage.setItem('bl_theme', 'auto'); }, SETS);
         await page.reload();
         await page.waitForSelector('.carte');
         // Un écran qu'on ne peut pas atteindre (un bouton masqué, un délai dépassé)
