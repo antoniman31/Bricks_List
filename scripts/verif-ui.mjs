@@ -33,7 +33,7 @@ for (let i = 0; i < 16; i += 1) {
   });
 }
 for (let k = 0; k < 3; k += 1) {
-  SETS.push({ id: `w${k}`, numero: `${20000 + k}-1`, nom: `Souhait ${k}`, theme: 'Icons', annee: 2024, pieces: 1500 * (k + 1), statut: 'souhaité', etat: null, notes: '', image: null, dateAjout: '2026-10-10T00:00:00.000Z' });
+  SETS.push({ id: `w${k}`, numero: `${20000 + k}-1`, nom: `Souhait ${k}`, theme: 'Icons', annee: 2024, pieces: 1500 * (k + 1), statut: 'souhaité', priorite: ['forte', 'un-jour', 'pas-presse', null][k % 4], etat: null, notes: '', image: null, dateAjout: '2026-10-10T00:00:00.000Z' });
 }
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
 
@@ -93,6 +93,10 @@ const ECRANS = {
     await p.selectOption('select.champ', 'emplacement');
     await p.click('button:has-text("Sélectionner")');
     await p.locator('.rangee button:has-text("Choisir ce groupe")').first().click();
+  },
+  'wishlist (tri par priorité)': async (p) => {
+    await p.click('.nav__item:has-text("Wishlist")');
+    await p.selectOption('select.champ', 'priorite');
   },
   'stats': async (p) => { await p.click('.nav__item:has-text("Stats")'); await p.waitForSelector('.stats'); },
   'wishlist': async (p) => { await p.click('.nav__item:has-text("Wishlist")'); },

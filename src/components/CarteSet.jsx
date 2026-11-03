@@ -1,5 +1,6 @@
 // Toute la carte est un vrai <button> (clavier, lecteur d'écran) et ouvre la fiche.
 import Vignette from './Vignette.jsx'
+import { LIBELLES_PRIORITE } from '../lib/model.js'
 
 export default function CarteSet({ set, onOuvrir, selection, onBasculer }) {
   const details = [
@@ -29,6 +30,7 @@ export default function CarteSet({ set, onOuvrir, selection, onBasculer }) {
         <div className="carte__texte">
           <p className="carte__nom">{set.nom}</p>
           <p className="carte__details">{set.numero}{details.length > 0 && ` · ${details.join(' · ')}`}</p>
+          {set.priorite && <p className="carte__etat">{LIBELLES_PRIORITE[set.priorite]}</p>}
           {(set.etat || set.emplacement) && (
             <p className="carte__etat">
               {set.etat && <span className="carte__majuscule">{set.etat}</span>}

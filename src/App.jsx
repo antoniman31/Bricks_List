@@ -14,15 +14,15 @@ import MasseSheet from './components/MasseSheet.jsx'
 import StatsView from './components/StatsView.jsx'
 import { charger, sauver } from './lib/storage.js'
 import { ajouter, ajouterPlusieurs, acheter, compterExemplaires, modifier, modifierPlusieurs, supprimer, supprimerPlusieurs } from './lib/collection.js'
-import { ETATS } from './lib/model.js'
-import { TRIS, emplacements, filtrer, groupesAnnees, grouperParEmplacement, manquants, CHAMPS_A_COMPLETER, rechercherAilleurs, themes, trier } from './lib/recherche.js'
+import { ETATS, LIBELLES_PRIORITE, PRIORITES } from './lib/model.js'
+import { TRIS, emplacements, filtrer, groupesAnnees, grouperParEmplacement, manquants, triPourOnglet, CHAMPS_A_COMPLETER, rechercherAilleurs, themes, trier } from './lib/recherche.js'
 import { calculerStats } from './lib/stats.js'
 import { appeler } from './lib/api.js'
 import { chercherSet, completerResultat, messageErreur, rechercherSets } from './lib/rebrickable.js'
 import { ecrireCle, ecrireThemes, lireCle, lireThemes } from './lib/reglages.js'
 import { COULEUR_BARRE, ecrireMode, lireMode, resoudreTheme } from './lib/apparence.js'
 
-const FILTRES_VIDES = { theme: '', etat: '', annee: '', manque: '', emplacement: '', boite: '', notice: '' }
+const FILTRES_VIDES = { theme: '', etat: '', annee: '', manque: '', emplacement: '', boite: '', notice: '', priorite: '' }
 const AUCUN = new Set()
 const PRESENTE_ABSENTE = [{ valeur: 'oui', libelle: 'Présente' }, { valeur: 'non', libelle: 'Absente' }]
 
@@ -147,7 +147,7 @@ export default function App() {
   const duOnglet = useMemo(() => sets.filter((s) => s.statut === statut), [sets, statut])
   // Le regroupement par emplacement n'existe que pour la collection : un set souhaité
   // n'est rangé nulle part. Le choix de l'utilisateur est gardé, pas écrasé.
-  const triEffectif = tri === 'emplacement' && statut !== 'possédé' ? 'ajout' : tri
+  const triEffectif = triPourOnglet(tri, statut)
   const visibles = useMemo(
     () => trier(filtrer(sets, { statut, texte, ...filtres }), triEffectif),
     [sets, statut, texte, filtres, triEffectif],
@@ -262,6 +262,9 @@ export default function App() {
       libelle: 'État',
       options: ETATS.map((e) => ({ valeur: e, libelle: e })),
     })
+  }
+  if (statut === 'souhaité') {
+    groupes.splice(1, 0, { cle: 'priorite', libelle: 'Priorité', options: PRIORITES.map((p) => ({ valeur: p, libelle: LIBELLES_PRIORITE[p] })) })
   }
   if (statut === 'possédé') {
     // Comme « À compléter » : un filtre posé dont la dernière fiche vient de changer
@@ -380,7 +383,7 @@ export default function App() {
           <label className="tri">
             Tri
             <select className="champ" value={triEffectif} onChange={(e) => setTri(e.target.value)}>
-              {TRIS.filter((t) => t.cle !== 'emplacement' || statut === 'possédé').map((t) => <option key={t.cle} value={t.cle}>{t.libelle}</option>)}
+              {TRIS.filter((t) => !t.statut || t.statut === statut).map((t) => <option key={t.cle} value={t.cle}>{t.libelle}</option>)}
             </select>
           </label>
         </div>

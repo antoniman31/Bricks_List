@@ -1,4 +1,4 @@
-import { ETATS } from './model.js';
+import { ETATS, LIBELLES_PRIORITE, PRIORITES } from './model.js';
 import { cleAnnee, libelleAnnee, manquants, modeAnnees } from './recherche.js';
 
 // Chaque barre porte le filtre qui retrouve exactement ses sets. Le chiffre
@@ -66,6 +66,11 @@ export function calculerStats(sets) {
       sets: souhaites.length,
       pieces: total(souhaites),
       sansPieces: souhaites.filter((s) => s.pieces == null).length,
+      // Seulement si la fonction sert : sinon une seule ligne « non précisée » = le total.
+      priorites: souhaites.some((s) => s.priorite)
+        ? [...PRIORITES.map((p) => ({ cle: p, libelle: LIBELLES_PRIORITE[p], sets: souhaites.filter((s) => s.priorite === p).length })),
+          { cle: '', libelle: 'Non précisée', sets: souhaites.filter((s) => !s.priorite).length }].filter((x) => x.sets > 0)
+        : [],
     },
   };
 }

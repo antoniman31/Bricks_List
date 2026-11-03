@@ -120,3 +120,17 @@ test('un set souhaité n\'a ni emplacement, ni boîte, ni notice', () => {
   assert.equal(r.set.notice, null);
   assert.equal(r.corrections, 0);
 });
+
+test('priorité : gardée pour un set souhaité, valeur inconnue ramenée à null et comptée', () => {
+  const ok = normaliserSet({ numero: '75192-1', nom: 'Faucon', statut: 'souhaité', priorite: 'forte' });
+  assert.equal(ok.set.priorite, 'forte');
+  assert.equal(ok.corrections, 0);
+  const mauvaise = normaliserSet({ numero: '75192-1', nom: 'Faucon', statut: 'souhaité', priorite: 'urgent' });
+  assert.equal(mauvaise.set.priorite, null);
+  assert.equal(mauvaise.corrections, 1);
+  assert.equal(normaliserSet({ numero: '75192-1', nom: 'Faucon', statut: 'souhaité' }).corrections, 0);
+});
+
+test('priorité : un set possédé n\'en a pas (acheter la fait disparaître)', () => {
+  assert.equal(normaliserSet({ numero: '75192-1', statut: 'possédé', priorite: 'forte' }).set.priorite, null);
+});

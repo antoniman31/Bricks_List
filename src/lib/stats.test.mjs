@@ -92,7 +92,7 @@ test('« à compléter » : les chiffres collent au filtre', () => {
 });
 
 test('wishlist : sets et pièces à acquérir', () => {
-  assert.deepEqual(calculerStats(COLLECTION).wishlist, { sets: 2, pieces: 2000, sansPieces: 1 });
+  assert.deepEqual(calculerStats(COLLECTION).wishlist, { sets: 2, pieces: 2000, sansPieces: 1, priorites: [] });
 });
 
 // ---------- répartition par emplacement ----------
@@ -137,4 +137,21 @@ test('emplacements : « Non rangé » mène au filtre « sans emplacement »', (
 test('« à compléter » compte « sans emplacement » une fois la fonction utilisée', () => {
   const { aCompleter } = calculerStats(RANGE);
   assert.deepEqual(aCompleter.champs.filter((c) => c.cle === 'emplacement').map((c) => c.nombre), [2]);
+});
+
+// ---------- priorité de la wishlist ----------
+const wl = (o) => set({ statut: 'souhaité', ...o });
+const SOUHAITS = [wl({ priorite: 'forte' }), wl({ priorite: 'forte' }), wl({ priorite: 'un-jour' }), wl({})];
+
+test('wishlist : répartition par priorité, « non précisée » en dernier', () => {
+  assert.deepEqual(calculerStats(SOUHAITS).wishlist.priorites, [
+    { cle: 'forte', libelle: 'Envie forte', sets: 2 },
+    { cle: 'un-jour', libelle: 'Un jour', sets: 1 },
+    { cle: '', libelle: 'Non précisée', sets: 1 },
+  ]);
+});
+
+test('wishlist : la somme des priorités est le nombre de sets souhaités', () => {
+  const w = calculerStats(SOUHAITS).wishlist;
+  assert.equal(w.priorites.reduce((t, p) => t + p.sets, 0), w.sets);
 });

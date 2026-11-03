@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import Sheet from './Sheet.jsx'
 import Vignette from './Vignette.jsx'
-import { ETATS } from '../lib/model.js'
+import { ETATS, LIBELLES_PRIORITE } from '../lib/model.js'
 
 function Ligne({ libelle, valeur }) {
   if (valeur == null || valeur === '') return null
@@ -24,6 +24,7 @@ export default function FicheSet({ set, lectureSeule, onModifier, onAcheter, onS
       <dl className="fiche">
         <Ligne libelle="Numéro" valeur={set.numero} />
         <Ligne libelle="Statut" valeur={set.statut} />
+        <Ligne libelle="Priorité" valeur={set.priorite ? LIBELLES_PRIORITE[set.priorite] : null} />
         <Ligne libelle="État" valeur={set.etat} />
         <Ligne libelle="Emplacement" valeur={set.emplacement} />
         <Ligne libelle="Boîte" valeur={set.boite ? (set.boite === 'oui' ? 'présente' : 'absente') : null} />

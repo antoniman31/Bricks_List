@@ -123,6 +123,9 @@ export default function StatsView({ stats, onOuvrir, onVoirWishlist }) {
               {pluriel(wishlist.sets, 'set')} à acquérir
               {wishlist.pieces > 0 && `, ${nombre(wishlist.pieces)} pièces${wishlist.sansPieces > 0 ? ' connues' : ''}`}.
             </p>
+            {wishlist.priorites.length > 0 && (
+              <p className="stats__note">{wishlist.priorites.map((p) => `${p.libelle} : ${p.sets}`).join(' · ')}</p>
+            )}
             <button type="button" className="bouton" onClick={onVoirWishlist}>Voir la wishlist</button>
           </>
         )}
