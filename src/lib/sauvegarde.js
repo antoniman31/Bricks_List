@@ -36,6 +36,23 @@ export function noterSauvegarde(maintenant = new Date(), store) {
   }
 }
 
+// Une fois le partage en JSON refusé, on partage en texte : ce choix est retenu pour ne pas
+// faire échouer chaque tentative. Ce n'est pas une donnée de la collection, juste un réglage.
+const CLE_PARTAGE_TEXTE = 'bl_partage_texte';
+
+export function lirePartageTexte(store) {
+  try { return stockage(store)?.getItem(CLE_PARTAGE_TEXTE) === '1'; } catch { return false; }
+}
+
+export function ecrirePartageTexte(actif, store) {
+  try {
+    const s = stockage(store);
+    if (!s) return;
+    if (actif) s.setItem(CLE_PARTAGE_TEXTE, '1');
+    else s.removeItem(CLE_PARTAGE_TEXTE);
+  } catch { /* sans stockage, on retentera en JSON : sans gravité */ }
+}
+
 export function joursDepuis(iso, maintenant = new Date()) {
   const valide = dateValide(iso, maintenant);
   if (!valide) return null;

@@ -3,7 +3,7 @@ import Sheet from './Sheet.jsx'
 import { exporter, lireImport } from '../lib/partage.js'
 import { fusionner } from '../lib/collection.js'
 import { partageDisponible, partager, telecharger } from '../lib/fichier.js'
-import { etatSauvegarde, libelleDelai } from '../lib/sauvegarde.js'
+import { ecrirePartageTexte, etatSauvegarde, libelleDelai, lirePartageTexte } from '../lib/sauvegarde.js'
 import { cleValide } from '../lib/reglages.js'
 import { LIBELLES, MODES } from '../lib/apparence.js'
 
@@ -57,10 +57,19 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
 
   async function partagerMaintenant() {
     const { nom, contenu } = exporter(sets)
-    const r = await partager(nom, contenu)
+    const texte = lirePartageTexte()
+    const r = await partager(nom, contenu, undefined, { texte })
     if (r.mode === 'annule') return setResultatExport('Partage annulé : rien n\'a été sauvegardé.')
-    if (r.mode === 'echec') return setResultatExport('Le partage a échoué : réessaie, ou utilise « Exporter la collection ».')
-    noter(r.mode === 'partage' ? `Sauvegarde partagée (${nom}).` : `Partage indisponible ici : ${nom} a été téléchargé.`)
+    if (r.mode === 'echec') {
+      // Le JSON refusé, on passe au texte pour la prochaine fois (le geste de l'utilisateur est
+      // consommé : retenter tout de suite dans la même pression échouerait aussi).
+      if (!texte) {
+        ecrirePartageTexte(true)
+        return setResultatExport(`Partage refusé (${r.erreur}). Appuie encore : le prochain partage enverra un fichier texte (.txt).`)
+      }
+      return setResultatExport(`Partage refusé (${r.erreur}). Utilise « Exporter la collection » puis envoie le fichier à la main.`)
+    }
+    noter(r.mode === 'partage' ? `Sauvegarde partagée (${r.nom}).` : `Partage indisponible ici : ${nom} a été téléchargé.`)
   }
 
   async function choisirFichier(e) {
@@ -153,7 +162,7 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
         </p>
         <div className="sheet__pied">
           <button type="button" className="bouton" onClick={exporterMaintenant} disabled={sets.length === 0}>Exporter la collection</button>
-          {partageDisponible() && (
+          {partageDisponible(undefined, { texte: lirePartageTexte() }) && (
             <button type="button" className="bouton bouton--plein" onClick={partagerMaintenant} disabled={sets.length === 0}>Partager la sauvegarde</button>
           )}
         </div>
@@ -164,7 +173,7 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
         <h3 className="reglage__titre">Importer un fichier</h3>
         <label className="bouton bouton--fichier">
           Choisir un fichier JSON
-          <input type="file" accept=".json,application/json" onChange={choisirFichier} className="visuellement-cache" />
+          <input type="file" accept=".json,.txt,application/json,text/plain" onChange={choisirFichier} className="visuellement-cache" />
         </label>
 
         {erreur && <p className="avis avis--erreur" role="alert">{erreur}</p>}
