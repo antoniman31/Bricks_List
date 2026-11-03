@@ -14,12 +14,14 @@ function Ligne({ libelle, valeur }) {
   )
 }
 
-export default function FicheSet({ set, lectureSeule, onModifier, onAcheter, onSupprimer, onFermer }) {
+// Le contenu d'une fiche, sans son contenant : la feuille en dessous de 840 px, le panneau de
+// droite au-dessus. Même contenu, mêmes gestes, un seul endroit à tenir à jour.
+export function FicheContenu({ set, lectureSeule, onModifier, onAcheter, onSupprimer }) {
   const [confirmer, setConfirmer] = useState(false)
   const [etatAchat, setEtatAchat] = useState('')
 
   return (
-    <Sheet ouvert onFermer={onFermer} titre={set.nom}>
+    <>
       <Vignette image={set.image} numero={set.numero} variante="fiche" />
 
       <dl className="fiche">
@@ -73,6 +75,14 @@ export default function FicheSet({ set, lectureSeule, onModifier, onAcheter, onS
           <button type="button" className="bouton bouton--plein" disabled={lectureSeule} onClick={onModifier}>Modifier</button>
         </div>
       )}
+    </>
+  )
+}
+
+export default function FicheSet({ set, lectureSeule, onModifier, onAcheter, onSupprimer, onFermer }) {
+  return (
+    <Sheet ouvert onFermer={onFermer} titre={set.nom}>
+      <FicheContenu set={set} lectureSeule={lectureSeule} onModifier={onModifier} onAcheter={onAcheter} onSupprimer={onSupprimer} />
     </Sheet>
   )
 }

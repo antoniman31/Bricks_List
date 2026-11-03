@@ -1,4 +1,4 @@
-// Parcourt chaque écran de l'application, dans les deux thèmes et trois largeurs,
+// Parcourt chaque écran de l'application, dans les deux thèmes et quatre largeurs,
 // et vérifie ce qu'une relecture de code ne voit pas : accessibilité (axe-core,
 // WCAG 2.1 A et AA, dont les contrastes), cibles tactiles d'au moins 48 px,
 // débordements horizontaux, et position de la navigation (barre du bas / rail).
@@ -17,7 +17,7 @@ const AXE = readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8');
 const PORT = 4174;
 const URL = `http://localhost:${PORT}/Bricks_List/`;
 const THEMES = ['dark', 'light'];
-const LARGEURS = [360, 412, 900];
+const LARGEURS = [360, 412, 900, 1280];
 
 // Une collection qui exerce les cas difficiles : textes longs, données absentes,
 // états variés, wishlist, image absente et image présente.
@@ -119,7 +119,7 @@ const ECRANS = {
     await p.click('.nav__item:has-text("Wishlist")');
     await trier(p, 'Priorité');
   },
-  'formulaire (dates)': async (p) => { await p.locator('.carte').first().click(); await p.click('dialog[open] button:has-text("Modifier")'); await p.locator('input[type=date]').first().scrollIntoViewIfNeeded(); },
+  'formulaire (dates)': async (p) => { await p.locator('.carte').first().click(); await p.locator('dialog[open] button:has-text("Modifier"), aside.detail button:has-text("Modifier")').first().click(); await p.locator('input[type=date]').first().scrollIntoViewIfNeeded(); },
   'filtres (étiquette)': async (p) => { await p.click(FILTRES); await p.click('.groupe__ligne:has-text("Étiquette")'); },
   'grille': async (p) => { await p.click(GRILLE); await p.waitForSelector('.liste--grille'); },
   'grille (sélection)': async (p) => {
@@ -127,6 +127,8 @@ const ECRANS = {
     await p.locator('.carte').nth(0).click(); await p.locator('.carte').nth(1).click();
   },
   'grille par emplacement': async (p) => { await p.click(GRILLE); await trier(p, 'Emplacement'); await p.waitForSelector('.rangee .liste--grille'); },
+  // À 840 px et plus : le panneau de détail à droite (le deuxième set choisi) ; dessous, la feuille.
+  'détail d\'un set': async (p) => { await p.locator('.carte').nth(1).click(); },
   'stats': async (p) => { await p.click('.nav__item:has-text("Stats")'); await p.waitForSelector('.stats'); },
   'wishlist': async (p) => { await p.click('.nav__item:has-text("Wishlist")'); },
   'recherche (résultats de l\'autre onglet)': async (p) => { await p.fill('input[type=search]', 'Souhait'); await p.waitForSelector('.ailleurs'); await p.locator('input[type=search]').blur(); },

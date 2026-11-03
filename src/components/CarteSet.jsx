@@ -2,7 +2,7 @@
 import Vignette from './Vignette.jsx'
 import { LIBELLES_PRIORITE } from '../lib/model.js'
 
-export default function CarteSet({ set, onOuvrir, selection, onBasculer, vue = 'liste' }) {
+export default function CarteSet({ set, onOuvrir, selection, onBasculer, vue = 'liste', courante = false }) {
   const details = [
     set.theme || null,
     set.annee,
@@ -12,7 +12,7 @@ export default function CarteSet({ set, onOuvrir, selection, onBasculer, vue = '
   // En mode sélection, la carte devient une case à cocher : on bascule au lieu d'ouvrir.
   const interaction = selection
     ? { role: 'checkbox', 'aria-checked': selection.selectionne, onClick: () => onBasculer(set.id) }
-    : { onClick: () => onOuvrir(set.id) }
+    : { onClick: () => onOuvrir(set.id), 'aria-current': courante ? 'true' : undefined }
   const coche = selection && (
     <span className="carte__case" aria-hidden="true">
       {selection.selectionne && (

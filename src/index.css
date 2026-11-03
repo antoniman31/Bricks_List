@@ -601,3 +601,33 @@ button:not(:disabled):active, .champ:active { box-shadow: inset 0 0 0 999px var(
 }
 .carte--tuile .carte__case { position: absolute; top: 8px; right: 8px; background: var(--surface); }
 .carte--tuile[aria-checked='true'] { outline: 2px solid var(--accent-fond); outline-offset: -2px; }
+
+
+/* ---------- Grand écran (840 px et plus) : liste à gauche, détail à droite ---------- */
+@media (min-width: 840px) {
+  .appli { max-width: 1280px; }
+  .appli--panneau {
+    display: grid;
+    grid-template-columns: minmax(380px, 460px) minmax(0, 1fr);
+    column-gap: 32px;
+    align-items: start;
+  }
+  .appli--panneau .entete { grid-column: 1 / -1; }
+  .appli--panneau .dock, .appli--panneau .contenu { grid-column: 1; }
+  .appli--panneau .detail { grid-column: 2; grid-row: 2 / span 2; }
+  /* Sans panneau (grille), la recherche garde une largeur de champ, pas celle de la page. */
+  .appli:not(.appli--panneau) .dock { max-width: 560px; }
+}
+.detail {
+  position: sticky;
+  top: 80px;
+  max-height: calc(100vh - 96px);
+  overflow-y: auto;
+  padding: 20px;
+  border-radius: var(--rayon-carte);
+  background: var(--surface);
+}
+.detail__titre { margin: 0 0 var(--espace); font-family: var(--police-titre); font-weight: 600; font-size: 1.5rem; }
+.detail__vide { margin: 0; color: var(--texte-doux); }
+/* Le set affiché dans le panneau est repéré dans la liste. */
+.carte[aria-current='true'] { outline: 2px solid var(--accent-fond); outline-offset: -2px; }
