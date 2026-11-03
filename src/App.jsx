@@ -5,6 +5,7 @@ import FicheSet from './components/FicheSet.jsx'
 import FormulaireSet from './components/FormulaireSet.jsx'
 import LotSheet from './components/LotSheet.jsx'
 import ReglagesSheet from './components/ReglagesSheet.jsx'
+import Navigation from './components/Navigation.jsx'
 import StatsView from './components/StatsView.jsx'
 import { charger, sauver } from './lib/storage.js'
 import { ajouter, ajouterPlusieurs, acheter, compterExemplaires, modifier, supprimer } from './lib/collection.js'
@@ -16,10 +17,6 @@ import { chercherSet, messageErreur } from './lib/rebrickable.js'
 import { ecrireCle, ecrireThemes, lireCle, lireThemes } from './lib/reglages.js'
 import { COULEUR_BARRE, ecrireMode, lireMode, resoudreTheme } from './lib/apparence.js'
 
-const ONGLETS = [
-  { statut: 'possédé', libelle: 'Collection' },
-  { statut: 'souhaité', libelle: 'Wishlist' },
-]
 const FILTRES_VIDES = { theme: '', etat: '', annee: '', manque: '' }
 
 function demarrer() {
@@ -181,6 +178,17 @@ export default function App() {
         </div>
       </header>
 
+      <Navigation
+        actuelle={vueStats ? 'stats' : statut}
+        nombres={{ possédé: sets.filter((x) => x.statut === 'possédé').length, souhaité: sets.filter((x) => x.statut === 'souhaité').length }}
+        onChoisir={(cle) => {
+          if (cle === 'stats') return setVueStats(true)
+          setVueStats(false)
+          if (cle !== statut) changerOnglet(cle)
+        }}
+      />
+
+      <main className="contenu">
       {erreur && <p className="avis avis--erreur" role="alert">{erreur}{lectureSeule && ' Les modifications sont désactivées pour ne rien écraser.'}</p>}
       {erreurEcriture && <p className="avis avis--erreur" role="alert">{erreurEcriture}</p>}
       {confirmation && (
@@ -193,27 +201,6 @@ export default function App() {
           {corriges} fiche{corriges > 1 ? 's' : ''} corrigée{corriges > 1 ? 's' : ''}, {rejetes} ignorée{rejetes > 1 ? 's' : ''} au chargement.
         </p>
       )}
-
-      <div className="onglets" role="tablist">
-        {ONGLETS.map((o) => (
-          <button
-            key={o.statut}
-            type="button"
-            role="tab"
-            className="onglet"
-            aria-selected={!vueStats && statut === o.statut}
-            onClick={() => {
-              setVueStats(false)
-              if (o.statut !== statut) changerOnglet(o.statut)
-            }}
-          >
-            {o.libelle} <span className="onglet__nombre">{sets.filter((s) => s.statut === o.statut).length}</span>
-          </button>
-        ))}
-        <button type="button" role="tab" className="onglet" aria-selected={vueStats} onClick={() => setVueStats(true)}>
-          Stats
-        </button>
-      </div>
 
       {vueStats ? (
         <StatsView
@@ -269,6 +256,8 @@ export default function App() {
       )}
         </>
       )}
+
+      </main>
 
       <FiltersSheet
         ouvert={feuille}

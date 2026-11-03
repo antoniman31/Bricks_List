@@ -18,6 +18,8 @@
   --sur-accent: #15161a;       /* 11,1:1 sur --accent-fond */
   --danger: #ff6b6d;
   --cible-min: 44px;
+  --barre-basse: 64px;
+  --rail: 96px;
   --rayon: 12px;
   --espace: 12px;
   color-scheme: dark;
@@ -58,8 +60,10 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
 .appli {
   max-width: 720px;
   margin: 0 auto;
-  padding: var(--espace) 16px calc(var(--espace) + env(safe-area-inset-bottom));
+  /* La barre du bas est fixe : le contenu lui laisse sa hauteur, sinon elle masquerait le bas de la liste. */
+  padding: var(--espace) 16px calc(var(--barre-basse) + var(--espace) + env(safe-area-inset-bottom));
 }
+.contenu { margin-top: var(--espace); }
 
 .appli__entete { display: flex; align-items: baseline; justify-content: space-between; }
 .appli__titre { margin: 0; font-size: 1.5rem; }
@@ -75,16 +79,6 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
  border: 1px solid var(--bordure);
 }
 .avis--erreur { color: var(--danger); border: 1px solid var(--danger); }
-
-.onglets { display: flex; gap: 8px; margin: var(--espace) 0; }
-.onglet {
-  flex: 1;
-  border: 1px solid var(--bordure-champ);
-  border-radius: var(--rayon);
-  background: transparent;
-}
-.onglet[aria-selected='true'] { background: var(--accent-fond); border-color: var(--accent-fond); color: var(--sur-accent); font-weight: 600; }
-.onglet__nombre { opacity: 0.75; }
 
 .barre { display: flex; gap: 8px; align-items: center; }
 .barre--secondaire { justify-content: space-between; margin-top: 8px; }
@@ -295,4 +289,48 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
   font-size: 0.75rem;
   text-align: center;
   overflow-wrap: anywhere;
+}
+
+/* Navigation : barre du bas sur téléphone, rail à gauche dès 600 px. */
+.nav {
+  position: fixed;
+  z-index: 10;
+  inset: auto 0 0 0;
+  display: flex;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--surface);
+  border-top: 1px solid var(--bordure);
+}
+.nav__item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: var(--barre-basse);
+  border: 0;
+  background: transparent;
+  color: var(--texte-doux);
+  font-size: 0.75rem;
+}
+.nav__icone { display: grid; place-items: center; width: 56px; height: 28px; border-radius: 14px; }
+/* La section affichée : pastille jaune derrière l'icône, texte plein. */
+.nav__item[aria-current='page'] { color: var(--texte); font-weight: 600; }
+.nav__item[aria-current='page'] .nav__icone { background: var(--accent-fond); color: var(--sur-accent); }
+
+@media (min-width: 600px) {
+  #root { padding-left: var(--rail); }
+  .appli { padding-bottom: var(--espace); }
+  .nav {
+    inset: 0 auto 0 0;
+    width: var(--rail);
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 8px;
+    padding: 16px 0;
+    border-top: 0;
+    border-right: 1px solid var(--bordure);
+  }
+  .nav__item { flex: none; min-height: 72px; }
 }
