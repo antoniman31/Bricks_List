@@ -66,3 +66,17 @@ test('persistance : déjà protégé, accordé, refusé, indisponible, erreur', 
   assert.equal(await demanderPersistance(undefined), 'inconnu');
   assert.equal(await demanderPersistance({ persisted: async () => { throw new Error('x'); } }), 'inconnu');
 });
+
+import { lirePartageTexte, ecrirePartageTexte } from './sauvegarde.js';
+
+test('partage en texte : retenu, puis effacé ; stockage cassé sans effet', () => {
+  const s = (() => { const m = new Map(); return { getItem: (k) => m.get(k) ?? null, setItem: (k, v) => m.set(k, v), removeItem: (k) => m.delete(k) }; })();
+  assert.equal(lirePartageTexte(s), false);
+  ecrirePartageTexte(true, s);
+  assert.equal(lirePartageTexte(s), true);
+  ecrirePartageTexte(false, s);
+  assert.equal(lirePartageTexte(s), false);
+  const casse = { getItem: () => { throw new Error('x'); }, setItem: () => { throw new Error('x'); }, removeItem: () => { throw new Error('x'); } };
+  assert.equal(lirePartageTexte(casse), false);
+  assert.doesNotThrow(() => ecrirePartageTexte(true, casse));
+});

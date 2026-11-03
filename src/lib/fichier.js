@@ -12,10 +12,21 @@ export function telecharger(nom, contenu) {
   URL.revokeObjectURL(url);
 }
 
+// Chrome sur Android peut refuser un fichier .json au moment de share() alors que
+// canShare() a répondu oui (il revérifie le type, et JSON n'est pas dans sa liste de
+// types sûrs). Un fichier texte, lui, est accepté : on propose donc les deux formes, et
+// l'appelant passe au texte quand le JSON a été refusé. Le contenu reste du JSON, seule
+// l'enveloppe change ; l'import accepte les deux.
+function fichierDePartage(nom, contenu, texte) {
+  return texte
+    ? new File([contenu], `${nom.replace(/\.json$/, '')}.txt`, { type: 'text/plain' })
+    : new File([contenu], nom, { type: 'application/json' });
+}
+
 // Le partage de fichier du système (Android : Drive, Messages…) n'existe pas partout.
-export function partageDisponible(nav = globalThis.navigator) {
+export function partageDisponible(nav = globalThis.navigator, { texte = false } = {}) {
   try {
-    const essai = new File(['{}'], 'essai.json', { type: 'application/json' });
+    const essai = fichierDePartage('essai.json', '{}', texte);
     return typeof nav?.share === 'function' && Boolean(nav.canShare?.({ files: [essai] }));
   } catch {
     return false;
@@ -25,18 +36,21 @@ export function partageDisponible(nav = globalThis.navigator) {
 // Partage le fichier ; sans partage de fichier, le télécharge. Refuser dans la
 // feuille de partage n'est pas une erreur : rien n'a été sauvegardé, et l'appelant
 // ne doit surtout pas noter une sauvegarde qui n'a pas eu lieu.
-export async function partager(nom, contenu, nav = globalThis.navigator) {
-  if (!partageDisponible(nav)) {
+//
+// En cas d'échec, `erreur` porte le nom et le message du navigateur : sans eux, « le partage
+// a échoué » ne permet de corriger rien.
+export async function partager(nom, contenu, nav = globalThis.navigator, { texte = false } = {}) {
+  if (!partageDisponible(nav, { texte })) {
     telecharger(nom, contenu);
     return { mode: 'telechargement' };
   }
   try {
-    const fichier = new File([contenu], nom, { type: 'application/json' });
-    await nav.share({ files: [fichier], title: nom });
-    return { mode: 'partage' };
+    const fichier = fichierDePartage(nom, contenu, texte);
+    await nav.share({ files: [fichier], title: fichier.name });
+    return { mode: 'partage', nom: fichier.name };
   } catch (e) {
     if (e?.name === 'AbortError') return { mode: 'annule' };
-    return { mode: 'echec' };
+    return { mode: 'echec', erreur: `${e?.name ?? 'Erreur'}${e?.message ? ` : ${e.message}` : ''}` };
   }
 }
 
