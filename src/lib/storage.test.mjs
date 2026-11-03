@@ -27,10 +27,13 @@ test('un JSON illisible est signalé, pas confondu avec une première visite', (
   const r = charger(faux('{pas du json'));
   assert.equal(r.sets, null);
   assert.ok(r.erreur);
+  assert.equal(r.illisible, true);
 });
 
 test('un JSON de mauvaise forme est signalé', () => {
-  assert.ok(charger(faux('{"sets": 3}')).erreur);
+  const r = charger(faux('{"sets": 3}'));
+  assert.ok(r.erreur);
+  assert.equal(r.illisible, true);
 });
 
 test('une liste nue est acceptée', () => {

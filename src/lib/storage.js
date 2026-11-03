@@ -11,7 +11,8 @@ function stockage(store) {
 // `sets: null` avec `erreur: null` veut dire « première visite », alors qu'une
 // `erreur` veut dire « il y a quelque chose mais je ne sais pas le lire ».
 // La différence compte : on ne doit jamais écraser des données illisibles par
-// une collection vide, elles sont peut-être récupérables à la main.
+// une collection vide, elles sont peut-être récupérables à la main : le champ
+// `illisible` permet à l'application de passer en lecture seule dans ce cas.
 export function charger(store) {
   const s = stockage(store);
   if (!s) return { sets: null, corriges: 0, rejetes: 0, erreur: 'Stockage indisponible : rien ne sera enregistré.' };
@@ -21,10 +22,10 @@ export function charger(store) {
   if (brut == null) return { sets: null, corriges: 0, rejetes: 0, erreur: null };
 
   let donnees;
-  try { donnees = JSON.parse(brut); } catch { return { sets: null, corriges: 0, rejetes: 0, erreur: 'Données enregistrées illisibles.' }; }
+  try { donnees = JSON.parse(brut); } catch { return { sets: null, corriges: 0, rejetes: 0, erreur: 'Données enregistrées illisibles.', illisible: true }; }
 
   const liste = Array.isArray(donnees) ? donnees : donnees?.sets;
-  if (!Array.isArray(liste)) return { sets: null, corriges: 0, rejetes: 0, erreur: 'Données enregistrées illisibles.' };
+  if (!Array.isArray(liste)) return { sets: null, corriges: 0, rejetes: 0, erreur: 'Données enregistrées illisibles.', illisible: true };
   return { ...validerSets(liste), erreur: null };
 }
 
