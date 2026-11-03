@@ -1,5 +1,6 @@
 import { normaliserNumero } from './numero.js';
 import { dateValide } from './dates.js';
+import { normaliserEtiquettes } from './etiquettes.js';
 
 export const STATUTS = ['possédé', 'souhaité'];
 export const ETATS = ['scellé', 'monté', 'démonté', 'incomplet'];
@@ -70,6 +71,9 @@ export function normaliserSet(brut, { anneeMax = new Date().getFullYear() + 2, m
   // Une date impossible, avant 1949 ou dans le futur est écartée et comptée.
   const dateAchat = possede ? dateValide(brut.dateAchat, maintenant) : null;
   const dateMontage = possede ? dateValide(brut.dateMontage, maintenant) : null;
+  // Étiquettes libres : pour les deux statuts (« à offrir » vaut en wishlist, « à revendre »
+  // en collection). Ce qui est écarté (doublon, texte vide, trop long, trop nombreux) se compte.
+  const etiquettes = normaliserEtiquettes(brut.etiquettes);
   // La priorité est l'inverse de l'état : elle n'a de sens que pour un set souhaité.
   // Acheter un set la fait donc disparaître d'elle-même, sans code dédié.
   const prioriteValide = brut.priorite == null || PRIORITES.includes(brut.priorite);
@@ -92,6 +96,7 @@ export function normaliserSet(brut, { anneeMax = new Date().getFullYear() + 2, m
       boite: corriger(boiteValide, boite),
       notice: corriger(noticeValide, notice),
       priorite: corriger(prioriteValide, priorite),
+      etiquettes: corriger(!etiquettes.corrige, etiquettes.liste),
       dateAchat: corriger(brut.dateAchat == null || !possede || dateAchat !== null, dateAchat),
       dateMontage: corriger(brut.dateMontage == null || !possede || dateMontage !== null, dateMontage),
     },

@@ -33,8 +33,18 @@ testé avec sa vraie collection, tout fonctionne.
 - **Liste groupée par emplacement** : tri « Emplacement » (collection), groupes repliables, « Non
   rangé » en dernier, « Choisir ce groupe » en sélection ; bloc Stats « Par emplacement » ; « Sans
   emplacement » dans « À compléter » seulement si la fonction sert.
-- **Qualité** : `npm run lint`, `npm test` (197 tests), `npm run verif:ui` (axe-core, cibles de
-  44 px, débordements, navigation ; 15 écrans × 2 thèmes × 3 largeurs). Les trois tournent dans
+- **Sauvegarde fiable** : demande de stockage protégé à Chrome (verdict réel affiché dans les
+  Réglages), date de dernière sauvegarde (clé `bl_derniere_sauvegarde`, hors export), bandeau de
+  rappel après 30 jours, bouton « Partager la sauvegarde » (partage Android, repli téléchargement).
+  La clé Rebrickable n'est jamais dans une sauvegarde.
+- **Priorité sur la wishlist** (envie forte, un jour, pas pressé) : tri, filtre, Stats, effacée à l'achat.
+- **Copier la wishlist en texte** : liste affichée (filtres compris), classée par priorité, avec liens.
+- **Dates d'achat et de montage** (AAAA-MM-JJ, validées), tri « Date d'achat », ligne « En 2026 : n
+  achetés, n montés » dans les Stats ; « Acheté » note le jour.
+- **Étiquettes libres** (8 au plus, 30 caractères) : saisie sur la fiche avec puces des étiquettes
+  existantes, filtre, recherche texte. Pas encore d'édition en masse.
+- **Qualité** : `npm run lint`, `npm test` (258 tests), `npm run verif:ui` (axe-core, cibles de
+  44 px, débordements, navigation ; 18 écrans × 2 thèmes × 3 largeurs). Les trois tournent dans
   le CI avant le déploiement.
 
 ## Décisions de cadrage (ne pas rouvrir sans raison)
@@ -71,14 +81,21 @@ ce sont de petits projets de loisir, récents, la plupart sur serveur.
 
 ### Reste à décider ou à faire
 
-0. **Idées retenues, ordre à choisir par Antoni** (spécifiées en conversation, rien de codé) :
-   - **Priorité sur la wishlist** : 3 niveaux (envie forte, un jour, pas pressé), avec tri et
-     filtre. Champ optionnel, validé comme entrée non fiable, sans migration.
-   - **Stats rangement** : sets sans boîte, sans notice, sans emplacement, avec lien vers la liste
-     filtrée (le « sans emplacement » existe déjà dans « À compléter »).
-   - **Export CSV** en plus de la sauvegarde JSON : séparateur point-virgule, BOM UTF-8 pour que
-     l'Excel français lise les accents. Jamais la clé Rebrickable.
-   - Rappel : fusion **demandée à Antoni à chaque PR**.
+0. **Idées retenues, pas encore faites** (ordre à choisir par Antoni) :
+   - **Stats rangement** : sets sans boîte, sans notice, avec lien vers la liste filtrée
+     (« sans emplacement » existe déjà dans « À compléter »).
+   - **Export CSV** en plus du JSON : séparateur point-virgule, BOM UTF-8 pour l'Excel français.
+   - **Pile à monter** : sets scellés, nombre de pièces à monter, raccourci de filtre.
+   - **Tirage au sort** « quoi monter ce week-end » parmi scellés et démontés.
+   - **Badge ×2** pour les numéros en doublon.
+   - **Étiquettes en masse** (ajouter ou retirer une étiquette à la sélection).
+   - **Synchronisation entre téléphone et PC** (Antoni utilise les deux au quotidien) : à faire en
+     deux temps. D'abord une date de modification par fiche et une trace des suppressions, avec une
+     fonction de fusion pure (la plus récente gagne ; suppressions jamais propagées sans
+     confirmation, choix d'Antoni) ; ensuite la synchro via l'API Google Drive (dossier réservé à
+     l'app, projet Google Cloud à créer par Antoni, identifiant client saisi dans les Réglages,
+     jamais dans le dépôt). Manuelle, avec résumé avant écriture, annulation et export préalable.
+   - Rappel : fusion **demandée à Antoni à chaque PR**, sauf autorisation explicite par lot.
 
 1. **Photographier une boîte (Brickognize)** : Antoni a répondu « je ne sais pas » sur l'envoi
    des photos. Si on la fait : option **désactivée par défaut** dans les Réglages avec

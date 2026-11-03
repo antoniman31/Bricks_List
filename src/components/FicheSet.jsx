@@ -32,6 +32,7 @@ export default function FicheSet({ set, lectureSeule, onModifier, onAcheter, onS
         <Ligne libelle="Emplacement" valeur={set.emplacement} />
         <Ligne libelle="Boîte" valeur={set.boite ? (set.boite === 'oui' ? 'présente' : 'absente') : null} />
         <Ligne libelle="Notice" valeur={set.notice ? (set.notice === 'oui' ? 'présente' : 'absente') : null} />
+        <Ligne libelle="Étiquettes" valeur={set.etiquettes?.length > 0 ? set.etiquettes.join(', ') : null} />
         <Ligne libelle="Thème" valeur={set.theme} />
         <Ligne libelle="Année" valeur={set.annee} />
         <Ligne libelle="Pièces" valeur={set.pieces != null ? set.pieces.toLocaleString('fr-FR') : null} />

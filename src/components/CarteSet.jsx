@@ -31,6 +31,7 @@ export default function CarteSet({ set, onOuvrir, selection, onBasculer }) {
           <p className="carte__nom">{set.nom}</p>
           <p className="carte__details">{set.numero}{details.length > 0 && ` · ${details.join(' · ')}`}</p>
           {set.priorite && <p className="carte__etat">{LIBELLES_PRIORITE[set.priorite]}</p>}
+          {set.etiquettes?.length > 0 && <p className="carte__etat">{set.etiquettes.join(' · ')}</p>}
           {(set.etat || set.emplacement) && (
             <p className="carte__etat">
               {set.etat && <span className="carte__majuscule">{set.etat}</span>}
