@@ -16,6 +16,22 @@ export function ajouter(sets, brut, maintenant = new Date().toISOString()) {
   return { sets: [...sets, r.set], ajoute: r.set };
 }
 
+// Ajoute plusieurs fiches d'un coup. Les dates d'ajout avancent d'une milliseconde
+// par fiche : sans cela elles seraient toutes égales et le tri « ajout récent »
+// mélangerait le lot au lieu de garder l'ordre de la liste.
+export function ajouterPlusieurs(sets, bruts, maintenant = new Date()) {
+  let liste = sets;
+  const ajoutes = [];
+  bruts.forEach((brut, i) => {
+    const r = ajouter(liste, brut, new Date(maintenant.getTime() + i).toISOString());
+    if (r.ajoute) {
+      liste = r.sets;
+      ajoutes.push(r.ajoute);
+    }
+  });
+  return { sets: liste, ajoutes };
+}
+
 // La fiche modifiée repasse par la validation : une modification n'est pas
 // plus fiable qu'une entrée venue d'un fichier. Si elle devient invalide
 // (numéro vidé), la fiche d'origine est conservée plutôt que perdue.
