@@ -131,6 +131,18 @@ const ECRANS = {
   'détail d\'un set': async (p) => { await p.locator('.carte').nth(1).click(); },
   // Le bouton de thème de l'en-tête : un appui (auto vers clair), l'écran doit rester conforme.
   'bouton de thème': async (p) => { await p.click('button[aria-label^="Thème"]'); await p.waitForTimeout(150); },
+  // Une nouvelle version est prête : le bandeau propose « Plus tard » et « Recharger » à toutes les largeurs.
+  'nouvelle version (bandeau)': async (p) => {
+    await p.evaluate(() => navigator.serviceWorker.ready);
+    await p.reload(); await p.waitForSelector('.carte');
+    // Le bandeau n'apparaît que si le serveur annonce un autre fichier de code que celui de la page : on le simule.
+    await p.evaluate(() => {
+      const reel = window.fetch.bind(window);
+      window.fetch = (u, o) => (String(u).endsWith('/Bricks_List/') ? Promise.resolve(new Response('<script src="/Bricks_List/assets/index-NOUVEAU.js"></script>')) : reel(u, o));
+      navigator.serviceWorker.dispatchEvent(new Event('controllerchange'));
+    });
+    await p.waitForSelector('.maj');
+  },
   'stats': async (p) => { await p.click('.nav__item:has-text("Stats")'); await p.waitForSelector('.stats'); },
   'wishlist': async (p) => { await p.click('.nav__item:has-text("Wishlist")'); },
   'recherche (résultats de l\'autre onglet)': async (p) => { await p.fill('input[type=search]', 'Souhait'); await p.waitForSelector('.ailleurs'); await p.locator('input[type=search]').blur(); },

@@ -47,9 +47,22 @@ export default defineConfig({
         // Coquille mise en cache pour un démarrage hors ligne. L'API Rebrickable
         // n'est jamais mise en cache : elle doit rester fraîche et échouer
         // proprement sans réseau. Seules les images de sets le sont.
-        globPatterns: ['**/*.{js,css,html,png,svg,woff2}'],
-        navigateFallback: '/Bricks_List/index.html',
+        //
+        // index.html n'est PAS dans la liste : une page d'accueil servie depuis le cache d'abord
+        // montrait l'ancienne version au premier rechargement, la nouvelle au deuxième. Les fichiers
+        // de code, eux, portent leur empreinte dans leur nom (immuables) : cache d'abord, sans risque.
+        globPatterns: ['**/*.{js,css,png,svg,woff2}'],
+        // Le plugin ajoute sinon, de lui-même, une route « page d'accueil depuis le cache » qui passerait
+        // avant la nôtre : explicitement désactivée.
+        navigateFallback: null,
         runtimeCaching: [
+          // La page d'accueil passe par le réseau d'abord (4 s au plus), le cache ne sert qu'hors ligne :
+          // un rechargement en ligne récupère aussitôt la dernière version (même principe que Chrono-MCU).
+          {
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: { cacheName: 'pages', networkTimeoutSeconds: 4, cacheableResponse: { statuses: [200] } },
+          },
           {
             urlPattern: ({ url }) => /cdn\.rebrickable\.com$/.test(url.hostname),
             handler: 'CacheFirst',

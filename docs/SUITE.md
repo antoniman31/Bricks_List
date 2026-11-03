@@ -52,7 +52,8 @@ testé avec sa vraie collection, tout fonctionne.
     nombre de sets (« Collection · 14 sets »), icônes Sélectionner, liste/grille et Réglages.
     Fredoka est embarquée (29 Ko, `src/fonts/`, licence SIL OFL) : hors ligne, aucun appel à Google.
   - *Barre du bas sur téléphone* : recherche, bouton Filtres et « Ajouter » (bouton flottant). Sur
-    grand écran, les mêmes éléments sont en haut de la liste. Pendant la saisie la navigation se
+    grand écran, les mêmes éléments sont en haut de la liste. Aucun fond ni fondu derrière eux : un fondu en aplat
+    faisait une bande noire qui coupait les cartes (retiré). Pendant la saisie la navigation se
     range (`interactive-widget=resizes-content`) ; Filtres et Ajouter gardent le focus du champ,
     sinon le tap était perdu quand le clavier se refermait.
   - *Feuille « Filtres et tri »* : le tri y est rangé avec les filtres (plus de sélecteur dans la page).
@@ -65,8 +66,16 @@ testé avec sa vraie collection, tout fonctionne.
     Réglages restent et suivent le même réglage. À 360 px le logo passe à 32 px et le nom à 18 px.
   - *840 px et plus, en liste* : liste à gauche, détail du set à droite (`FicheContenu`, `useLarge`).
     En grille et sous 840 px, le détail reste une feuille.
-- **Qualité** : `npm run lint`, `npm test` (270 tests), `npm run verif:ui` (axe-core, cibles de
-  48 px, débordements, navigation, recherche visible clavier ouvert ; 24 écrans × 2 thèmes × 4
+- **Mises à jour de l'app installée** (même principe que Chrono-MCU) : la page d'accueil passe par le
+  réseau d'abord (4 s, cache hors ligne), les fichiers de code sont immuables (empreinte dans le nom), donc
+  un rechargement en ligne suffit pour voir la dernière version. Un bandeau « Une nouvelle version est
+  disponible » (Plus tard, Recharger) s'affiche si l'app est restée ouverte pendant une publication, et
+  seulement si le serveur annonce un autre fichier de code que celui de la page. Au retour au premier plan,
+  l'app cherche une mise à jour (au plus une fois par minute). `src/lib/miseAJour.js`.
+  *Limite* : si on installe l'app puis qu'on coupe le réseau avant le deuxième lancement, la page d'accueil
+  n'est pas encore en cache.
+- **Qualité** : `npm run lint`, `npm test` (282 tests), `npm run verif:ui` (axe-core, cibles de
+  48 px, débordements, navigation, recherche visible clavier ouvert ; 25 écrans × 2 thèmes × 4
   largeurs : 360, 412, 900, 1280). Les trois tournent dans le CI avant le déploiement.
 
 ## Décisions de cadrage (ne pas rouvrir sans raison)

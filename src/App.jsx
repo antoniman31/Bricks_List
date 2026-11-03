@@ -4,6 +4,7 @@ import ListeGroupee from './components/ListeGroupee.jsx'
 import { copierTexte } from './lib/fichier.js'
 import { cleEtiquette, etiquettesConnues as etiquettesDe } from './lib/etiquettes.js'
 import useLarge from './useLarge.js'
+import { surveillerMisesAJour } from './lib/miseAJour.js'
 import { autreVue, ecrireVue, lireVue } from './lib/vue.js'
 import { texteWishlist } from './lib/wishlist.js'
 import FiltersSheet from './components/FiltersSheet.jsx'
@@ -57,6 +58,9 @@ export default function App() {
   const [saisie, setSaisie] = useState(false)
   const [vue, setVue] = useState(lireVue)
   const large = useLarge()
+  // Une nouvelle version de l'app est prête : on propose de recharger, sans le faire de force.
+  const [majPrete, setMajPrete] = useState(false)
+  useEffect(() => surveillerMisesAJour({ quandPrete: () => setMajPrete(true) }), [])
   // Le détail du set sélectionné dans la liste, quand le panneau de droite est affiché.
   const [detailId, setDetailId] = useState(null)
   // null : pas de sélection. Sinon { cle, ids } : `cle` décrit la vue pour laquelle les ids ont été choisis.
@@ -539,6 +543,14 @@ export default function App() {
       )}
 
       </main>
+
+      {majPrete && (
+        <div className="maj" role="status">
+          <span className="maj__texte">Une nouvelle version est disponible.</span>
+          <button type="button" className="bouton" onClick={() => setMajPrete(false)}>Plus tard</button>
+          <button type="button" className="bouton bouton--plein" onClick={() => location.reload()}>Recharger</button>
+        </div>
+      )}
 
       {panneau && (
         <aside className="detail" aria-label="Détail du set">
