@@ -1,0 +1,65 @@
+import { ETATS } from './model.js';
+import { cleAnnee, libelleAnnee, manquants, modeAnnees } from './recherche.js';
+
+// Chaque barre porte le filtre qui retrouve exactement ses sets. Le chiffre
+// affiché et la liste obtenue en la touchant utilisent donc les mêmes prédicats
+// (`filtrer`) et ne peuvent pas diverger : c'est ce que vérifie le test.
+
+function total(sets) {
+  return sets.reduce((somme, s) => somme + (s.pieces ?? 0), 0);
+}
+
+function barre(cle, libelle, sets, filtre) {
+  return { cle, libelle, sets: sets.length, pieces: total(sets), piecesInconnues: sets.filter((s) => s.pieces == null).length, filtre };
+}
+
+// Regroupe par clé ; les sets sans valeur forment une dernière barre « Non
+// renseigné » qui mène au filtre « à compléter » correspondant, au lieu d'être
+// comptés comme un zéro ou oubliés.
+function repartir(sets, cleDe, libelleDe, filtreDe, champManquant, trierBarres) {
+  const groupes = new Map();
+  const vides = [];
+  for (const s of sets) {
+    const cle = cleDe(s);
+    if (cle == null || cle === '') { vides.push(s); continue; }
+    if (!groupes.has(cle)) groupes.set(cle, []);
+    groupes.get(cle).push(s);
+  }
+  const barres = [...groupes].map(([cle, liste]) => barre(cle, libelleDe(cle), liste, filtreDe(cle)));
+  barres.sort(trierBarres);
+  if (vides.length > 0) barres.push(barre('', 'Non renseigné', vides, { manque: champManquant }));
+  return barres;
+}
+
+const parTaille = (a, b) => b.sets - a.sets || a.libelle.localeCompare(b.libelle, 'fr', { sensitivity: 'base' });
+
+export function calculerStats(sets) {
+  const possedes = sets.filter((s) => s.statut === 'possédé');
+  const souhaites = sets.filter((s) => s.statut === 'souhaité');
+
+  const avecPieces = possedes.filter((s) => s.pieces != null);
+  const plusGros = avecPieces.reduce((max, s) => (max === null || s.pieces > max.pieces ? s : max), null);
+
+  const mode = modeAnnees(possedes);
+
+  return {
+    resume: {
+      sets: possedes.length,
+      pieces: total(possedes),
+      sansPieces: possedes.length - avecPieces.length,
+      plusGros: plusGros ? { nom: plusGros.nom, pieces: plusGros.pieces } : null,
+    },
+    themes: repartir(possedes, (s) => s.theme, (t) => t, (t) => ({ theme: t }), 'theme', parTaille),
+    annees: repartir(possedes, (s) => (s.annee == null ? null : cleAnnee(s.annee, mode)), libelleAnnee, (c) => ({ annee: c }), 'annee',
+      // Dans l'ordre du temps : une frise se lit de gauche à droite, pas par taille.
+      (a, b) => a.cle.localeCompare(b.cle)),
+    etats: repartir(possedes, (s) => s.etat, (e) => e, (e) => ({ etat: e }), 'etat',
+      (a, b) => ETATS.indexOf(a.cle) - ETATS.indexOf(b.cle)),
+    aCompleter: manquants(possedes),
+    wishlist: {
+      sets: souhaites.length,
+      pieces: total(souhaites),
+      sansPieces: souhaites.filter((s) => s.pieces == null).length,
+    },
+  };
+}

@@ -4,10 +4,12 @@ import FiltersSheet from './components/FiltersSheet.jsx'
 import FicheSet from './components/FicheSet.jsx'
 import FormulaireSet from './components/FormulaireSet.jsx'
 import ReglagesSheet from './components/ReglagesSheet.jsx'
+import StatsView from './components/StatsView.jsx'
 import { charger, sauver } from './lib/storage.js'
 import { ajouter, acheter, compterExemplaires, modifier, supprimer } from './lib/collection.js'
 import { ETATS } from './lib/model.js'
-import { TRIS, annees, filtrer, themes, trier } from './lib/recherche.js'
+import { TRIS, filtrer, groupesAnnees, manquants, CHAMPS_A_COMPLETER, themes, trier } from './lib/recherche.js'
+import { calculerStats } from './lib/stats.js'
 import { appeler } from './lib/api.js'
 import { chercherSet, messageErreur } from './lib/rebrickable.js'
 import { ecrireCle, ecrireThemes, lireCle, lireThemes } from './lib/reglages.js'
@@ -16,7 +18,7 @@ const ONGLETS = [
   { statut: 'possédé', libelle: 'Collection' },
   { statut: 'souhaité', libelle: 'Wishlist' },
 ]
-const FILTRES_VIDES = { theme: '', etat: '', annee: '' }
+const FILTRES_VIDES = { theme: '', etat: '', annee: '', manque: '' }
 
 function demarrer() {
   const r = charger()
@@ -33,6 +35,7 @@ export default function App() {
   const [filtres, setFiltres] = useState(FILTRES_VIDES)
   const [tri, setTri] = useState('ajout')
   const [feuille, setFeuille] = useState(false)
+  const [vueStats, setVueStats] = useState(false)
   // Un seul écran à la fois par-dessus la liste : fiche, formulaire, réglages.
   const [ecran, setEcran] = useState(null)
 
@@ -81,6 +84,7 @@ export default function App() {
     [sets, statut, texte, filtres, tri],
   )
   const themesConnus = useMemo(() => themes(sets), [sets])
+  const stats = useMemo(() => calculerStats(sets), [sets])
 
   // Les filtres d'un onglet ne veulent rien dire dans l'autre (un état n'existe
   // pas pour un set souhaité) : changer d'onglet les remet à zéro, sinon un
@@ -91,10 +95,30 @@ export default function App() {
     setTexte('')
   }
 
+  // Touché depuis une barre des statistiques : on arrive sur la liste déjà
+  // filtrée, avec les mêmes critères que ceux qui ont produit le chiffre.
+  function ouvrirDepuisStats(filtre) {
+    setVueStats(false)
+    setStatut('possédé')
+    setTexte('')
+    setFiltres({ ...FILTRES_VIDES, ...filtre })
+  }
+
+  // « À compléter » ne propose que ce qui manque réellement, avec le nombre de
+  // fiches concernées. Exception : si le filtre est posé au moment où le dernier
+  // manque est comblé, il reste, sinon le groupe emporterait avec lui le seul
+  // moyen d'enlever un filtre qui vide désormais la liste.
+  const aCompleter = manquants(duOnglet).champs.map((c) => ({ valeur: c.cle, libelle: `${c.libelle} (${c.nombre})` }))
+  if (filtres.manque !== '' && !aCompleter.some((o) => o.valeur === filtres.manque)) {
+    const c = CHAMPS_A_COMPLETER.find((x) => x.cle === filtres.manque)
+    if (c) aCompleter.push({ valeur: c.cle, libelle: `${c.libelle} (0)` })
+  }
+
   const groupes = [
     { cle: 'theme', libelle: 'Thème', options: themes(duOnglet).map((t) => ({ valeur: t, libelle: t })) },
-    { cle: 'annee', libelle: 'Année', options: annees(duOnglet).map((a) => ({ valeur: a, libelle: String(a) })) },
+    { cle: 'annee', libelle: 'Année', options: groupesAnnees(duOnglet) },
   ]
+  if (aCompleter.length > 0) groupes.unshift({ cle: 'manque', libelle: 'À compléter', options: aCompleter })
   if (statut === 'possédé') {
     groupes.splice(1, 0, {
       cle: 'etat',
@@ -136,14 +160,28 @@ export default function App() {
             type="button"
             role="tab"
             className="onglet"
-            aria-selected={statut === o.statut}
-            onClick={() => changerOnglet(o.statut)}
+            aria-selected={!vueStats && statut === o.statut}
+            onClick={() => {
+              setVueStats(false)
+              if (o.statut !== statut) changerOnglet(o.statut)
+            }}
           >
             {o.libelle} <span className="onglet__nombre">{sets.filter((s) => s.statut === o.statut).length}</span>
           </button>
         ))}
+        <button type="button" role="tab" className="onglet" aria-selected={vueStats} onClick={() => setVueStats(true)}>
+          Stats
+        </button>
       </div>
 
+      {vueStats ? (
+        <StatsView
+          stats={stats}
+          onOuvrir={ouvrirDepuisStats}
+          onVoirWishlist={() => { setVueStats(false); changerOnglet('souhaité') }}
+        />
+      ) : (
+        <>
       <div className="barre">
         <input
           type="search"
@@ -187,6 +225,8 @@ export default function App() {
             </button>
           )}
         </div>
+      )}
+        </>
       )}
 
       <FiltersSheet

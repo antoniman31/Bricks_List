@@ -6,9 +6,10 @@ dans le `localStorage` du navigateur et s'exportent en JSON.
 
 ## Feuille de route
 
-1. **Socle** : ajout par numéro de set (Rebrickable), liste, recherche, filtres,
-   fiche, wishlist, export/import JSON.
-2. **Statistiques** : sets, pièces, répartition par thème, année et état.
+1. **Socle** (fait) : ajout par numéro de set (Rebrickable), liste, recherche,
+   filtres, fiche, wishlist, export/import JSON.
+2. **Statistiques** (fait) : sets, pièces, répartition par thème, année et état,
+   fiches à compléter ; chaque barre ouvre la liste filtrée correspondante.
 3. **Scan de code-barres** (Chrome Android, `BarcodeDetector` + Brickset).
 
 ## Développement

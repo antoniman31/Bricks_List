@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { filtrer, trier, themes, annees, normaliserTexte } from './recherche.js';
+import { filtrer, trier, themes, normaliserTexte, modeAnnees, cleAnnee, libelleAnnee, groupesAnnees, manquants } from './recherche.js';
 
 const S = [
   { id: '1', numero: '75192-1', nom: 'Faucon Millenium', theme: 'Star Wars', annee: 2017, pieces: 7541, statut: 'possédé', etat: 'scellé', dateAjout: '2026-10-01', notes: 'secret' },
@@ -57,7 +57,73 @@ test('trier ne modifie pas la liste d\'origine', () => {
   assert.deepEqual(ids(S), avant);
 });
 
-test('thèmes et années dérivés de la collection', () => {
+test('thèmes dérivés de la collection', () => {
   assert.deepEqual(themes(S), ['Créatif', 'Icons', 'Star Wars']);
-  assert.deepEqual(annees(S), [2023, 2021, 2017]);
+});
+
+test('années : par année tant que l\'étalement reste court', () => {
+  assert.equal(modeAnnees(S), 'annee');
+  assert.deepEqual(groupesAnnees(S), [
+    { valeur: '2023', libelle: '2023' },
+    { valeur: '2021', libelle: '2021' },
+    { valeur: '2017', libelle: '2017' },
+  ]);
+});
+
+test('années : par décennie au-delà de 15 ans d\'étalement', () => {
+  const large = [{ annee: 1999 }, { annee: 2008 }, { annee: 2015 }, { annee: 2023 }, { annee: null }];
+  assert.equal(modeAnnees(large), 'decennie');
+  assert.deepEqual(groupesAnnees(large).map((g) => g.valeur), ['2020s', '2010s', '2000s', '1990s']);
+  assert.equal(groupesAnnees(large)[1].libelle, '2010–2019');
+});
+
+test('15 ans d\'écart pile restent par année, 16 passent en décennies', () => {
+  assert.equal(modeAnnees([{ annee: 2000 }, { annee: 2015 }]), 'annee');
+  assert.equal(modeAnnees([{ annee: 2000 }, { annee: 2016 }]), 'decennie');
+});
+
+test('sans aucune année, le mode reste par année', () => {
+  assert.equal(modeAnnees([{ annee: null }]), 'annee');
+  assert.deepEqual(groupesAnnees([{ annee: null }]), []);
+});
+
+test('clé et libellé d\'année', () => {
+  assert.equal(cleAnnee(2017, 'annee'), '2017');
+  assert.equal(cleAnnee(2017, 'decennie'), '2010s');
+  assert.equal(libelleAnnee('2010s'), '2010–2019');
+  assert.equal(libelleAnnee('2017'), '2017');
+});
+
+test('le filtre d\'année accepte une décennie', () => {
+  const large = [
+    { id: 'a', annee: 2011, statut: 'possédé', nom: 'a', theme: '', numero: '1' },
+    { id: 'b', annee: 2019, statut: 'possédé', nom: 'b', theme: '', numero: '2' },
+    { id: 'c', annee: 2020, statut: 'possédé', nom: 'c', theme: '', numero: '3' },
+    { id: 'd', annee: null, statut: 'possédé', nom: 'd', theme: '', numero: '4' },
+  ];
+  assert.deepEqual(ids(filtrer(large, { annee: '2010s' })), ['a', 'b']);
+  assert.deepEqual(ids(filtrer(large, { annee: '2020s' })), ['c']);
+});
+
+test('« à compléter » : le filtre retrouve les sets qui manquent d\'un champ', () => {
+  assert.deepEqual(ids(filtrer(S, { manque: 'annee' })), ['4']);
+  assert.deepEqual(ids(filtrer(S, { manque: 'pieces' })), ['4']);
+  assert.deepEqual(ids(filtrer(S, { manque: 'etat' })), ['4']);
+  assert.deepEqual(ids(filtrer(S, { manque: 'theme' })), []);
+});
+
+test('un set souhaité n\'a jamais d\'état à compléter', () => {
+  assert.deepEqual(ids(filtrer(S, { manque: 'etat' })).includes('3'), false);
+});
+
+test('manquants compte les fiches, pas la somme des colonnes', () => {
+  const m = manquants(S);
+  assert.equal(m.fiches, 1);
+  assert.deepEqual(m.champs.map((c) => [c.cle, c.nombre]), [['annee', 1], ['pieces', 1], ['etat', 1]]);
+});
+
+test('manquants : rien à compléter, rien à afficher', () => {
+  const m = manquants([S[0], S[1], S[2]]);
+  assert.equal(m.fiches, 0);
+  assert.deepEqual(m.champs, []);
 });
