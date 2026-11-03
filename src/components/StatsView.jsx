@@ -46,7 +46,7 @@ export default function StatsView({ stats, onOuvrir, onVoirWishlist }) {
   if (resume.sets === 0) {
     return (
       <div className="vide">
-        <p>Ajoute des sets à la collection pour voir tes statistiques.</p>
+        <p>Ajoute des sets pour voir les stats.</p>
         {wishlist.sets > 0 && <button type="button" className="bouton" onClick={onVoirWishlist}>Voir la wishlist ({wishlist.sets})</button>}
       </div>
     )
@@ -68,7 +68,7 @@ export default function StatsView({ stats, onOuvrir, onVoirWishlist }) {
       </div>
       {resume.sansPieces > 0 && (
         <p className="stats__note">
-          Total calculé sur {pluriel(resume.sets - resume.sansPieces, 'set')} dont le nombre de pièces est connu ({resume.sansPieces} sans).
+          Pièces connues pour {pluriel(resume.sets - resume.sansPieces, 'set')} ({resume.sansPieces} sans).
         </p>
       )}
       {activite && (

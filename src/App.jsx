@@ -81,7 +81,7 @@ export default function App() {
   function appliquer(nouveaux) {
     setSets(nouveaux)
     const r = sauver(nouveaux)
-    setErreurEcriture(r.ok ? '' : `${r.erreur} Les changements sont perdus à la fermeture : exporte la collection.`)
+    setErreurEcriture(r.ok ? '' : `${r.erreur} Changements non enregistrés : exporte la collection.`)
   }
 
   // Chrome tranche seul si le stockage est protégé : on le demande une fois au démarrage
@@ -442,7 +442,7 @@ export default function App() {
       )}
 
       <main className="contenu">
-      {erreur && <p className="avis avis--erreur" role="alert">{erreur}{lectureSeule && ' Les modifications sont désactivées pour ne rien écraser.'}</p>}
+      {erreur && <p className="avis avis--erreur" role="alert">{erreur}{lectureSeule && ' Modifications désactivées.'}</p>}
       {erreurEcriture && <p className="avis avis--erreur" role="alert">{erreurEcriture}</p>}
       {rappel.rappel && !selection && ecran?.type !== 'reglages' && (
         <p className="avis" role="status">
@@ -518,7 +518,7 @@ export default function App() {
         <div className="vide">
           <p>
             {filtre
-              ? `Aucun set ne correspond ici${ailleurs.length > 0 ? ', mais il y en a dans l\'autre onglet' : ' à la recherche ou aux filtres'}.`
+              ? `Aucun résultat${ailleurs.length > 0 ? ' (il y en a dans l\'autre onglet)' : ''}.`
               : statut === 'possédé' ? 'Aucun set dans la collection.' : 'La wishlist est vide.'}
           </p>
           {!filtre && !lectureSeule && (
@@ -567,7 +567,7 @@ export default function App() {
               />
             </>
           ) : (
-            <p className="detail__vide">{selection ? 'Sélection en cours : coche des sets dans la liste.' : 'Aucun set à afficher.'}</p>
+            <p className="detail__vide">{selection ? 'Coche des sets dans la liste.' : 'Aucun set à afficher.'}</p>
           )}
         </aside>
       )}

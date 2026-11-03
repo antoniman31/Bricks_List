@@ -66,7 +66,7 @@ export default function MasseSheet({ action, sets, tous, statut, emplacementsCon
       <Sheet ouvert onFermer={onFermer} titre="Supprimer des sets">
         <div className="formulaire">
           <p className="avis avis--erreur" role="alert">
-            Supprimer {n} set{pluriel} ? Un bouton « Annuler » sera proposé juste après, tant que tu ne modifies rien d'autre. Exporte quand même la collection si tu n'as pas de sauvegarde.
+            Supprimer {n} set{pluriel} ? Tu pourras annuler juste après ; pense à exporter.
           </p>
           <ListeSets sets={sets} />
           <div className="sheet__pied sheet__pied--collant">
@@ -89,7 +89,7 @@ export default function MasseSheet({ action, sets, tous, statut, emplacementsCon
     <Sheet ouvert onFermer={onFermer} titre={statut === 'souhaité' ? 'Marquer comme achetés' : 'Modifier des sets'}>
       {etape === 'saisie' ? (
         <div className="formulaire">
-          <p className="formulaire__aide">{n} set{pluriel} sélectionné{pluriel}. Seuls les champs que tu changes sont modifiés.</p>
+          <p className="formulaire__aide">{n} set{pluriel} sélectionné{pluriel}. Le reste ne change pas.</p>
 
           {statut === 'souhaité' ? (
             <label className="formulaire__champ">

@@ -75,7 +75,7 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
     }))
     setImage(set.image)
     setErreur('')
-    setRecherche({ etat: 'ok', message: `Rempli depuis Rebrickable : vérifie et ${initial ? 'enregistre' : 'ajoute'}.`, avertissements })
+    setRecherche({ etat: 'ok', message: 'Rempli depuis Rebrickable : vérifie.', avertissements })
   }
 
   async function chercher() {
@@ -90,7 +90,7 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
       remplir(set, avertissements)
     } catch (e) {
       if (mien !== jeton.current) return
-      setRecherche({ etat: 'erreur', message: `${messageErreur(e)} Tu peux saisir à la main.`, avertissements: [] })
+      setRecherche({ etat: 'erreur', message: `${messageErreur(e)} Saisis à la main.`, avertissements: [] })
     }
   }
 
@@ -106,7 +106,7 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
       setNom((n) => ({
         ...n,
         etat: 'ok',
-        message: r.resultats.length === 0 && page === 1 ? 'Aucun set trouvé. Les noms sont en anglais : « falcon », pas « faucon ».' : '',
+        message: r.resultats.length === 0 && page === 1 ? 'Aucun résultat. Noms en anglais (« falcon »).' : '',
         resultats: page === 1 ? r.resultats : [...n.resultats, ...r.resultats],
         page,
         suite: r.suite,
@@ -114,7 +114,7 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
       }))
     } catch (e) {
       if (mien !== jetonNom.current) return
-      setNom((n) => ({ ...n, etat: 'erreur', message: `${messageErreur(e)} Tu peux saisir à la main.` }))
+      setNom((n) => ({ ...n, etat: 'erreur', message: `${messageErreur(e)} Saisis à la main.` }))
     }
   }
 
@@ -132,14 +132,14 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
       setNom(NOM_VIDE)
     } catch (e) {
       if (mien !== jeton.current) return
-      setNom((n) => ({ ...n, etat: 'erreur', message: `${messageErreur(e)} Tu peux saisir à la main.` }))
+      setNom((n) => ({ ...n, etat: 'erreur', message: `${messageErreur(e)} Saisis à la main.` }))
     }
   }
 
   function valider(e) {
     e.preventDefault()
     const numero = normaliserNumero(champs.numero)
-    if (!numero) return setErreur('Numéro invalide : saisis par exemple 75192 ou 75192-1.')
+    if (!numero) return setErreur('Numéro invalide (ex. 75192).')
     if (champs.nom.trim() === '') return setErreur('Le nom est obligatoire.')
     for (const [cle, libelle] of [['annee', 'L\'année'], ['pieces', 'Le nombre de pièces']]) {
       const v = String(champs[cle]).trim()
@@ -168,14 +168,14 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
       image,
     }
     const verifie = normaliserSet(brut)
-    if (!verifie || verifie.corrections > 0) return setErreur('Une valeur est hors limites : vérifie l\'année (depuis 1949), les pièces et les dates (pas dans le futur).')
+    if (!verifie || verifie.corrections > 0) return setErreur('Hors limites : année (dès 1949), pièces ou dates (pas dans le futur).')
 
     // Un deuxième exemplaire est légitime (deux boîtes, deux états), mais le plus
     // souvent un doublon est une erreur de saisie : on demande une confirmation.
     if (!initial && !doublonConfirme) {
       const n = compterExemplaires(numero)
       if (n > 0) {
-        setAvertissement(`Ce set est déjà présent (${n} exemplaire${n > 1 ? 's' : ''}). Ajoute-le quand même si tu en as bien un autre.`)
+        setAvertissement(`Déjà présent (${n} exemplaire${n > 1 ? 's' : ''}).`)
         setDoublonConfirme(true)
         return
       }
@@ -187,7 +187,7 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
     <Sheet ouvert onFermer={onFermer} titre={initial ? 'Modifier le set' : 'Ajouter un set'}>
       <form className="formulaire" onSubmit={valider} noValidate>
         {!initial && onLot && (
-          <button type="button" className="bouton" onClick={onLot}>Ajouter plusieurs sets d'un coup…</button>
+          <button type="button" className="bouton" onClick={onLot}>Ajouter plusieurs sets…</button>
         )}
         <div className="formulaire__champ">
           <label htmlFor="champ-numero">Numéro</label>
@@ -200,7 +200,7 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
             )}
           </div>
           {!aCle && (
-            <span className="formulaire__aide">Pour remplir automatiquement, ajoute ta clé Rebrickable dans les Réglages.</span>
+            <span className="formulaire__aide">Clé Rebrickable requise (Réglages).</span>
           )}
           {recherche.message && (
             <span className={`formulaire__aide${recherche.etat === 'erreur' ? ' formulaire__aide--erreur' : ''}`} role={recherche.etat === 'erreur' ? 'alert' : 'status'}>
@@ -228,7 +228,7 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
                 {nom.etat === 'charge' ? '…' : 'Chercher'}
               </button>
             </div>
-            <span className="formulaire__aide">Les noms sont en anglais : « falcon », pas « faucon ».</span>
+            <span className="formulaire__aide">Noms en anglais (« falcon »).</span>
             {nom.message && (
               <span className={`formulaire__aide${nom.etat === 'erreur' ? ' formulaire__aide--erreur' : ''}`} role={nom.etat === 'erreur' ? 'alert' : 'status'}>
                 {nom.message}
@@ -349,7 +349,7 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
         <label className="formulaire__champ">
           Étiquettes
           <input className="champ" autoComplete="off" placeholder="cadeau, à offrir…" value={champs.etiquettes} onChange={maj('etiquettes')} />
-          <span className="formulaire__aide">Sépare-les par une virgule : 8 au plus, 30 caractères chacune.</span>
+          <span className="formulaire__aide">Séparées par des virgules (8 max).</span>
         </label>
         {etiquettesConnues.length > 0 && (
           <div className="stats__puces" role="group" aria-label="Étiquettes déjà utilisées">

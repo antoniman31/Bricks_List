@@ -26,6 +26,7 @@ Où on en est et ce qui reste à faire : `docs/SUITE.md`.
   contraste mesuré en commentaire. Le jaune en texte (`--accent`) n'est pas le jaune en
   aplat (`--accent-fond`) : le premier doit rester lisible sur fond clair.
 - De vrais `<button>`, jamais de `<div onClick>` ; cibles tactiles d'au moins 48 px.
+- Textes de l'interface : une phrase, la plus courte possible, sans perdre l'action utile à corriger une erreur.
 - Une écriture qui peut échouer (stockage, réseau) doit se voir à l'écran.
 - Toute donnée venue d'un fichier ou du stockage est validée comme entrée non fiable.
 

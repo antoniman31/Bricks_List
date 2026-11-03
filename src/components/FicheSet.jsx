@@ -63,7 +63,7 @@ export function FicheContenu({ set, lectureSeule, onModifier, onAcheter, onSuppr
 
       {confirmer ? (
         <div className="avis avis--erreur" role="alertdialog" aria-label="Confirmer la suppression">
-          <p>Supprimer « {set.nom} » ? C'est définitif : exporte la collection avant si tu n'as pas de sauvegarde.</p>
+          <p>Supprimer « {set.nom} » ? C'est définitif : pense à exporter.</p>
           <div className="sheet__pied">
             <button type="button" className="bouton" onClick={() => setConfirmer(false)}>Annuler</button>
             <button type="button" className="bouton bouton--danger" onClick={onSupprimer}>Supprimer</button>

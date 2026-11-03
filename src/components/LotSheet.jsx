@@ -106,9 +106,9 @@ export default function LotSheet({ sets, aCle, statutParDefaut, onChercher, onAj
               spellCheck={false}
             />
           </label>
-          <p className="formulaire__aide">Un numéro par ligne, ou séparés par des virgules ou des espaces. {LOT_MAX} maximum.</p>
+          <p className="formulaire__aide">Séparés par des lignes, virgules ou espaces. {LOT_MAX} maximum.</p>
           {!aCle && (
-            <p className="avis" role="status">Sans clé Rebrickable (Réglages), seuls les numéros seront ajoutés : tu complèteras ensuite chaque fiche.</p>
+            <p className="avis" role="status">Sans clé Rebrickable : numéros seuls, à compléter ensuite.</p>
           )}
 
           <div className="formulaire__ligne">
@@ -152,7 +152,7 @@ export default function LotSheet({ sets, aCle, statutParDefaut, onChercher, onAj
       {phase === 'verification' && (
         <div className="formulaire">
           {ignores.invalides.length > 0 && (
-            <p className="avis" role="status">Ignoré, ce n'est pas un numéro : {ignores.invalides.join(', ')}.</p>
+            <p className="avis" role="status">Ignorés (pas des numéros) : {ignores.invalides.join(', ')}.</p>
           )}
           {ignores.tronque && <p className="avis" role="status">Seuls les {LOT_MAX} premiers numéros sont traités.</p>}
 
