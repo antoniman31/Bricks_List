@@ -33,7 +33,8 @@ function versChamps(set) {
 // modèle (normaliserSet) : un set qui passe ici est un set que le stockage
 // acceptera, sans deuxième jeu de règles à tenir à jour.
 export default function FormulaireSet({ initial, statutParDefaut, themesConnus, emplacementsConnus, etiquettesConnues, compterExemplaires, aCle, onChercher, onRechercherNom, onChoisirResultat, onLot, onValider, onFermer }) {
-  const [champs, setChamps] = useState(initial ? versChamps(initial) : VIDE)
+  const [depart] = useState(() => (initial ? versChamps(initial) : VIDE))
+  const [champs, setChamps] = useState(depart)
   const [statut, setStatut] = useState(initial?.statut ?? statutParDefaut)
   const [erreur, setErreur] = useState('')
   const [doublonConfirme, setDoublonConfirme] = useState(false)
@@ -184,8 +185,21 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
   }
 
   return (
-    <Sheet ouvert onFermer={onFermer} titre={initial ? 'Modifier le set' : 'Ajouter un set'}>
-      <form className="formulaire" onSubmit={valider} noValidate>
+    <Sheet
+      ouvert
+      onFermer={onFermer}
+      titre={initial ? 'Modifier le set' : 'Ajouter un set'}
+      modifie={JSON.stringify(champs) !== JSON.stringify(depart)}
+      pied={(
+        <>
+          <button type="button" className="bouton" onClick={onFermer}>Annuler</button>
+          <button type="submit" form="formulaire-set" className="bouton bouton--plein">
+            {initial ? 'Enregistrer' : doublonConfirme ? 'Ajouter quand même' : 'Ajouter'}
+          </button>
+        </>
+      )}
+    >
+      <form id="formulaire-set" className="formulaire" onSubmit={valider} noValidate>
         {!initial && onLot && (
           <button type="button" className="bouton" onClick={onLot}>Ajouter plusieurs sets…</button>
         )}
@@ -373,13 +387,6 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
 
         {erreur && <p className="avis avis--erreur" role="alert">{erreur}</p>}
         {avertissement && <p className="avis" role="status">{avertissement}</p>}
-
-        <div className="sheet__pied">
-          <button type="button" className="bouton" onClick={onFermer}>Annuler</button>
-          <button type="submit" className="bouton bouton--plein">
-            {initial ? 'Enregistrer' : doublonConfirme ? 'Ajouter quand même' : 'Ajouter'}
-          </button>
-        </div>
       </form>
     </Sheet>
   )

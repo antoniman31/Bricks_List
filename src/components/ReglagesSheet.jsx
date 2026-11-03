@@ -123,8 +123,8 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
 
   return (
     <Sheet ouvert onFermer={onFermer} titre="Réglages">
-      <section className="reglage">
-        <h3 className="reglage__titre">Apparence</h3>
+      <details className="reglage">
+        <summary>Apparence</summary>
         <div className="stats__puces" role="group" aria-label="Thème">
           {MODES.map((m) => (
             <button key={m} type="button" className="puce" aria-pressed={mode === m} onClick={() => onModeChange(m)}>
@@ -132,10 +132,10 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
             </button>
           ))}
         </div>
-      </section>
+      </details>
 
-      <section className="reglage">
-        <h3 className="reglage__titre">Rebrickable</h3>
+      <details className="reglage">
+        <summary>Rebrickable</summary>
         <p className="reglage__aide">
           Remplit un set depuis son numéro. Reste sur cet appareil, jamais exportée.
         </p>
@@ -165,10 +165,10 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
         {etatCle.message && (
           <p className={`avis${etatCle.type === 'erreur' ? ' avis--erreur' : ''}`} role={etatCle.type === 'erreur' ? 'alert' : 'status'}>{etatCle.message}</p>
         )}
-      </section>
+      </details>
 
-      <section className="reglage">
-        <h3 className="reglage__titre">Sauvegarde</h3>
+      <details className="reglage">
+        <summary>Sauvegarde</summary>
         <p className="reglage__aide">Données stockées sur cet appareil. Exporte pour les sauvegarder.</p>
         <p className="reglage__aide">
           Dernière sauvegarde : {libelleDelai(etatSauvegarde({ nbSets: sets.length, derniere: derniereSauvegarde }).jours)}.
@@ -185,10 +185,10 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
           )}
         </div>
         {resultatExport && <p className="avis" role="status">{resultatExport}</p>}
-      </section>
+      </details>
 
-      <section className="reglage">
-        <h3 className="reglage__titre">Importer un fichier</h3>
+      <details className="reglage">
+        <summary>Importer un fichier</summary>
         <label className="bouton bouton--fichier">
           Choisir un fichier JSON
           <input type="file" accept=".json,.txt,application/json,text/plain" onChange={choisirFichier} className="visuellement-cache" />
@@ -222,17 +222,17 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
         )}
 
         {resultat && <p className="avis" role="status">{resultat}</p>}
-      </section>
+      </details>
 
-      <section className="reglage">
-        <h3 className="reglage__titre">Mise à jour</h3>
+      <details className="reglage">
+        <summary>Mise à jour</summary>
         <button type="button" className="bouton" disabled={maj.etat === 'charge'} onClick={verifierMaj}>
           {maj.etat === 'charge' ? 'Vérification…' : 'Vérifier les mises à jour'}
         </button>
         {maj.message && maj.etat !== 'charge' && (
           <p className={`avis${maj.etat === 'erreur' ? ' avis--erreur' : ''}`} role={maj.etat === 'erreur' ? 'alert' : 'status'}>{maj.message}</p>
         )}
-      </section>
+      </details>
 
       <p className="reglage__version">Version {__COMMIT__}</p>
     </Sheet>

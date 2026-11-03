@@ -146,6 +146,7 @@ const ECRANS = {
   // Le bouton « Vérifier les mises à jour » des Réglages : le serveur de test sert le même build, donc « à jour ».
   'réglages (vérification de version)': async (p) => {
     await p.click(REGLAGES);
+    await p.click('dialog[open] summary:has-text("Mise à jour")');
     await p.click('dialog[open] button:has-text("Vérifier les mises à jour")');
     await p.waitForSelector('dialog[open] [role=status]:has-text("dernière version")');
   },
@@ -184,6 +185,17 @@ const ECRANS = {
     await p.waitForSelector('.masse__ligne');
   },
   'réglages': async (p) => { await p.click(REGLAGES); },
+  // Sections dépliées : le contenu le plus long, celui où un débordement se verrait.
+  'réglages (tout déplié)': async (p) => {
+    await p.click(REGLAGES);
+    for (const s of await p.locator('dialog[open] summary').all()) await s.click();
+  },
+  'formulaire (abandon)': async (p) => {
+    await p.click(AJOUTER);
+    await p.fill('#champ-numero', '75192');
+    await p.click('dialog[open] button[aria-label="Fermer"]');
+    await p.waitForSelector('.sheet__garde');
+  },
   'lot (vérification)': async (p) => {
     await p.click(AJOUTER); await p.click('button:has-text("Ajouter plusieurs sets")');
     await p.fill('dialog[open] textarea', '10001\n10002\n99001'); await p.click('dialog[open] button:has-text("Continuer")'); await p.waitForSelector('.coche');
