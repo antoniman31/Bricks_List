@@ -6,6 +6,7 @@ import { partageDisponible, partager, telecharger } from '../lib/fichier.js'
 import { ecrirePartageTexte, etatSauvegarde, libelleDelai, lirePartageTexte } from '../lib/sauvegarde.js'
 import { cleValide } from '../lib/reglages.js'
 import { LIBELLES, MODES } from '../lib/apparence.js'
+import { verifierMiseAJour } from '../lib/miseAJour.js'
 
 export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, cle, onCleChange, onTesterCle, onAppliquer, derniereSauvegarde, persistance, onSauvegardeFaite, onFermer }) {
   const [apercu, setApercu] = useState(null)
@@ -17,6 +18,25 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
   const [saisieCle, setSaisieCle] = useState('')
   const [etatCle, setEtatCle] = useState({ type: '', message: '' })
   const [test, setTest] = useState(false)
+  const [maj, setMaj] = useState({ etat: '', message: '' })
+
+  // Un appui : on regarde si le serveur a une autre version que celle affichée. Si oui, on recharge tout
+  // de suite (la page d'accueil passe par le réseau d'abord, le rechargement apporte donc la dernière
+  // version) ; sinon on le dit, et si la vérification échoue on le dit aussi : jamais « à jour » par défaut.
+  async function verifierMaj() {
+    setMaj({ etat: 'charge', message: 'Vérification…' })
+    const r = await verifierMiseAJour()
+    if (r === 'obsolete') {
+      setMaj({ etat: 'ok', message: 'Nouvelle version trouvée : rechargement…' })
+      setTimeout(() => location.reload(), 400)
+      return
+    }
+    setMaj(r === 'a-jour'
+      ? { etat: 'ok', message: `Tu as la dernière version (${__COMMIT__}).` }
+      : r === 'inconnu'
+        ? { etat: 'ok', message: 'Rien à comparer ici (mode développement).' }
+        : { etat: 'erreur', message: 'Impossible de vérifier : pas de connexion, ou le serveur ne répond pas.' })
+  }
 
   const saisieValide = cleValide(saisieCle)
 
@@ -204,6 +224,17 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
         )}
 
         {resultat && <p className="avis" role="status">{resultat}</p>}
+      </section>
+
+      <section className="reglage">
+        <h3 className="reglage__titre">Mise à jour</h3>
+        <p className="reglage__aide">Si l'app ne montre pas la dernière version, vérifie ici : elle se recharge toute seule quand il y en a une.</p>
+        <button type="button" className="bouton" disabled={maj.etat === 'charge'} onClick={verifierMaj}>
+          {maj.etat === 'charge' ? 'Vérification…' : 'Vérifier les mises à jour'}
+        </button>
+        {maj.message && maj.etat !== 'charge' && (
+          <p className={`avis${maj.etat === 'erreur' ? ' avis--erreur' : ''}`} role={maj.etat === 'erreur' ? 'alert' : 'status'}>{maj.message}</p>
+        )}
       </section>
 
       <p className="reglage__version">Version {__COMMIT__}</p>

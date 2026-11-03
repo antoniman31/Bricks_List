@@ -24,6 +24,28 @@ export async function pageObsolete({ doc = globalThis.document, chercher = globa
   }
 }
 
+// Vérification à la demande (bouton des Réglages). Contrairement à `pageObsolete`, qui sert à décider
+// d'afficher un bandeau et penche donc vers « oui » en cas de doute, ici chaque issue a son message :
+//   'a-jour'     la page affichée porte déjà le fichier de code du serveur ;
+//   'obsolete'   le serveur en annonce un autre : une nouvelle version existe ;
+//   'hors-ligne' le serveur n'a pas répondu (pas de réseau, erreur) : on ne sait pas, et on le dit ;
+//   'inconnu'    pas de fichier de code à comparer (mode développement) : rien à vérifier.
+// On demande aussi au navigateur de chercher un nouveau service worker, pour qu'il soit prêt au rechargement.
+export async function verifierMiseAJour({ sw = globalThis.navigator?.serviceWorker, doc = globalThis.document, chercher = globalThis.fetch?.bind(globalThis), adresse = globalThis.location?.pathname } = {}) {
+  try {
+    const reg = await sw?.getRegistration?.();
+    await reg?.update?.();
+    const reponse = await chercher(adresse, { cache: 'no-store' });
+    if (!reponse.ok) return 'hors-ligne';
+    const actuel = doc?.querySelector?.('script[src*="assets/index-"]')?.getAttribute('src')?.match(/assets\/index-[^/]+\.js/)?.[0];
+    const serveur = (await reponse.text()).match(/assets\/index-[^"'/]+\.js/)?.[0];
+    if (!actuel || !serveur) return 'inconnu';
+    return serveur === actuel ? 'a-jour' : 'obsolete';
+  } catch {
+    return 'hors-ligne';
+  }
+}
+
 export function surveillerMisesAJour({ quandPrete, sw = globalThis.navigator?.serviceWorker, doc = globalThis.document, maintenant = () => Date.now(), verifier = pageObsolete }) {
   if (!sw || !doc) return () => {};
 
