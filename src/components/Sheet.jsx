@@ -11,7 +11,7 @@ const SEUIL_VITESSE = 0.6
 //
 // `modifie` : des saisies seraient perdues à la fermeture, on demande confirmation.
 // `pied` : actions toujours visibles sous le contenu qui défile.
-export default function Sheet({ ouvert, onFermer, titre, children, modifie = false, pied = null }) {
+export default function Sheet({ ouvert, onFermer, titre, children, modifie = false, pied = null, pleinEcran = false }) {
   const ref = useRef(null)
   const glisse = useRef(null)
   const [confirmer, setConfirmer] = useState(false)
@@ -57,7 +57,7 @@ export default function Sheet({ ouvert, onFermer, titre, children, modifie = fal
   return (
     <dialog
       ref={ref}
-      className="sheet"
+      className={`sheet${pleinEcran ? ' sheet--plein' : ''}`}
       aria-label={titre}
       onClose={() => { setConfirmer(false); onFermer() }}
       onCancel={(e) => { if (modifie) { e.preventDefault(); setConfirmer(true) } }}

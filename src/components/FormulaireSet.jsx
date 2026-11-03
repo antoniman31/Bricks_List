@@ -33,8 +33,8 @@ function versChamps(set) {
 // Sert à l'ajout et à la modification. La validation finale est celle du
 // modèle (normaliserSet) : un set qui passe ici est un set que le stockage
 // acceptera, sans deuxième jeu de règles à tenir à jour.
-export default function FormulaireSet({ initial, statutParDefaut, themesConnus, emplacementsConnus, etiquettesConnues, compterExemplaires, aCle, onChercher, onRechercherNom, onChoisirResultat, onLot, onValider, onFermer }) {
-  const [depart] = useState(() => (initial ? versChamps(initial) : VIDE))
+export default function FormulaireSet({ initial, statutParDefaut, themesConnus, emplacementsConnus, etiquettesConnues, compterExemplaires, valeurs, aCle, onChercher, onRechercherNom, onChoisirResultat, onValider, onFermer }) {
+  const [depart] = useState(() => (initial ? versChamps(initial) : { ...VIDE, ...valeurs }))
   const [champs, setChamps] = useState(depart)
   const [statut, setStatut] = useState(initial?.statut ?? statutParDefaut)
   const [erreur, setErreur] = useState('')
@@ -188,22 +188,20 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
   return (
     <Sheet
       ouvert
+      pleinEcran
       onFermer={onFermer}
       titre={initial ? 'Modifier le set' : 'Ajouter un set'}
       modifie={JSON.stringify(champs) !== JSON.stringify(depart)}
       pied={(
         <>
           <button type="button" className="bouton" onClick={onFermer}>Annuler</button>
-          <button type="submit" form="formulaire-set" className="bouton bouton--plein">
+          <button type="submit" form="formulaire-set" className="bouton bouton--plein" disabled={Boolean(initial) && JSON.stringify(champs) === JSON.stringify(depart) && statut === initial.statut}>
             {initial ? 'Enregistrer' : doublonConfirme ? 'Ajouter quand même' : 'Ajouter'}
           </button>
         </>
       )}
     >
       <form id="formulaire-set" className="formulaire" onSubmit={valider} noValidate>
-        {!initial && onLot && (
-          <button type="button" className="bouton" onClick={onLot}>Ajouter plusieurs sets…</button>
-        )}
         <div className="formulaire__champ">
           <label htmlFor="champ-numero">Numéro</label>
           <div className="formulaire__recherche">
