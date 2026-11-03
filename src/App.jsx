@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import CarteSet from './components/CarteSet.jsx'
 import ListeGroupee from './components/ListeGroupee.jsx'
+import { copierTexte } from './lib/fichier.js'
+import { texteWishlist } from './lib/wishlist.js'
 import FiltersSheet from './components/FiltersSheet.jsx'
 import FicheSet from './components/FicheSet.jsx'
 import FormulaireSet from './components/FormulaireSet.jsx'
@@ -232,6 +234,18 @@ export default function App() {
     setTexte('')
   }
 
+  // Copie la liste AFFICHÉE (filtres compris) : filtrer sur « envie forte » puis copier
+  // donne exactement la liste à envoyer pour un anniversaire.
+  async function copierWishlist() {
+    const n = visibles.length
+    const r = await copierTexte(texteWishlist(visibles))
+    if (r === 'annule') return
+    setRetour(null)
+    setConfirmation(r === 'echec'
+      ? 'La copie a échoué : ce navigateur n\'autorise pas le presse-papiers ici.'
+      : `${n} set${n > 1 ? 's' : ''} ${r === 'copie' ? 'copié' : 'partagé'}${n > 1 ? 's' : ''} sous forme de texte.`)
+  }
+
   // Touché depuis une barre des statistiques : on arrive sur la liste déjà
   // filtrée, avec les mêmes critères que ceux qui ont produit le chiffre.
   function ouvrirDepuisStats(filtre) {
@@ -377,6 +391,9 @@ export default function App() {
           {filtre ? `${visibles.length} sur ${duOnglet.length}` : duOnglet.length} set{visibles.length > 1 ? 's' : ''}
         </p>
         <div className="barre__droite">
+          {!selection && statut === 'souhaité' && visibles.length > 0 && (
+            <button type="button" className="bouton" onClick={copierWishlist}>Copier la liste</button>
+          )}
           {!selection && visibles.length > 0 && !lectureSeule && (
             <button type="button" className="bouton" onClick={() => setSelection({ cle: cleVue, ids: new Set() })}>Sélectionner</button>
           )}

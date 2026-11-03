@@ -39,3 +39,24 @@ export async function partager(nom, contenu, nav = globalThis.navigator) {
     return { mode: 'echec' };
   }
 }
+
+// Copie un texte dans le presse-papiers ; à défaut, le propose au partage du système.
+// Les deux exigent un geste de l'utilisateur et une page sécurisée : si tout échoue, on
+// le dit (« echec ») plutôt que d'annoncer une copie qui n'a pas eu lieu.
+export async function copierTexte(texte, nav = globalThis.navigator) {
+  try {
+    if (nav?.clipboard?.writeText) {
+      await nav.clipboard.writeText(texte);
+      return 'copie';
+    }
+  } catch { /* on tente le partage */ }
+  try {
+    if (typeof nav?.share === 'function') {
+      await nav.share({ text: texte });
+      return 'partage';
+    }
+  } catch (e) {
+    if (e?.name === 'AbortError') return 'annule';
+  }
+  return 'echec';
+}
