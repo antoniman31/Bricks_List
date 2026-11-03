@@ -155,3 +155,24 @@ test('wishlist : la somme des priorités est le nombre de sets souhaités', () =
   const w = calculerStats(SOUHAITS).wishlist;
   assert.equal(w.priorites.reduce((t, p) => t + p.sets, 0), w.sets);
 });
+
+// ---------- activité de l'année ----------
+const AUJ = new Date(2026, 10, 3);
+const ACT = [
+  rg({ dateAchat: '2026-02-01', dateMontage: '2026-02-05' }),
+  rg({ dateAchat: '2026-03-01' }),
+  rg({ dateAchat: '2025-12-31', dateMontage: '2026-01-01' }),
+  rg({}),
+];
+
+test('activité : achetés et montés cette année seulement', () => {
+  assert.deepEqual(calculerStats(ACT, AUJ).activite, { annee: 2026, achetes: 2, montes: 2 });
+});
+
+test('activité : absente tant qu\'aucune date n\'est saisie', () => {
+  assert.equal(calculerStats([rg({}), rg({})], AUJ).activite, null);
+});
+
+test('activité : une année sans achat affiche 0, pas rien', () => {
+  assert.deepEqual(calculerStats(ACT, new Date(2030, 0, 1)).activite, { annee: 2030, achetes: 0, montes: 0 });
+});

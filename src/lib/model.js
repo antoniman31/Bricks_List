@@ -1,4 +1,5 @@
 import { normaliserNumero } from './numero.js';
+import { dateValide } from './dates.js';
 
 export const STATUTS = ['possédé', 'souhaité'];
 export const ETATS = ['scellé', 'monté', 'démonté', 'incomplet'];
@@ -32,7 +33,7 @@ function entierDansBornes(v, min, max) {
 //
 // Seul le numéro de set est indispensable : sans lui on ne sait pas de quel set
 // il s'agit et rien ne permet de le retrouver, la fiche est rejetée (null).
-export function normaliserSet(brut, { anneeMax = new Date().getFullYear() + 2 } = {}) {
+export function normaliserSet(brut, { anneeMax = new Date().getFullYear() + 2, maintenant = new Date() } = {}) {
   if (!brut || typeof brut !== 'object' || Array.isArray(brut)) return null;
   const numero = normaliserNumero(brut.numero);
   if (!numero) return null;
@@ -65,6 +66,10 @@ export function normaliserSet(brut, { anneeMax = new Date().getFullYear() + 2 } 
   const boite = possede && OUI_NON.includes(brut.boite) ? brut.boite : null;
   const noticeValide = brut.notice == null || OUI_NON.includes(brut.notice);
   const notice = possede && OUI_NON.includes(brut.notice) ? brut.notice : null;
+  // Dates d'achat et de montage : comme l'état, elles ne concernent qu'un set possédé.
+  // Une date impossible, avant 1949 ou dans le futur est écartée et comptée.
+  const dateAchat = possede ? dateValide(brut.dateAchat, maintenant) : null;
+  const dateMontage = possede ? dateValide(brut.dateMontage, maintenant) : null;
   // La priorité est l'inverse de l'état : elle n'a de sens que pour un set souhaité.
   // Acheter un set la fait donc disparaître d'elle-même, sans code dédié.
   const prioriteValide = brut.priorite == null || PRIORITES.includes(brut.priorite);
@@ -87,6 +92,8 @@ export function normaliserSet(brut, { anneeMax = new Date().getFullYear() + 2 } 
       boite: corriger(boiteValide, boite),
       notice: corriger(noticeValide, notice),
       priorite: corriger(prioriteValide, priorite),
+      dateAchat: corriger(brut.dateAchat == null || !possede || dateAchat !== null, dateAchat),
+      dateMontage: corriger(brut.dateMontage == null || !possede || dateMontage !== null, dateMontage),
     },
     corrections,
   };

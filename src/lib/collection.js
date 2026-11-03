@@ -1,4 +1,5 @@
 import { normaliserSet } from './model.js';
+import { aujourdhuiISO } from './dates.js';
 
 // Opérations pures sur la liste : chacune rend une nouvelle liste et ne touche
 // ni au stockage ni à l'écran. C'est ce qui les rend testables, et ce qui
@@ -47,8 +48,9 @@ export function supprimer(sets, id) {
   return sets.filter((s) => s.id !== id);
 }
 
-export function acheter(sets, id, etat) {
-  return modifier(sets, id, { statut: 'possédé', etat: etat || null });
+// Le jour de l'achat est celui où on appuie sur « Acheté » : modifiable ensuite sur la fiche.
+export function acheter(sets, id, etat, maintenant = new Date()) {
+  return modifier(sets, id, { statut: 'possédé', etat: etat || null, dateAchat: aujourdhuiISO(maintenant) });
 }
 
 // ---- Modifications en masse -------------------------------------------------

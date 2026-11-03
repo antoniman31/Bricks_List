@@ -16,6 +16,7 @@ export const TRIS = [
   { cle: 'emplacement', libelle: 'Emplacement', statut: 'possédé' },
   // Du plus pressé au moins pressé ; réservé à la wishlist, où la priorité existe.
   { cle: 'priorite', libelle: 'Priorité', statut: 'souhaité' },
+  { cle: 'achat', libelle: 'Date d\'achat', statut: 'possédé' },
 ];
 
 // Un tri propre à un onglet n'est pas proposé dans l'autre, et la liste retombe sur
@@ -84,6 +85,12 @@ export function trier(sets, cle) {
       const rang = (s) => { const i = PRIORITES.indexOf(s.priorite); return i < 0 ? PRIORITES.length : i; };
       return copie.sort((a, b) => rang(a) - rang(b) || comparerNoms(a, b));
     }
+    case 'achat':
+      // Les plus récents d'abord ; une date absente passe en dernier, comme une année absente.
+      return copie.sort((a, b) => {
+        if (!a.dateAchat !== !b.dateAchat) return a.dateAchat ? -1 : 1;
+        return (a.dateAchat && b.dateAchat ? (a.dateAchat < b.dateAchat ? 1 : a.dateAchat > b.dateAchat ? -1 : 0) : 0) || comparerNoms(a, b);
+      });
     case 'nom':
       return copie.sort((a, b) => a.nom.localeCompare(b.nom, 'fr', { sensitivity: 'base' }));
     case 'annee':

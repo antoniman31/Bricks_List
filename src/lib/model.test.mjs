@@ -134,3 +134,34 @@ test('priorité : gardée pour un set souhaité, valeur inconnue ramenée à nul
 test('priorité : un set possédé n\'en a pas (acheter la fait disparaître)', () => {
   assert.equal(normaliserSet({ numero: '75192-1', statut: 'possédé', priorite: 'forte' }).set.priorite, null);
 });
+
+// ---------- dates d'achat et de montage ----------
+const NOW = new Date(2026, 10, 3);
+const AVEC = (o) => normaliserSet({ numero: '75192-1', nom: 'Faucon', statut: 'possédé', ...o }, { maintenant: NOW });
+
+test('dates : gardées pour un set possédé, sans correction', () => {
+  const r = AVEC({ dateAchat: '2025-12-24', dateMontage: '2026-01-02' });
+  assert.equal(r.set.dateAchat, '2025-12-24');
+  assert.equal(r.set.dateMontage, '2026-01-02');
+  assert.equal(r.corrections, 0);
+});
+
+test('dates : absentes = null sans correction (fiches d\'avant ces champs)', () => {
+  const r = AVEC({});
+  assert.equal(r.set.dateAchat, null);
+  assert.equal(r.corrections, 0);
+});
+
+test('dates : impossible, future ou mal formée est écartée et comptée', () => {
+  for (const v of ['2026-02-30', '2099-01-01', 'hier', 12, '03/11/2026']) {
+    const r = AVEC({ dateAchat: v });
+    assert.equal(r.set.dateAchat, null, String(v));
+    assert.equal(r.corrections, 1, String(v));
+  }
+});
+
+test('dates : un set souhaité n\'en a pas, sans compter de correction', () => {
+  const r = normaliserSet({ numero: '75192-1', nom: 'Faucon', statut: 'souhaité', dateAchat: '2025-12-24' }, { maintenant: NOW });
+  assert.equal(r.set.dateAchat, null);
+  assert.equal(r.corrections, 0);
+});

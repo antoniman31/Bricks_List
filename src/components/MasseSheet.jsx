@@ -3,6 +3,7 @@ import Sheet from './Sheet.jsx'
 import { ETATS } from '../lib/model.js'
 import { apercuModification } from '../lib/collection.js'
 import { exporter } from '../lib/partage.js'
+import { aujourdhuiISO } from '../lib/dates.js'
 import { telecharger } from '../lib/fichier.js'
 
 const VIDE = '__vide'
@@ -13,7 +14,7 @@ const LIBELLES_OUI_NON = { oui: 'présente', non: 'absente' }
 // changements, un champ laissé sur « Ne pas changer » n'y est pas.
 function construire(champs, statut) {
   if (statut === 'souhaité') {
-    return { statut: 'possédé', etat: champs.etat === '' || champs.etat === VIDE ? null : champs.etat }
+    return { statut: 'possédé', etat: champs.etat === '' || champs.etat === VIDE ? null : champs.etat, dateAchat: aujourdhuiISO() }
   }
   const c = {}
   if (champs.effacerEmplacement) c.emplacement = ''

@@ -269,3 +269,10 @@ test('tri propre à un onglet : retombe sur « ajout » dans l\'autre, les tris 
   assert.equal(triPourOnglet('emplacement', 'possédé'), 'emplacement');
   assert.equal(triPourOnglet('nom', 'souhaité'), 'nom');
 });
+
+test('trier par date d\'achat : plus récent d\'abord, sans date en dernier, puis par nom', () => {
+  const l = [R('1', 'Vieux', '', { dateAchat: '2020-05-01' }), R('2', 'Sans', ''), R('3', 'Récent', '', { dateAchat: '2026-01-10' }), R('4', 'Aussi vieux', '', { dateAchat: '2020-05-01' })];
+  assert.deepEqual(trier(l, 'achat').map((s) => s.nom), ['Récent', 'Aussi vieux', 'Vieux', 'Sans']);
+  assert.equal(triPourOnglet('achat', 'souhaité'), 'ajout');
+  assert.equal(triPourOnglet('achat', 'possédé'), 'achat');
+});
