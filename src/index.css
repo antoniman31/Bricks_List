@@ -14,6 +14,7 @@
   --accent: #f5c518;           /* texte et liens, lus SUR le fond */
   --accent-fond: #f5c518;      /* aplat qui porte du texte --sur-accent */
   --remplissage: #f5c518;      /* barres, cases cochées */
+  --vignette: #ffffff;         /* fond des images de sets : leur blanc est intégré à l'image */
   --sur-accent: #15161a;       /* 11,1:1 sur --accent-fond */
   --danger: #ff6b6d;
   --cible-min: 44px;
@@ -117,8 +118,6 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
   border-radius: var(--rayon);
   background: var(--surface);
 }
-.carte__image { flex: none; width: 72px; height: 72px; border-radius: 8px; object-fit: contain; background: var(--surface-haute); }
-.carte__image--vide { display: grid; place-items: center; color: var(--texte-doux); font-size: 0.7rem; text-align: center; }
 .carte__texte { min-width: 0; }
 .carte__nom { margin: 0; font-weight: 600; }
 .carte__details { margin: 2px 0 0; color: var(--texte-doux); font-size: 0.8125rem; }
@@ -189,8 +188,6 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
 .formulaire__ligne { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--espace); }
 .champ--texte { padding: 8px 12px; resize: vertical; }
 
-.fiche__image { display: block; width: 100%; max-height: 180px; margin-bottom: var(--espace); border-radius: 8px; object-fit: contain; background: var(--surface-haute); }
-.fiche__image--vide { display: grid; place-items: center; height: 120px; color: var(--texte-doux); }
 .fiche { margin: 0; }
 .fiche__ligne { display: flex; justify-content: space-between; gap: var(--espace); padding: 8px 0; border-bottom: 1px solid var(--bordure); }
 .fiche dt { color: var(--texte-doux); }
@@ -208,7 +205,6 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
 .formulaire__recherche .champ { flex: 1; min-width: 0; }
 .formulaire__aide { color: var(--texte-doux); font-size: 0.8125rem; }
 .formulaire__aide--erreur, .reglage__aide--erreur { color: var(--danger); }
-.formulaire__apercu { width: 96px; height: 96px; object-fit: contain; border-radius: 8px; background: var(--surface-haute); }
 .reglage .bouton--danger { margin-top: 8px; }
 .reglage .avis { margin-top: 8px; }
 
@@ -272,3 +268,31 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
 }
 .lot__entete { display: flex; align-items: center; justify-content: space-between; gap: var(--espace); margin-bottom: 4px; }
 .lot__entete .reglage__titre { margin: 0; }
+
+/* Images de sets : rendus 4:3 sur fond blanc intégré, présentés sur un panneau blanc.
+   Le contour sépare ce panneau du fond en thème clair, où blanc sur blanc se perdrait.
+   `aspect-ratio` réserve la place avant le chargement : la liste ne saute pas. */
+.vignette {
+  display: block;
+  flex: none;
+  box-sizing: border-box;
+  aspect-ratio: 4 / 3;
+  border: 1px solid var(--bordure);
+  border-radius: 8px;
+  background: var(--vignette);
+  object-fit: contain;
+}
+.vignette--carte { width: 112px; }
+.vignette--fiche { width: 100%; max-height: 240px; margin-bottom: var(--espace); }
+.vignette--apercu { width: 128px; }
+/* Sans image : même format, avec le numéro, sur un fond de surface plutôt que blanc. */
+.vignette--vide {
+  display: grid;
+  place-items: center;
+  padding: 4px;
+  background: var(--surface-haute);
+  color: var(--texte-doux);
+  font-size: 0.75rem;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
