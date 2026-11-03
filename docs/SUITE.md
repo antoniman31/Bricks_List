@@ -66,6 +66,21 @@ testé avec sa vraie collection, tout fonctionne.
     Réglages restent et suivent le même réglage. À 360 px le logo passe à 32 px et le nom à 18 px.
   - *840 px et plus, en liste* : liste à gauche, détail du set à droite (`FicheContenu`, `useLarge`).
     En grille et sous 840 px, le détail reste une feuille.
+- **Feuilles refondues** (série en 5 PR) : toutes passent par `Sheet.jsx`, avec poignée, croix à la place de
+  « Fermer », glissé vers le bas (limité à l'en-tête, le contenu garde son défilement) et actions toujours
+  visibles (`pied`). Toutes les voies de fermeture (croix, fond, Échap, glissé) passent par une seule règle :
+  si `modifie` est vrai, « Abandonner les changements ? » (formulaire, ajout rapide). Réglages en sections
+  repliables.
+  - *Emplacements par puces* (`ChoixEmplacement`) avec décompte, « Nouveau » pour un nom inédit, dans le
+    formulaire, l'ajout rapide et la modification en masse ; « Ranger dans… » devient la ligne Emplacement de la
+    fiche (`RangerSheet` : recherche au-delà de 8 emplacements, dernier utilisé en tête).
+  - *Fiche modifiable sur place* : État, Priorité (souhaités), Emplacement et Étiquettes s'enregistrent à
+    l'appui (`changerSet` dans `App.jsx`) ; un refus du modèle ou un dépassement s'affiche. « Plus d'options »
+    ouvre le formulaire complet.
+  - *Ajout rapide* (`AjoutRapide`) : le + ouvre numéro, emplacement et état ; « Ajouter » grisé tant que le
+    numéro est invalide. Avec clé Rebrickable le nom est cherché ; sans clé (ou échec) il est facultatif et le set
+    s'appelle « Set 75192 », comme l'ajout par lot. « Plus d'options » ouvre le formulaire complet, en plein
+    écran, avec les valeurs déjà saisies ; en modification, « Enregistrer » est grisé tant que rien n'a changé.
 - **Mises à jour de l'app installée** (même principe que Chrono-MCU) : la page d'accueil passe par le
   réseau d'abord (4 s, cache hors ligne), les fichiers de code sont immuables (empreinte dans le nom), donc
   un rechargement en ligne suffit pour voir la dernière version. Un bandeau « Une nouvelle version est
@@ -77,8 +92,8 @@ testé avec sa vraie collection, tout fonctionne.
   de répondre « à jour » par défaut (`verifierMiseAJour`).
   *Limite* : si on installe l'app puis qu'on coupe le réseau avant le deuxième lancement, la page d'accueil
   n'est pas encore en cache.
-- **Qualité** : `npm run lint`, `npm test` (288 tests), `npm run verif:ui` (axe-core, cibles de
-  48 px, débordements, navigation, recherche visible clavier ouvert ; 26 écrans × 2 thèmes × 4
+- **Qualité** : `npm run lint`, `npm test` (292 tests), `npm run verif:ui` (axe-core, cibles de
+  48 px, débordements, navigation, recherche visible clavier ouvert ; 32 écrans × 2 thèmes × 4
   largeurs : 360, 412, 900, 1280). Les trois tournent dans le CI avant le déploiement.
 
 ## Décisions de cadrage (ne pas rouvrir sans raison)
