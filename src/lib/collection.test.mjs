@@ -231,3 +231,10 @@ test('acheter un set souhaité efface sa priorité', () => {
   assert.equal(s.priorite, 'forte');
   assert.equal(acheter([s], s.id, 'scellé')[0].priorite, null);
 });
+
+test('acheter note le jour de l\'achat (jour local)', () => {
+  const [s] = ajouter([], { ...BASE, statut: 'souhaité' }).sets;
+  const achete = acheter([s], s.id, 'scellé', new Date(2026, 10, 3, 23, 50))[0];
+  assert.equal(achete.statut, 'possédé');
+  assert.equal(achete.dateAchat, '2026-11-03');
+});

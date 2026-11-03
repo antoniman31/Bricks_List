@@ -1,4 +1,5 @@
 import { ETATS, LIBELLES_PRIORITE, PRIORITES } from './model.js';
+import { anneeDe } from './dates.js';
 import { cleAnnee, libelleAnnee, manquants, modeAnnees } from './recherche.js';
 
 // Chaque barre porte le filtre qui retrouve exactement ses sets. Le chiffre
@@ -33,7 +34,7 @@ function repartir(sets, cleDe, libelleDe, filtreDe, champManquant, trierBarres, 
 
 const parTaille = (a, b) => b.sets - a.sets || a.libelle.localeCompare(b.libelle, 'fr', { sensitivity: 'base' });
 
-export function calculerStats(sets) {
+export function calculerStats(sets, maintenant = new Date()) {
   const possedes = sets.filter((s) => s.statut === 'possédé');
   const souhaites = sets.filter((s) => s.statut === 'souhaité');
 
@@ -62,6 +63,15 @@ export function calculerStats(sets) {
         (a, b) => a.libelle.localeCompare(b.libelle, 'fr', { sensitivity: 'base', numeric: true }), 'Non rangé')
       : [],
     aCompleter: manquants(possedes),
+    // Seulement si au moins une date est saisie : sinon « 0 achetés, 0 montés » ferait
+    // croire que rien n'a été acheté alors que rien n'a été renseigné.
+    activite: possedes.some((s) => s.dateAchat || s.dateMontage)
+      ? {
+        annee: maintenant.getFullYear(),
+        achetes: possedes.filter((s) => anneeDe(s.dateAchat) === maintenant.getFullYear()).length,
+        montes: possedes.filter((s) => anneeDe(s.dateMontage) === maintenant.getFullYear()).length,
+      }
+      : null,
     wishlist: {
       sets: souhaites.length,
       pieces: total(souhaites),

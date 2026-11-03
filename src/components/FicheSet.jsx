@@ -2,6 +2,7 @@ import { useState } from 'react'
 import Sheet from './Sheet.jsx'
 import Vignette from './Vignette.jsx'
 import { ETATS, LIBELLES_PRIORITE } from '../lib/model.js'
+import { formaterDate } from '../lib/dates.js'
 
 function Ligne({ libelle, valeur }) {
   if (valeur == null || valeur === '') return null
@@ -26,6 +27,8 @@ export default function FicheSet({ set, lectureSeule, onModifier, onAcheter, onS
         <Ligne libelle="Statut" valeur={set.statut} />
         <Ligne libelle="Priorité" valeur={set.priorite ? LIBELLES_PRIORITE[set.priorite] : null} />
         <Ligne libelle="État" valeur={set.etat} />
+        <Ligne libelle="Acheté le" valeur={formaterDate(set.dateAchat)} />
+        <Ligne libelle="Monté le" valeur={formaterDate(set.dateMontage)} />
         <Ligne libelle="Emplacement" valeur={set.emplacement} />
         <Ligne libelle="Boîte" valeur={set.boite ? (set.boite === 'oui' ? 'présente' : 'absente') : null} />
         <Ligne libelle="Notice" valeur={set.notice ? (set.notice === 'oui' ? 'présente' : 'absente') : null} />

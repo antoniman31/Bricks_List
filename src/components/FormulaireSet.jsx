@@ -7,7 +7,7 @@ import { messageErreur, MESSAGES, MOTS_MIN } from '../lib/rebrickable.js'
 
 const RECHERCHE_VIDE = { etat: 'repos', message: '', avertissements: [] }
 const NOM_VIDE = { mots: '', etat: 'repos', message: '', resultats: [], page: 1, suite: false, total: 0 }
-const VIDE = { numero: '', nom: '', theme: '', annee: '', pieces: '', etat: '', notes: '', emplacement: '', boite: '', notice: '', priorite: '' }
+const VIDE = { numero: '', nom: '', theme: '', annee: '', pieces: '', etat: '', notes: '', emplacement: '', boite: '', notice: '', priorite: '', dateAchat: '', dateMontage: '' }
 
 function versChamps(set) {
   return {
@@ -22,6 +22,8 @@ function versChamps(set) {
     boite: set.boite ?? '',
     notice: set.notice ?? '',
     priorite: set.priorite ?? '',
+    dateAchat: set.dateAchat ?? '',
+    dateMontage: set.dateMontage ?? '',
   }
 }
 
@@ -155,10 +157,12 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
       boite: statut === 'possédé' && champs.boite !== '' ? champs.boite : null,
       notice: statut === 'possédé' && champs.notice !== '' ? champs.notice : null,
       priorite: statut === 'souhaité' && champs.priorite !== '' ? champs.priorite : null,
+      dateAchat: statut === 'possédé' && champs.dateAchat !== '' ? champs.dateAchat : null,
+      dateMontage: statut === 'possédé' && champs.dateMontage !== '' ? champs.dateMontage : null,
       image,
     }
     const verifie = normaliserSet(brut)
-    if (!verifie || verifie.corrections > 0) return setErreur('Une valeur est hors limites : vérifie l\'année (depuis 1949) et les pièces.')
+    if (!verifie || verifie.corrections > 0) return setErreur('Une valeur est hors limites : vérifie l\'année (depuis 1949), les pièces et les dates (pas dans le futur).')
 
     // Un deuxième exemplaire est légitime (deux boîtes, deux états), mais le plus
     // souvent un doublon est une erreur de saisie : on demande une confirmation.
@@ -322,6 +326,16 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
                   <option value="oui">Présente</option>
                   <option value="non">Absente</option>
                 </select>
+              </label>
+            </div>
+            <div className="formulaire__ligne">
+              <label className="formulaire__champ">
+                Acheté le
+                <input className="champ" type="date" min="1949-01-01" value={champs.dateAchat} onChange={maj('dateAchat')} />
+              </label>
+              <label className="formulaire__champ">
+                Monté le
+                <input className="champ" type="date" min="1949-01-01" value={champs.dateMontage} onChange={maj('dateMontage')} />
               </label>
             </div>
           </>

@@ -41,7 +41,7 @@ function Bloc({ titre, children }) {
 
 export default function StatsView({ stats, onOuvrir, onVoirWishlist }) {
   const [tousLesThemes, setTousLesThemes] = useState(false)
-  const { resume, themes, annees, etats, emplacements, aCompleter, wishlist } = stats
+  const { resume, themes, annees, etats, emplacements, aCompleter, wishlist, activite } = stats
 
   if (resume.sets === 0) {
     return (
@@ -69,6 +69,11 @@ export default function StatsView({ stats, onOuvrir, onVoirWishlist }) {
       {resume.sansPieces > 0 && (
         <p className="stats__note">
           Total calculé sur {pluriel(resume.sets - resume.sansPieces, 'set')} dont le nombre de pièces est connu ({resume.sansPieces} sans).
+        </p>
+      )}
+      {activite && (
+        <p className="stats__note">
+          En {activite.annee} : {pluriel(activite.achetes, 'set')} {activite.achetes > 1 ? 'achetés' : 'acheté'}, {pluriel(activite.montes, 'set')} {activite.montes > 1 ? 'montés' : 'monté'}.
         </p>
       )}
       {resume.plusGros && (

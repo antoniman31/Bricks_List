@@ -29,6 +29,7 @@ for (let i = 0; i < 16; i += 1) {
     theme: i % 7 === 3 ? '' : THEMES_SETS[i % 5], annee: i % 6 === 2 ? null : 2008 + ((i * 3) % 17),
     pieces: i % 5 === 1 ? null : 300 + i * 211, statut: 'possédé', etat: ['scellé', 'monté', 'démonté', 'incomplet', null][i % 5],
     emplacement: i % 3 === 0 ? 'étagère 2' : '', boite: ['oui', 'non', null][i % 3], notice: [null, 'oui', 'non'][i % 3],
+    dateAchat: i % 4 === 0 ? '2026-03-01' : null, dateMontage: i % 8 === 0 ? '2026-03-15' : null,
     notes: 'une note', image: i % 2 ? 'https://cdn.rebrickable.com/media/sets/test.png' : null, dateAjout: `2026-0${1 + (i % 9)}-10T00:00:00.000Z`,
   });
 }
@@ -98,6 +99,7 @@ const ECRANS = {
     await p.click('.nav__item:has-text("Wishlist")');
     await p.selectOption('select.champ', 'priorite');
   },
+  'formulaire (dates)': async (p) => { await p.locator('.carte').first().click(); await p.click('dialog[open] button:has-text("Modifier")'); await p.locator('input[type=date]').first().scrollIntoViewIfNeeded(); },
   'stats': async (p) => { await p.click('.nav__item:has-text("Stats")'); await p.waitForSelector('.stats'); },
   'wishlist': async (p) => { await p.click('.nav__item:has-text("Wishlist")'); },
   'recherche (résultats de l\'autre onglet)': async (p) => { await p.fill('input[type=search]', 'Souhait'); await p.waitForSelector('.ailleurs'); },
