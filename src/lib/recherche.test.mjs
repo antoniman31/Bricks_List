@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { filtrer, trier, themes, normaliserTexte, modeAnnees, cleAnnee, libelleAnnee, groupesAnnees, manquants } from './recherche.js';
+import { filtrer, trier, themes, normaliserTexte, modeAnnees, cleAnnee, libelleAnnee, groupesAnnees, manquants, rechercherAilleurs } from './recherche.js';
 
 const S = [
   { id: '1', numero: '75192-1', nom: 'Faucon Millenium', theme: 'Star Wars', annee: 2017, pieces: 7541, statut: 'possédé', etat: 'scellé', dateAjout: '2026-10-01', notes: 'secret' },
@@ -126,4 +126,26 @@ test('manquants : rien à compléter, rien à afficher', () => {
   const m = manquants([S[0], S[1], S[2]]);
   assert.equal(m.fiches, 0);
   assert.deepEqual(m.champs, []);
+});
+
+test('rechercherAilleurs : trouve dans l\'autre onglet seulement', () => {
+  // S contient un set souhaité (id 3, Fondcombe) et trois possédés.
+  assert.deepEqual(ids(rechercherAilleurs(S, 'possédé', 'fondcombe')), ['3']);
+  assert.deepEqual(ids(rechercherAilleurs(S, 'souhaité', 'titanic')), ['2']);
+});
+
+test('rechercherAilleurs : ne renvoie jamais le set de l\'onglet courant', () => {
+  assert.deepEqual(ids(rechercherAilleurs(S, 'possédé', 'titanic')), []);
+  assert.deepEqual(ids(rechercherAilleurs(S, 'souhaité', 'fondcombe')), []);
+});
+
+test('rechercherAilleurs : texte vide ou blanc, rien', () => {
+  assert.deepEqual(rechercherAilleurs(S, 'possédé', ''), []);
+  assert.deepEqual(rechercherAilleurs(S, 'possédé', '   '), []);
+  assert.deepEqual(rechercherAilleurs(S, 'possédé', undefined), []);
+});
+
+test('rechercherAilleurs : insensible aux accents et trouve par numéro', () => {
+  assert.deepEqual(ids(rechercherAilleurs(S, 'possédé', 'FONDCOMBE')), ['3']);
+  assert.deepEqual(ids(rechercherAilleurs(S, 'possédé', '10316')), ['3']);
 });

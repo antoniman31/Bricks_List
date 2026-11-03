@@ -334,3 +334,7 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
   }
   .nav__item { flex: none; min-height: 72px; }
 }
+
+/* Résultats de l'autre onglet : « je l'ai déjà ? » sans changer d'onglet. */
+.ailleurs { margin-top: calc(var(--espace) * 2); }
+.ailleurs__titre { margin: 0; font-size: 1rem; color: var(--texte-doux); }

@@ -28,6 +28,17 @@ export function filtrer(sets, { statut, texte = '', theme = '', etat = '', annee
   });
 }
 
+// Les sets de l'AUTRE onglet qui correspondent au texte tapé. C'est la question
+// qu'on se pose en magasin — « je l'ai déjà ? » — et elle n'a pas à dépendre de
+// l'onglet affiché : un set de la wishlist tapé depuis la collection ne ressortait
+// pas. Seul le texte compte ici : les filtres (thème, état, année) décrivent la
+// liste affichée, pas l'autre, où un « état » n'existerait même pas.
+export function rechercherAilleurs(sets, statutCourant, texte) {
+  if (normaliserTexte(texte) === '') return [];
+  const autre = statutCourant === 'possédé' ? 'souhaité' : 'possédé';
+  return filtrer(sets, { statut: autre, texte });
+}
+
 // Les valeurs absentes passent toujours en dernier : un set sans année ne doit
 // pas s'intercaler entre 2023 et 2022.
 function comparerNombres(a, b) {
