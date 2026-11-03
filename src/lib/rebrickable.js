@@ -4,13 +4,13 @@ import { ErreurRebrickable } from './api.js';
 const PROFONDEUR_MAX = 6; // les thèmes réels n'ont que 3 niveaux : le reste est un cycle
 
 export const MESSAGES = {
-  cle: 'Clé Rebrickable refusée. Vérifie-la dans les Réglages.',
+  cle: 'Clé refusée (Réglages).',
   introuvable: 'Set introuvable chez Rebrickable.',
-  limite: 'Trop de requêtes. Réessaie dans quelques secondes.',
+  limite: 'Trop de requêtes : réessaie.',
   reseau: 'Pas de réseau.',
   reponse: 'Réponse inattendue de Rebrickable.',
-  serveur: 'Rebrickable ne répond pas correctement.',
-  numero: 'Numéro invalide : saisis par exemple 75192 ou 75192-1.',
+  serveur: 'Rebrickable indisponible.',
+  numero: 'Numéro invalide (ex. 75192).',
   requete: 'Saisis au moins 3 caractères.',
 };
 

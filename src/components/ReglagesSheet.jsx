@@ -34,8 +34,8 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
     setMaj(r === 'a-jour'
       ? { etat: 'ok', message: `Tu as la dernière version (${__COMMIT__}).` }
       : r === 'inconnu'
-        ? { etat: 'ok', message: 'Rien à comparer ici (mode développement).' }
-        : { etat: 'erreur', message: 'Impossible de vérifier : pas de connexion, ou le serveur ne répond pas.' })
+        ? { etat: 'ok', message: 'Rien à comparer (mode développement).' }
+        : { etat: 'erreur', message: 'Impossible de vérifier : pas de connexion.' })
   }
 
   const saisieValide = cleValide(saisieCle)
@@ -85,11 +85,11 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
       // consommé : retenter tout de suite dans la même pression échouerait aussi).
       if (!texte) {
         ecrirePartageTexte(true)
-        return setResultatExport(`Partage refusé (${r.erreur}). Appuie encore : le prochain partage enverra un fichier texte (.txt).`)
+        return setResultatExport(`Partage refusé (${r.erreur}). Réessaie : envoi en .txt.`)
       }
-      return setResultatExport(`Partage refusé (${r.erreur}). Utilise « Exporter la collection » puis envoie le fichier à la main.`)
+      return setResultatExport(`Partage refusé (${r.erreur}). Utilise « Exporter la collection ».`)
     }
-    noter(r.mode === 'partage' ? `Sauvegarde partagée (${r.nom}).` : `Partage indisponible ici : ${nom} a été téléchargé.`)
+    noter(r.mode === 'partage' ? `Sauvegarde partagée (${r.nom}).` : `Partage indisponible : ${nom} téléchargé.`)
   }
 
   async function choisirFichier(e) {
@@ -132,16 +132,14 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
             </button>
           ))}
         </div>
-        <p className="reglage__aide">Automatique suit le réglage clair ou sombre du téléphone.</p>
       </section>
 
       <section className="reglage">
         <h3 className="reglage__titre">Rebrickable</h3>
         <p className="reglage__aide">
-          La clé permet de remplir un set à partir de son numéro. Elle reste sur cet appareil et n'est jamais exportée.
-          Compte gratuit sur rebrickable.com, puis Settings, API.
+          Remplit un set depuis son numéro. Reste sur cet appareil, jamais exportée.
         </p>
-        {cle && <p className="reglage__aide">Clé enregistrée (se termine par {cle.slice(-4)}).</p>}
+        {cle && <p className="reglage__aide">Clé enregistrée (…{cle.slice(-4)}).</p>}
         <label className="formulaire__champ">
           {cle ? 'Remplacer la clé' : 'Clé API'}
           <input
@@ -155,7 +153,7 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
           />
         </label>
         {saisieCle !== '' && !saisieValide && (
-          <p className="reglage__aide reglage__aide--erreur">Cette clé ne ressemble pas à une clé d'API (aucun espace ni accent).</p>
+          <p className="reglage__aide reglage__aide--erreur">Clé invalide (ni espace ni accent).</p>
         )}
         <div className="sheet__pied">
           <button type="button" className="bouton" disabled={test || (!saisieValide && !cle)} onClick={testerCle}>
@@ -171,14 +169,14 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
 
       <section className="reglage">
         <h3 className="reglage__titre">Sauvegarde</h3>
-        <p className="reglage__aide">Les données restent dans ce navigateur. Exporte-les pour les garder ou les passer d'un appareil à l'autre.</p>
+        <p className="reglage__aide">Données stockées sur cet appareil. Exporte pour les sauvegarder.</p>
         <p className="reglage__aide">
           Dernière sauvegarde : {libelleDelai(etatSauvegarde({ nbSets: sets.length, derniere: derniereSauvegarde }).jours)}.
         </p>
         <p className="reglage__aide">
-          {persistance === 'protege' && 'Stockage protégé : Chrome ne l\'effacera pas pour faire de la place.'}
-          {persistance === 'non-garanti' && 'Stockage non garanti : Chrome peut l\'effacer si l\'appareil manque de place. Installe l\'app sur l\'écran d\'accueil et garde une sauvegarde à jour.'}
-          {persistance === 'inconnu' && 'Protection du stockage : inconnue sur ce navigateur. Garde une sauvegarde à jour.'}
+          {persistance === 'protege' && 'Stockage protégé.'}
+          {persistance === 'non-garanti' && 'Stockage non garanti : installe l\'app et sauvegarde.'}
+          {persistance === 'inconnu' && 'Protection inconnue : sauvegarde régulièrement.'}
         </p>
         <div className="sheet__pied">
           <button type="button" className="bouton" onClick={exporterMaintenant} disabled={sets.length === 0}>Exporter la collection</button>
@@ -228,7 +226,6 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
 
       <section className="reglage">
         <h3 className="reglage__titre">Mise à jour</h3>
-        <p className="reglage__aide">Si l'app ne montre pas la dernière version, vérifie ici : elle se recharge toute seule quand il y en a une.</p>
         <button type="button" className="bouton" disabled={maj.etat === 'charge'} onClick={verifierMaj}>
           {maj.etat === 'charge' ? 'Vérification…' : 'Vérifier les mises à jour'}
         </button>
