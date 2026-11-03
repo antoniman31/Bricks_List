@@ -18,6 +18,7 @@ dans le `localStorage` du navigateur et s'exportent en JSON.
 npm install
 npm run dev
 npm run lint && npm test
+npm run verif:ui    # accessibilité, cibles tactiles, débordements, 2 thèmes × 3 largeurs
 ```
 
 Le site se déploie sur GitHub Pages à chaque fusion sur `main`.

@@ -8,6 +8,9 @@ minifigs, pas de pièces détachées, pas de prix (décisions de cadrage).
 
 - `npm run dev` : serveur de développement.
 - `npm run lint` (oxlint) et `npm test` : à passer avant tout commit.
+- `CHROMIUM=/opt/pw-browsers/chromium npm run verif:ui` : construit, puis parcourt chaque
+  écran (2 thèmes × 3 largeurs) : accessibilité axe-core, cibles de 44 px, débordements,
+  navigation. À passer pour tout changement d'interface ; il bloque aussi le CI.
 - `CHROMIUM=/opt/pw-browsers/chromium npm run icones` : régénère les icônes PNG
   depuis `public/favicon.svg`.
 
@@ -16,7 +19,10 @@ minifigs, pas de pièces détachées, pas de prix (décisions de cadrage).
 - Commentaires en français qui expliquent le **pourquoi**, pas ce que la ligne fait.
 - Un module de `src/lib/` a son `*.test.mjs` à côté. La logique pure vit dans
   `src/lib/`, ce qui touche au réseau reste mince (`api.js`).
-- Couleurs et tailles par jetons CSS (`src/index.css`), jamais de valeur en dur.
+- Couleurs et tailles par jetons CSS (`src/index.css`), jamais de valeur en dur. Chaque
+  jeton existe dans le thème sombre (défaut) et dans `html[data-theme='light']`, avec son
+  contraste mesuré en commentaire. Le jaune en texte (`--accent`) n'est pas le jaune en
+  aplat (`--accent-fond`) : le premier doit rester lisible sur fond clair.
 - De vrais `<button>`, jamais de `<div onClick>` ; cibles tactiles d'au moins 44 px.
 - Une écriture qui peut échouer (stockage, réseau) doit se voir à l'écran.
 - Toute donnée venue d'un fichier ou du stockage est validée comme entrée non fiable.

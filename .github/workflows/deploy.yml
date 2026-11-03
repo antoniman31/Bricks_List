@@ -64,6 +64,15 @@ jobs:
       - name: Construire le site
         run: npm run build
 
+      - name: Installer le navigateur de test
+        run: npx playwright install --with-deps --only-shell chromium
+
+      - name: Vérifier l'interface
+        # Accessibilité (axe-core, WCAG AA dont les contrastes), cibles tactiles de
+        # 44 px, débordements et navigation, dans les deux thèmes et trois largeurs.
+        # Bloque le déploiement : ce sont des défauts qu'une relecture de code ne voit pas.
+        run: node scripts/verif-ui.mjs
+
       - uses: actions/configure-pages@v5
         if: github.event_name != 'pull_request'
 
