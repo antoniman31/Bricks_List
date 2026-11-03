@@ -29,8 +29,12 @@ testé avec sa vraie collection, tout fonctionne.
   migration : une fiche d'avant ces champs reste « non précisé ».
 - **Recherche par nom** dans le formulaire d'ajout (API Rebrickable, 10 résultats par page, thème
   résolu seulement pour le résultat choisi). Les noms du catalogue sont en anglais.
-- **Qualité** : `npm run lint`, `npm test` (168 tests), `npm run verif:ui` (axe-core, cibles de
-  44 px, débordements, navigation ; 10 écrans × 2 thèmes × 3 largeurs). Les trois tournent dans
+- **Sélection multiple** : modifier ou supprimer plusieurs sets d'un coup, avec aperçu et annulation.
+- **Liste groupée par emplacement** : tri « Emplacement » (collection), groupes repliables, « Non
+  rangé » en dernier, « Choisir ce groupe » en sélection ; bloc Stats « Par emplacement » ; « Sans
+  emplacement » dans « À compléter » seulement si la fonction sert.
+- **Qualité** : `npm run lint`, `npm test` (197 tests), `npm run verif:ui` (axe-core, cibles de
+  44 px, débordements, navigation ; 15 écrans × 2 thèmes × 3 largeurs). Les trois tournent dans
   le CI avant le déploiement.
 
 ## Décisions de cadrage (ne pas rouvrir sans raison)
@@ -66,6 +70,15 @@ ce sont de petits projets de loisir, récents, la plupart sur serveur.
   difficile), synchronisation serveur, valorisation et mode vente.
 
 ### Reste à décider ou à faire
+
+0. **Idées retenues, ordre à choisir par Antoni** (spécifiées en conversation, rien de codé) :
+   - **Priorité sur la wishlist** : 3 niveaux (envie forte, un jour, pas pressé), avec tri et
+     filtre. Champ optionnel, validé comme entrée non fiable, sans migration.
+   - **Stats rangement** : sets sans boîte, sans notice, sans emplacement, avec lien vers la liste
+     filtrée (le « sans emplacement » existe déjà dans « À compléter »).
+   - **Export CSV** en plus de la sauvegarde JSON : séparateur point-virgule, BOM UTF-8 pour que
+     l'Excel français lise les accents. Jamais la clé Rebrickable.
+   - Rappel : fusion **demandée à Antoni à chaque PR**.
 
 1. **Photographier une boîte (Brickognize)** : Antoni a répondu « je ne sais pas » sur l'envoi
    des photos. Si on la fait : option **désactivée par défaut** dans les Réglages avec
@@ -104,8 +117,9 @@ Corollaire : la recherche par nom de Rebrickable ne trouve que de l'anglais (« 
 - La durée réelle d'un lot dépend de la limite de débit de Rebrickable ; un 429 est retenté une fois.
 - Un set dont le numéro contient des lettres (rares sets promotionnels) ne peut pas être rangé :
   l'application n'accepte que les numéros de la forme `75192-1`. La recherche par nom les écarte.
-- La recherche par nom s'appuie sur le paramètre `search` de l'API Rebrickable, testé ici avec une
-  API simulée de même forme, pas avec une vraie clé : à confirmer au premier essai réel.
+- La recherche par nom s'appuie sur le paramètre `search` de l'API Rebrickable. Antoni a confirmé
+  que l'API réelle fonctionne dans l'ensemble.
+- Les emplacements sont comparés au caractère près : « Salon » et « salon » font deux groupes.
 
 ## Particularités techniques utiles
 
