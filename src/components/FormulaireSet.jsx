@@ -66,7 +66,9 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
       }))
       setImage(set.image)
       setErreur('')
-      setRecherche({ etat: 'ok', message: 'Rempli depuis Rebrickable : vérifie et ajoute.', avertissements })
+      // En modification, la recherche remplace nom, thème, année, pièces et image,
+      // mais jamais le statut, l'état ni les notes : ce sont des choix de l'utilisateur.
+      setRecherche({ etat: 'ok', message: `Rempli depuis Rebrickable : vérifie et ${initial ? 'enregistre' : 'ajoute'}.`, avertissements })
     } catch (e) {
       if (mien !== jeton.current) return
       setRecherche({ etat: 'erreur', message: `${messageErreur(e)} Tu peux saisir à la main.`, avertissements: [] })
@@ -117,13 +119,13 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
           <label htmlFor="champ-numero">Numéro</label>
           <div className="formulaire__recherche">
             <input id="champ-numero" className="champ" inputMode="numeric" autoComplete="off" placeholder="75192" value={champs.numero} onChange={maj('numero')} />
-            {!initial && aCle && (
+            {aCle && (
               <button type="button" className="bouton" disabled={recherche.etat === 'charge'} onClick={chercher}>
                 {recherche.etat === 'charge' ? '…' : 'Chercher'}
               </button>
             )}
           </div>
-          {!initial && !aCle && (
+          {!aCle && (
             <span className="formulaire__aide">Pour remplir automatiquement, ajoute ta clé Rebrickable dans les Réglages.</span>
           )}
           {recherche.message && (
