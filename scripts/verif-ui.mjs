@@ -119,7 +119,7 @@ const ECRANS = {
     await p.click('.nav__item:has-text("Wishlist")');
     await trier(p, 'Priorité');
   },
-  'formulaire (dates)': async (p) => { await p.locator('.carte').first().click(); await p.locator('dialog[open] button:has-text("Modifier"), aside.detail button:has-text("Modifier")').first().click(); await p.locator('input[type=date]').first().scrollIntoViewIfNeeded(); },
+  'formulaire (dates)': async (p) => { await p.locator('.carte').first().click(); await p.locator('dialog[open] button:has-text("Plus d\'options"), aside.detail button:has-text("Plus d\'options")').first().click(); await p.locator('input[type=date]').first().scrollIntoViewIfNeeded(); },
   'filtres (étiquette)': async (p) => { await p.click(FILTRES); await p.click('.groupe__ligne:has-text("Étiquette")'); },
   'grille': async (p) => { await p.click(GRILLE); await p.waitForSelector('.liste--grille'); },
   'grille (sélection)': async (p) => {
@@ -159,8 +159,14 @@ const ECRANS = {
   'fiche': async (p) => { await p.locator('.carte').first().click(); },
   'fiche (ranger dans)': async (p) => {
     await p.locator('.carte').first().click();
-    await p.click('button:has-text("Ranger dans")');
+    await p.click('.fiche__ligne--edit:has(dt:text-is("Emplacement")) .fiche__valeur');
     await p.waitForSelector('.rangement');
+  },
+  'fiche (état et étiquettes dépliés)': async (p) => {
+    await p.locator('.carte').first().click();
+    await p.click('.fiche__ligne--edit:has(dt:text-is("État")) .fiche__valeur');
+    await p.click('.fiche__ligne--edit:has(dt:text-is("Étiquettes")) .fiche__valeur');
+    await p.waitForSelector('.fiche__edition');
   },
   'formulaire (erreur)': async (p) => { await p.click(AJOUTER); await p.click('button[type=submit]'); },
   'formulaire (recherche par nom)': async (p) => {
