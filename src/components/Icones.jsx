@@ -5,6 +5,8 @@ const TRACES = {
   reglages: <><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" /></>,
   plus: <path d="M12 5v14M5 12h14" />,
   filtres: <path d="M4 6h16M7 12h10M10 18h4" />,
+  liste: <path d="M4 7h16M4 12h16M4 17h16" />,
+  grille: <><rect x="4" y="4" width="7" height="7" rx="1" /><rect x="13" y="4" width="7" height="7" rx="1" /><rect x="4" y="13" width="7" height="7" rx="1" /><rect x="13" y="13" width="7" height="7" rx="1" /></>,
   selection: <><rect x="4" y="4" width="16" height="16" rx="3" /><path d="M8 12l3 3 5-6" /></>,
 }
 

@@ -3,6 +3,7 @@ import CarteSet from './components/CarteSet.jsx'
 import ListeGroupee from './components/ListeGroupee.jsx'
 import { copierTexte } from './lib/fichier.js'
 import { cleEtiquette, etiquettesConnues as etiquettesDe } from './lib/etiquettes.js'
+import { autreVue, ecrireVue, lireVue } from './lib/vue.js'
 import { texteWishlist } from './lib/wishlist.js'
 import FiltersSheet from './components/FiltersSheet.jsx'
 import FicheSet from './components/FicheSet.jsx'
@@ -53,6 +54,7 @@ export default function App() {
   // Vrai pendant la saisie dans la recherche : sur téléphone, la barre du bas se range pour
   // laisser la place au clavier (sinon barre + recherche le coiffent tous les deux).
   const [saisie, setSaisie] = useState(false)
+  const [vue, setVue] = useState(lireVue)
   // null : pas de sélection. Sinon { cle, ids } : `cle` décrit la vue pour laquelle les ids ont été choisis.
   const [selection, setSelection] = useState(null)
   // La dernière modification en masse, pour pouvoir l'annuler : { avant, apres }.
@@ -346,6 +348,12 @@ export default function App() {
               <Icone nom="selection" />
             </button>
           )}
+          {/* Un seul bouton, qui propose l'autre affichage : son icône est celle qu'on obtiendra. */}
+          {!vueStats && (
+            <button type="button" className="icone-btn" aria-label={vue === 'liste' ? 'Afficher en grille' : 'Afficher en liste'} onClick={() => { const v = autreVue(vue); setVue(v); ecrireVue(v) }}>
+              <Icone nom={vue === 'liste' ? 'grille' : 'liste'} />
+            </button>
+          )}
           <button type="button" className="icone-btn" aria-label="Réglages" onClick={() => setEcran({ type: 'reglages' })}>
             <Icone nom="reglages" />
           </button>
@@ -462,13 +470,15 @@ export default function App() {
           idsChoisis={idsActifs}
           onBasculer={basculerSelection}
           onChoisirGroupe={choisirGroupe}
+          vue={vue}
         />
       ) : visibles.length > 0 ? (
-        <ul className="liste">
+        <ul className={`liste${vue === 'grille' ? ' liste--grille' : ''}`}>
           {visibles.map((s) => (
             <CarteSet
               key={s.id}
               set={s}
+              vue={vue}
               onOuvrir={(id) => setEcran({ type: 'fiche', id })}
               selection={selection ? { selectionne: idsActifs.has(s.id) } : undefined}
               onBasculer={basculerSelection}

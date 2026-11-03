@@ -98,6 +98,7 @@ async function verifier(page, largeur) {
 const AJOUTER = 'button[aria-label="Ajouter un set"]';
 const REGLAGES = 'button[aria-label="Réglages"]';
 const FILTRES = 'button[aria-label^="Filtres"]';
+const GRILLE = 'button[aria-label="Afficher en grille"]';
 const SELECTIONNER = 'button[aria-label="Sélectionner des sets"]';
 // Le tri se règle dans la feuille « Filtres et tri » : on l'ouvre, on choisit, on la referme.
 async function trier(p, libelle) {
@@ -120,6 +121,12 @@ const ECRANS = {
   },
   'formulaire (dates)': async (p) => { await p.locator('.carte').first().click(); await p.click('dialog[open] button:has-text("Modifier")'); await p.locator('input[type=date]').first().scrollIntoViewIfNeeded(); },
   'filtres (étiquette)': async (p) => { await p.click(FILTRES); await p.click('.groupe__ligne:has-text("Étiquette")'); },
+  'grille': async (p) => { await p.click(GRILLE); await p.waitForSelector('.liste--grille'); },
+  'grille (sélection)': async (p) => {
+    await p.click(GRILLE); await p.click(SELECTIONNER);
+    await p.locator('.carte').nth(0).click(); await p.locator('.carte').nth(1).click();
+  },
+  'grille par emplacement': async (p) => { await p.click(GRILLE); await trier(p, 'Emplacement'); await p.waitForSelector('.rangee .liste--grille'); },
   'stats': async (p) => { await p.click('.nav__item:has-text("Stats")'); await p.waitForSelector('.stats'); },
   'wishlist': async (p) => { await p.click('.nav__item:has-text("Wishlist")'); },
   'recherche (résultats de l\'autre onglet)': async (p) => { await p.fill('input[type=search]', 'Souhait'); await p.waitForSelector('.ailleurs'); await p.locator('input[type=search]').blur(); },
