@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cleEtiquette, normaliserEtiquettes, analyserSaisie, formaterSaisie, etiquettesConnues, basculerDansSaisie, aEtiquette, ETIQUETTES_MAX, ETIQUETTE_LONGUEUR_MAX } from './etiquettes.js';
+import { cleEtiquette, normaliserEtiquettes, analyserSaisie, formaterSaisie, etiquettesConnues, basculerDansSaisie, aEtiquette, basculerEtiquette, ajouterEtiquettes, ETIQUETTES_MAX, ETIQUETTE_LONGUEUR_MAX } from './etiquettes.js';
 
 test('cleEtiquette ignore casse, accents et espaces de bord', () => {
   assert.equal(cleEtiquette(' Cadéau '), 'cadeau');
@@ -65,4 +65,26 @@ test('preparerSaisie : refuse un dépassement avec un message précis', () => {
   assert.match(preparerSaisie('x'.repeat(31)).erreur, /30 caractères/);
   assert.match(preparerSaisie(Array.from({ length: 9 }, (_, i) => `e${i}`).join(',')).erreur, /8 étiquettes au plus/);
   assert.equal(preparerSaisie(Array.from({ length: 8 }, (_, i) => `e${i}`).join(',')).erreur, '');
+});
+
+test('basculerEtiquette : retire si présente (casse et accents ignorés), ajoute sinon', () => {
+  assert.deepEqual(basculerEtiquette(['Cadeau', 'Noël'], 'cadeau'), { liste: ['Noël'], erreur: '' });
+  assert.deepEqual(basculerEtiquette(['Cadeau'], 'Noël'), { liste: ['Cadeau', 'Noël'], erreur: '' });
+});
+
+test('basculerEtiquette : refuse un ajout au-delà de la limite, sans toucher à la liste', () => {
+  const pleine = Array.from({ length: ETIQUETTES_MAX }, (_, i) => `e${i}`);
+  const r = basculerEtiquette(pleine, 'de trop');
+  assert.deepEqual(r.liste, pleine);
+  assert.match(r.erreur, /au plus/);
+  assert.equal(basculerEtiquette(pleine, 'e0').erreur, '');
+});
+
+test('ajouterEtiquettes : fusionne sans doublon, refuse trop long et trop nombreux', () => {
+  assert.deepEqual(ajouterEtiquettes(['cadeau'], 'Cadeau, à offrir'), { liste: ['cadeau', 'à offrir'], erreur: '' });
+  assert.match(ajouterEtiquettes([], 'x'.repeat(ETIQUETTE_LONGUEUR_MAX + 1)).erreur, /dépasse/);
+  const pleine = Array.from({ length: ETIQUETTES_MAX }, (_, i) => `e${i}`);
+  const r = ajouterEtiquettes(pleine, 'nouvelle');
+  assert.deepEqual(r.liste, pleine);
+  assert.match(r.erreur, /au plus/);
 });

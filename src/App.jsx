@@ -84,6 +84,15 @@ export default function App() {
     setErreurEcriture(r.ok ? '' : `${r.erreur} Changements non enregistrés : exporte la collection.`)
   }
 
+  // Modification d'un champ depuis la fiche. Le modèle valide ; s'il refuse, rien n'est écrit et
+  // la fiche l'affiche (valeur de retour), au lieu de laisser croire que c'est enregistré.
+  function changerSet(id, changements) {
+    const nouveaux = modifier(sets, id, changements)
+    if (nouveaux === sets) return false
+    appliquer(nouveaux)
+    return true
+  }
+
   // Chrome tranche seul si le stockage est protégé : on le demande une fois au démarrage
   // et on affiche son verdict dans les Réglages.
   useEffect(() => {
@@ -568,7 +577,8 @@ export default function App() {
                 lectureSeule={lectureSeule}
                 lieux={emplacementsConnus}
                 lieuRecent={lieuRecent}
-                onRanger={(v) => appliquer(modifier(sets, detail.id, { emplacement: v }))}
+                etiquettesConnues={etiquettesUtilisees}
+                onChanger={(ch) => changerSet(detail.id, ch)}
                 onModifier={() => setEcran({ type: 'formulaire', id: detail.id })}
                 onAcheter={(etat) => appliquer(acheter(sets, detail.id, etat))}
                 onSupprimer={() => appliquer(supprimer(sets, detail.id))}
@@ -600,7 +610,8 @@ export default function App() {
           lectureSeule={lectureSeule}
           lieux={emplacementsConnus}
           lieuRecent={lieuRecent}
-          onRanger={(v) => appliquer(modifier(sets, fiche.id, { emplacement: v }))}
+          etiquettesConnues={etiquettesUtilisees}
+          onChanger={(ch) => changerSet(fiche.id, ch)}
           onFermer={fermer}
           onModifier={() => setEcran({ type: 'formulaire', id: fiche.id })}
           onAcheter={(etat) => { appliquer(acheter(sets, fiche.id, etat)); fermer() }}

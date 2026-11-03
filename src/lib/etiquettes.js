@@ -77,3 +77,21 @@ export function aEtiquette(set, etiquette) {
   const cle = cleEtiquette(etiquette);
   return (set.etiquettes ?? []).some((e) => cleEtiquette(e) === cle);
 }
+
+// Les deux gestes de la fiche : chacun rend la nouvelle liste, ou un message si la limite
+// empêche le geste. La fiche enregistre aussitôt, donc rien ne doit être tronqué en silence.
+export function basculerEtiquette(liste, etiquette) {
+  const cle = cleEtiquette(etiquette);
+  const reste = liste.filter((e) => cleEtiquette(e) !== cle);
+  if (reste.length < liste.length) return { liste: reste, erreur: '' };
+  if (liste.length >= ETIQUETTES_MAX) return { liste, erreur: `${ETIQUETTES_MAX} étiquettes au plus.` };
+  return { liste: [...liste, etiquette], erreur: '' };
+}
+
+export function ajouterEtiquettes(liste, saisie) {
+  const p = preparerSaisie(saisie);
+  if (p.erreur) return { liste, erreur: p.erreur };
+  const toutes = [...liste, ...p.liste];
+  if (new Set(toutes.map(cleEtiquette)).size > ETIQUETTES_MAX) return { liste, erreur: `${ETIQUETTES_MAX} étiquettes au plus.` };
+  return { liste: normaliserEtiquettes(toutes).liste, erreur: '' };
+}
