@@ -6,9 +6,12 @@ import FormulaireSet from './components/FormulaireSet.jsx'
 import LotSheet from './components/LotSheet.jsx'
 import ReglagesSheet from './components/ReglagesSheet.jsx'
 import Navigation from './components/Navigation.jsx'
+import BarreSelection from './components/BarreSelection.jsx'
+import BarreActionsMasse from './components/BarreActionsMasse.jsx'
+import MasseSheet from './components/MasseSheet.jsx'
 import StatsView from './components/StatsView.jsx'
 import { charger, sauver } from './lib/storage.js'
-import { ajouter, ajouterPlusieurs, acheter, compterExemplaires, modifier, supprimer } from './lib/collection.js'
+import { ajouter, ajouterPlusieurs, acheter, compterExemplaires, modifier, modifierPlusieurs, supprimer, supprimerPlusieurs } from './lib/collection.js'
 import { ETATS } from './lib/model.js'
 import { TRIS, emplacements, filtrer, groupesAnnees, manquants, CHAMPS_A_COMPLETER, rechercherAilleurs, themes, trier } from './lib/recherche.js'
 import { calculerStats } from './lib/stats.js'
@@ -18,6 +21,7 @@ import { ecrireCle, ecrireThemes, lireCle, lireThemes } from './lib/reglages.js'
 import { COULEUR_BARRE, ecrireMode, lireMode, resoudreTheme } from './lib/apparence.js'
 
 const FILTRES_VIDES = { theme: '', etat: '', annee: '', manque: '', emplacement: '', boite: '', notice: '' }
+const AUCUN = new Set()
 const PRESENTE_ABSENTE = [{ valeur: 'oui', libelle: 'Présente' }, { valeur: 'non', libelle: 'Absente' }]
 
 function demarrer() {
@@ -38,6 +42,10 @@ export default function App() {
   const [vueStats, setVueStats] = useState(false)
   const [confirmation, setConfirmation] = useState('')
   const [mode, setMode] = useState(lireMode)
+  // null : pas de sélection. Sinon { cle, ids } : `cle` décrit la vue pour laquelle les ids ont été choisis.
+  const [selection, setSelection] = useState(null)
+  // La dernière modification en masse, pour pouvoir l'annuler : { avant, apres }.
+  const [retour, setRetour] = useState(null)
   // Un seul écran à la fois par-dessus la liste : fiche, formulaire, réglages.
   const [ecran, setEcran] = useState(null)
 
@@ -127,6 +135,61 @@ export default function App() {
   const emplacementsConnus = useMemo(() => emplacements(sets), [sets])
   const stats = useMemo(() => calculerStats(sets), [sets])
 
+  // La sélection n'est valable que pour la vue où elle a été faite. Changer la recherche,
+  // un filtre ou l'onglet la vide (le mode reste actif) : on ne modifie jamais un set
+  // qu'on ne voit pas. Calculé à l'affichage plutôt que vidé à la main dans chaque
+  // gestionnaire, pour qu'aucun chemin ne puisse l'oublier.
+  const cleVue = `${vueStats}|${statut}|${texte}|${JSON.stringify(filtres)}`
+  const choisis = selection && selection.cle === cleVue ? selection.ids : AUCUN
+  // Le calcul ci-dessus suffit à ne jamais agir sur une sélection périmée, mais pas à
+  // l'oublier : sans ceci, effacer la recherche ferait revenir l'ancienne sélection,
+  // puisque la vue redeviendrait identique à celle où elle a été faite. React permet
+  // d'ajuster un état pendant le rendu quand il dépend d'un autre ; la condition
+  // garantit que cela converge au second passage.
+  if (selection && selection.cle !== cleVue) setSelection({ cle: cleVue, ids: new Set() })
+
+  const idsActifs = useMemo(() => new Set(visibles.filter((s) => choisis.has(s.id)).map((s) => s.id)), [visibles, choisis])
+  const setsActifs = useMemo(() => visibles.filter((s) => idsActifs.has(s.id)), [visibles, idsActifs])
+  const tousChoisis = visibles.length > 0 && idsActifs.size === visibles.length
+
+  function basculerSelection(id) {
+    const ids = new Set(idsActifs)
+    if (ids.has(id)) ids.delete(id)
+    else ids.add(id)
+    setSelection({ cle: cleVue, ids })
+  }
+
+  function toutBasculer() {
+    setSelection({ cle: cleVue, ids: tousChoisis ? new Set() : new Set(visibles.map((s) => s.id)) })
+  }
+
+  // Une modification en masse garde l'état d'avant : tant que la liste n'a pas bougé
+  // depuis (même référence), le bandeau propose de l'annuler. Dès qu'autre chose
+  // change, ce bouton disparaît : restaurer écraserait ces changements-là.
+  function finMasse(avant, apres, message) {
+    appliquer(apres)
+    setRetour({ avant, apres })
+    setConfirmation(message)
+    setSelection(null)
+    fermer()
+  }
+
+  function appliquerMasse(changements) {
+    const n = idsActifs.size
+    finMasse(sets, modifierPlusieurs(sets, idsActifs, changements), `${n} set${n > 1 ? 's' : ''} ${'statut' in changements ? (n > 1 ? 'achetés' : 'acheté') : (n > 1 ? 'modifiés' : 'modifié')}.`)
+  }
+
+  function supprimerMasse() {
+    const n = idsActifs.size
+    finMasse(sets, supprimerPlusieurs(sets, idsActifs), `${n} set${n > 1 ? 's' : ''} ${n > 1 ? 'supprimés' : 'supprimé'}.`)
+  }
+
+  function annulerMasse() {
+    appliquer(retour.avant)
+    setRetour(null)
+    setConfirmation('Modification annulée.')
+  }
+
   // Les filtres d'un onglet ne veulent rien dire dans l'autre (un état n'existe
   // pas pour un set souhaité) : changer d'onglet les remet à zéro, sinon un
   // filtre survivant afficherait une liste vide sans qu'on comprenne pourquoi.
@@ -208,6 +271,14 @@ export default function App() {
         </div>
       </header>
 
+      {selection && !vueStats ? (
+        <BarreActionsMasse
+          nombre={idsActifs.size}
+          statut={statut}
+          onModifier={() => setEcran({ type: 'masse', action: 'modifier' })}
+          onSupprimer={() => setEcran({ type: 'masse', action: 'supprimer' })}
+        />
+      ) : (
       <Navigation
         actuelle={vueStats ? 'stats' : statut}
         nombres={{ possédé: sets.filter((x) => x.statut === 'possédé').length, souhaité: sets.filter((x) => x.statut === 'souhaité').length }}
@@ -217,13 +288,18 @@ export default function App() {
           if (cle !== statut) changerOnglet(cle)
         }}
       />
+      )}
 
       <main className="contenu">
       {erreur && <p className="avis avis--erreur" role="alert">{erreur}{lectureSeule && ' Les modifications sont désactivées pour ne rien écraser.'}</p>}
       {erreurEcriture && <p className="avis avis--erreur" role="alert">{erreurEcriture}</p>}
       {confirmation && (
         <p className="avis" role="status">
-          {confirmation} <button type="button" className="lien lien--bouton" onClick={() => setConfirmation('')}>Fermer</button>
+          {confirmation}{' '}
+          {retour && sets === retour.apres && (
+            <button type="button" className="lien lien--bouton" onClick={annulerMasse}>Annuler</button>
+          )}
+          <button type="button" className="lien lien--bouton" onClick={() => { setConfirmation(''); setRetour(null) }}>Fermer</button>
         </p>
       )}
       {(corriges > 0 || rejetes > 0) && (
@@ -258,17 +334,40 @@ export default function App() {
         <p className="compteur" aria-live="polite">
           {filtre ? `${visibles.length} sur ${duOnglet.length}` : duOnglet.length} set{visibles.length > 1 ? 's' : ''}
         </p>
-        <label className="tri">
-          Tri
-          <select className="champ" value={tri} onChange={(e) => setTri(e.target.value)}>
-            {TRIS.map((t) => <option key={t.cle} value={t.cle}>{t.libelle}</option>)}
-          </select>
-        </label>
+        <div className="barre__droite">
+          {!selection && visibles.length > 0 && !lectureSeule && (
+            <button type="button" className="bouton" onClick={() => setSelection({ cle: cleVue, ids: new Set() })}>Sélectionner</button>
+          )}
+          <label className="tri">
+            Tri
+            <select className="champ" value={tri} onChange={(e) => setTri(e.target.value)}>
+              {TRIS.map((t) => <option key={t.cle} value={t.cle}>{t.libelle}</option>)}
+            </select>
+          </label>
+        </div>
       </div>
+
+      {selection && (
+        <BarreSelection
+          nombre={idsActifs.size}
+          total={visibles.length}
+          tousSelectionnes={tousChoisis}
+          onToutBasculer={toutBasculer}
+          onQuitter={() => setSelection(null)}
+        />
+      )}
 
       {visibles.length > 0 ? (
         <ul className="liste">
-          {visibles.map((s) => <CarteSet key={s.id} set={s} onOuvrir={(id) => setEcran({ type: 'fiche', id })} />)}
+          {visibles.map((s) => (
+            <CarteSet
+              key={s.id}
+              set={s}
+              onOuvrir={(id) => setEcran({ type: 'fiche', id })}
+              selection={selection ? { selectionne: idsActifs.has(s.id) } : undefined}
+              onBasculer={basculerSelection}
+            />
+          ))}
         </ul>
       ) : (
         <div className="vide">
@@ -285,7 +384,7 @@ export default function App() {
         </div>
       )}
 
-      {ailleurs.length > 0 && (
+      {!selection && ailleurs.length > 0 && (
         <section className="ailleurs" aria-label={`Dans ${statut === 'possédé' ? 'la wishlist' : 'la collection'}`}>
           <h2 className="ailleurs__titre">
             Dans {statut === 'possédé' ? 'la wishlist' : 'la collection'} ({ailleurs.length})
@@ -358,6 +457,19 @@ export default function App() {
           statutParDefaut={statut}
           onChercher={chercher}
           onAjouter={ajouterLot}
+          onFermer={fermer}
+        />
+      )}
+
+      {ecran?.type === 'masse' && idsActifs.size > 0 && (
+        <MasseSheet
+          action={ecran.action}
+          sets={setsActifs}
+          tous={sets}
+          statut={statut}
+          emplacementsConnus={emplacementsConnus}
+          onAppliquer={appliquerMasse}
+          onSupprimer={supprimerMasse}
           onFermer={fermer}
         />
       )}

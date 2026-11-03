@@ -51,6 +51,54 @@ export function acheter(sets, id, etat) {
   return modifier(sets, id, { statut: 'possédé', etat: etat || null });
 }
 
+// ---- Modifications en masse -------------------------------------------------
+//
+// `ids` est un Set d'identifiants. Chaque fiche touchée repasse par la validation du
+// modèle, comme une modification isolée : une règle du modèle (pas d'emplacement pour
+// un set souhaité) s'applique donc aussi en masse, sans que l'appelant ait à la
+// connaître. Une fiche qui deviendrait invalide garde son état d'origine.
+//
+// `changements` ne porte que les champs à changer : un champ absent n'est pas touché.
+// Pour effacer, on donne la valeur « vide » du champ ('' pour l'emplacement, null pour
+// l'état, la boîte et la notice).
+export function modifierPlusieurs(sets, ids, changements) {
+  return sets.map((s) => {
+    if (!ids.has(s.id)) return s;
+    const r = normaliserSet({ ...s, ...changements, id: s.id });
+    return r ? r.set : s;
+  });
+}
+
+export function supprimerPlusieurs(sets, ids) {
+  return sets.filter((s) => !ids.has(s.id));
+}
+
+const CHAMPS_MASSE = ['emplacement', 'etat', 'boite', 'notice', 'statut'];
+
+// Ce qu'une modification en masse va faire, AVANT de l'appliquer : combien de fiches
+// seraient réellement modifiées, combien sont déjà à jour, et pour chaque champ combien
+// de fiches perdraient une valeur différente (remplacée ou effacée). C'est ce chiffre
+// qui permet de s'apercevoir qu'on s'apprête à écraser le rangement de trois sets.
+// Il suit la même validation que `modifierPlusieurs`, donc il ne peut pas mentir.
+export function apercuModification(sets, ids, changements) {
+  const concernes = sets.filter((s) => ids.has(s.id));
+  const ecrases = { emplacement: 0, etat: 0, boite: 0, notice: 0 };
+  let modifies = 0;
+  for (const s of concernes) {
+    const r = normaliserSet({ ...s, ...changements, id: s.id });
+    if (!r) continue;
+    let touche = false;
+    for (const champ of CHAMPS_MASSE) {
+      if (!(champ in changements) || r.set[champ] === s[champ]) continue;
+      touche = true;
+      const avant = s[champ];
+      if (champ in ecrases && avant !== null && avant !== undefined && avant !== '') ecrases[champ] += 1;
+    }
+    if (touche) modifies += 1;
+  }
+  return { total: concernes.length, modifies, inchanges: concernes.length - modifies, ecrases };
+}
+
 // Fusion par id : une fiche déjà présente est remplacée par celle du fichier,
 // les autres sont ajoutées, et rien n'est supprimé. Réimporter son propre
 // export ne crée donc pas de doublons.

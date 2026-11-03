@@ -100,6 +100,26 @@ const ECRANS = {
     await p.click('header >> text=Ajouter');
     await p.fill('#champ-recherche-nom', 'millennium falcon'); await p.keyboard.press('Enter'); await p.waitForSelector('.resultat');
   },
+  'sélection (cartes cochées)': async (p) => {
+    await p.click('button:has-text("Sélectionner")');
+    await p.locator('.carte').nth(0).click(); await p.locator('.carte').nth(1).click();
+    await p.waitForSelector('.carte[aria-checked=true]');
+  },
+  'modification en masse (aperçu)': async (p) => {
+    await p.click('button:has-text("Sélectionner")');
+    await p.locator('.carte').nth(0).click(); await p.locator('.carte').nth(1).click(); await p.locator('.carte').nth(2).click();
+    await p.click('.nav__item:has-text("Modifier")');
+    await p.fill('dialog[open] input[list=emplacements-masse]', 'étagère 3');
+    await p.locator('dialog[open] label:has-text("État") select').selectOption('monté');
+    await p.click('dialog[open] button:has-text("Voir l\'aperçu")');
+    await p.waitForSelector('.masse__ligne');
+  },
+  'suppression en masse': async (p) => {
+    await p.click('button:has-text("Sélectionner")');
+    await p.locator('.carte').nth(0).click(); await p.locator('.carte').nth(1).click();
+    await p.click('.nav__item:has-text("Supprimer")');
+    await p.waitForSelector('.masse__ligne');
+  },
   'réglages': async (p) => { await p.click('header >> text=Réglages'); },
   'lot (vérification)': async (p) => {
     await p.click('header >> text=Ajouter'); await p.click('button:has-text("Ajouter plusieurs sets")');
