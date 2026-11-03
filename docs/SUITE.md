@@ -52,7 +52,8 @@ testé avec sa vraie collection, tout fonctionne.
     nombre de sets (« Collection · 14 sets »), icônes Sélectionner, liste/grille et Réglages.
     Fredoka est embarquée (29 Ko, `src/fonts/`, licence SIL OFL) : hors ligne, aucun appel à Google.
   - *Barre du bas sur téléphone* : recherche, bouton Filtres et « Ajouter » (bouton flottant). Sur
-    grand écran, les mêmes éléments sont en haut de la liste. Pendant la saisie la navigation se
+    grand écran, les mêmes éléments sont en haut de la liste. Aucun fond ni fondu derrière eux : un fondu en aplat
+    faisait une bande noire qui coupait les cartes (retiré). Pendant la saisie la navigation se
     range (`interactive-widget=resizes-content`) ; Filtres et Ajouter gardent le focus du champ,
     sinon le tap était perdu quand le clavier se refermait.
   - *Feuille « Filtres et tri »* : le tri y est rangé avec les filtres (plus de sélecteur dans la page).
