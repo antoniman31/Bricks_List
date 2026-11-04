@@ -207,8 +207,17 @@ const ECRANS = {
     await p.click('dialog[open] button.puce:has-text("Nouveau")');
     await p.fill('dialog[open] input[aria-label="Nom du nouvel emplacement"]', 'étagère 3');
     await p.locator('dialog[open] label:has-text("État") select').selectOption('monté');
+    await p.click('dialog[open] [aria-label="Étiquettes à retirer"] .puce >> nth=0');
+    await p.fill('dialog[open] input[aria-label="Nouvelles étiquettes"]', 'noël, à offrir');
     await p.click('dialog[open] button:has-text("Voir l\'aperçu")');
     await p.waitForSelector('.masse__ligne');
+  },
+  'modification en masse (étiquettes)': async (p) => {
+    await p.click(SELECTIONNER);
+    await p.locator('.carte').nth(0).click(); await p.locator('.carte').nth(1).click(); await p.locator('.carte').nth(2).click();
+    await p.click('.nav__item:has-text("Modifier")');
+    await p.click('dialog[open] [aria-label="Étiquettes à retirer"] .puce >> nth=0');
+    await p.fill('dialog[open] input[aria-label="Nouvelles étiquettes"]', 'noël');
   },
   'suppression en masse': async (p) => {
     await p.click(SELECTIONNER);

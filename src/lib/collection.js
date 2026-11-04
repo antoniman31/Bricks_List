@@ -1,5 +1,6 @@
 import { normaliserSet } from './model.js';
 import { aujourdhuiISO } from './dates.js';
+import { appliquerEtiquettes } from './etiquettes.js';
 
 // Opérations pures sur la liste : chacune rend une nouvelle liste et ne touche
 // ni au stockage ni à l'écran. C'est ce qui les rend testables, et ce qui
@@ -72,12 +73,24 @@ export function acheter(sets, id, etat, maintenant = new Date()) {
 // `changements` ne porte que les champs à changer : un champ absent n'est pas touché.
 // Pour effacer, on donne la valeur « vide » du champ ('' pour l'emplacement, null pour
 // l'état, la boîte et la notice).
+//
+// Les étiquettes se changent par ajout et retrait (`etiquettes: { ajouter, retirer }`) et non par
+// remplacement : chaque set garde les siennes. Voir `resoudre`.
 export function modifierPlusieurs(sets, ids, changements) {
   return sets.map((s) => {
     if (!ids.has(s.id)) return s;
-    const r = normaliserSet({ ...s, ...changements, id: s.id });
+    const r = normaliserSet({ ...s, ...resoudre(s, changements).concrets, id: s.id });
     return r ? r.set : s;
   });
+}
+
+// Transforme les changements demandés en valeurs concrètes pour un set donné. Seules les étiquettes
+// dépendent du set. `refuse` : l'ajout dépasserait la limite, les étiquettes de ce set ne bougent pas.
+function resoudre(set, changements) {
+  if (!changements.etiquettes) return { concrets: changements, refuse: false };
+  const { etiquettes, ...autres } = changements;
+  const r = appliquerEtiquettes(set.etiquettes ?? [], etiquettes);
+  return { concrets: r.refuse ? autres : { ...autres, etiquettes: r.liste }, refuse: r.refuse };
 }
 
 export function supprimerPlusieurs(sets, ids) {
@@ -85,6 +98,7 @@ export function supprimerPlusieurs(sets, ids) {
 }
 
 const CHAMPS_MASSE = ['emplacement', 'etat', 'boite', 'notice', 'statut'];
+const memesEtiquettes = (a = [], b = []) => a.length === b.length && a.every((e, i) => e === b[i]);
 
 // Ce qu'une modification en masse va faire, AVANT de l'appliquer : combien de fiches
 // seraient réellement modifiées, combien sont déjà à jour, et pour chaque champ combien
@@ -95,19 +109,23 @@ export function apercuModification(sets, ids, changements) {
   const concernes = sets.filter((s) => ids.has(s.id));
   const ecrases = { emplacement: 0, etat: 0, boite: 0, notice: 0 };
   let modifies = 0;
+  let etiquettesRefusees = 0;
   for (const s of concernes) {
-    const r = normaliserSet({ ...s, ...changements, id: s.id });
+    const { concrets, refuse } = resoudre(s, changements);
+    if (refuse) etiquettesRefusees += 1;
+    const r = normaliserSet({ ...s, ...concrets, id: s.id });
     if (!r) continue;
     let touche = false;
     for (const champ of CHAMPS_MASSE) {
-      if (!(champ in changements) || r.set[champ] === s[champ]) continue;
+      if (!(champ in concrets) || r.set[champ] === s[champ]) continue;
       touche = true;
       const avant = s[champ];
       if (champ in ecrases && avant !== null && avant !== undefined && avant !== '') ecrases[champ] += 1;
     }
+    if ('etiquettes' in concrets && !memesEtiquettes(r.set.etiquettes, s.etiquettes)) touche = true;
     if (touche) modifies += 1;
   }
-  return { total: concernes.length, modifies, inchanges: concernes.length - modifies, ecrases };
+  return { total: concernes.length, modifies, inchanges: concernes.length - modifies, ecrases, etiquettesRefusees };
 }
 
 // Fusion par id : une fiche déjà présente est remplacée par celle du fichier,

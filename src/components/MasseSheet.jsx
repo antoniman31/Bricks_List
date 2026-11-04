@@ -2,13 +2,14 @@ import { useState } from 'react'
 import Sheet from './Sheet.jsx'
 import ChoixEmplacement from './ChoixEmplacement.jsx'
 import { ETATS } from '../lib/model.js'
+import { analyserSaisie, basculerDansSaisie, cleEtiquette, preparerSaisie } from '../lib/etiquettes.js'
 import { apercuModification } from '../lib/collection.js'
 import { exporter } from '../lib/partage.js'
 import { aujourdhuiISO } from '../lib/dates.js'
 import { telecharger } from '../lib/fichier.js'
 
 const VIDE = '__vide'
-const CHAMPS_VIDES = { emplacement: '', effacerEmplacement: false, etat: '', boite: '', notice: '' }
+const CHAMPS_VIDES = { emplacement: '', effacerEmplacement: false, etat: '', boite: '', notice: '', etiqAjout: '', etiqRetrait: [] }
 const LIBELLES_OUI_NON = { oui: 'présente', non: 'absente' }
 
 // Ce que l'utilisateur a réellement demandé : seuls les champs touchés figurent dans les
@@ -23,6 +24,8 @@ function construire(champs, statut) {
   if (champs.etat !== '') c.etat = champs.etat === VIDE ? null : champs.etat
   if (champs.boite !== '') c.boite = champs.boite === VIDE ? null : champs.boite
   if (champs.notice !== '') c.notice = champs.notice === VIDE ? null : champs.notice
+  const ajouter = preparerSaisie(champs.etiqAjout).liste
+  if (ajouter.length > 0 || champs.etiqRetrait.length > 0) c.etiquettes = { ajouter, retirer: champs.etiqRetrait }
   return c
 }
 
@@ -34,6 +37,8 @@ function resume(changements) {
     if ('etat' in changements) l.push(changements.etat === null ? 'État effacé' : `État : ${changements.etat}`)
     if ('boite' in changements) l.push(changements.boite === null ? 'Boîte : non précisé' : `Boîte : ${LIBELLES_OUI_NON[changements.boite]}`)
     if ('notice' in changements) l.push(changements.notice === null ? 'Notice : non précisé' : `Notice : ${LIBELLES_OUI_NON[changements.notice]}`)
+    if (changements.etiquettes?.ajouter.length > 0) l.push(`Étiquettes ajoutées : ${changements.etiquettes.ajouter.join(', ')}`)
+    if (changements.etiquettes?.retirer.length > 0) l.push(`Étiquettes retirées : ${changements.etiquettes.retirer.join(', ')}`)
   }
   return l
 }
@@ -56,7 +61,7 @@ function ListeSets({ sets }) {
 // Modification ou suppression de plusieurs sets : toujours un aperçu avant d'écrire, avec
 // la liste des sets concernés. Une modification de masse se trompe vite, et l'aperçu est
 // l'endroit où l'on s'en aperçoit.
-export default function MasseSheet({ action, sets, tous, statut, emplacementsConnus, onAppliquer, onSupprimer, onFermer }) {
+export default function MasseSheet({ action, sets, tous, statut, emplacementsConnus, etiquettesConnues = [], onAppliquer, onSupprimer, onFermer }) {
   const [champs, setChamps] = useState(CHAMPS_VIDES)
   const [etape, setEtape] = useState('saisie')
   const n = sets.length
@@ -80,8 +85,18 @@ export default function MasseSheet({ action, sets, tous, statut, emplacementsCon
     )
   }
 
+  // Les étiquettes qu'on peut retirer : celles que portent les sets choisis, avec leur nombre.
+  const presentes = new Map()
+  for (const set of sets) {
+    for (const e of set.etiquettes ?? []) {
+      const cle = cleEtiquette(e)
+      presentes.set(cle, { texte: presentes.get(cle)?.texte ?? e, n: (presentes.get(cle)?.n ?? 0) + 1 })
+    }
+  }
+  const erreurEtiquette = preparerSaisie(champs.etiqAjout).erreur
   const changements = construire(champs, statut)
   const aucun = Object.keys(changements).length === 0
+  const retraitBascule = (texte) => setChamps((c) => ({ ...c, etiqRetrait: c.etiqRetrait.some((e) => cleEtiquette(e) === cleEtiquette(texte)) ? c.etiqRetrait.filter((e) => cleEtiquette(e) !== cleEtiquette(texte)) : [...c.etiqRetrait, texte] }))
   const maj = (cle) => (e) => setChamps((c) => ({ ...c, [cle]: e.target.value }))
   const ids = new Set(sets.map((s) => s.id))
   const apercu = etape === 'apercu' ? apercuModification(sets, ids, changements) : null
@@ -145,10 +160,37 @@ export default function MasseSheet({ action, sets, tous, statut, emplacementsCon
             </>
           )}
 
+          {statut !== 'souhaité' && (
+            <>
+              <div className="formulaire__champ">
+                <span>Ajouter des étiquettes</span>
+                {etiquettesConnues.length > 0 && (
+                  <div className="groupe__options groupe__options--ligne" role="group" aria-label="Étiquettes à ajouter">
+                    {etiquettesConnues.map((e) => (
+                      <button key={e} type="button" className="puce" aria-pressed={analyserSaisie(champs.etiqAjout).some((x) => cleEtiquette(x) === cleEtiquette(e))} onClick={() => setChamps((c) => ({ ...c, etiqAjout: basculerDansSaisie(c.etiqAjout, e) }))}>{e}</button>
+                    ))}
+                  </div>
+                )}
+                <input className="champ" autoComplete="off" aria-label="Nouvelles étiquettes" placeholder="Nouvelle étiquette, séparées par des virgules" value={champs.etiqAjout} onChange={maj('etiqAjout')} />
+                {erreurEtiquette && <span className="formulaire__aide formulaire__aide--erreur" role="alert">{erreurEtiquette}</span>}
+              </div>
+              {presentes.size > 0 && (
+                <div className="formulaire__champ">
+                  <span>Retirer des étiquettes</span>
+                  <div className="groupe__options groupe__options--ligne" role="group" aria-label="Étiquettes à retirer">
+                    {[...presentes.values()].map(({ texte, n: nb }) => (
+                      <button key={texte} type="button" className="puce" aria-pressed={champs.etiqRetrait.some((e) => cleEtiquette(e) === cleEtiquette(texte))} onClick={() => retraitBascule(texte)}>{texte} · {nb}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
           {aucun && <p className="formulaire__aide" role="status">Choisis au moins un changement.</p>}
           <div className="sheet__pied">
             <button type="button" className="bouton" onClick={onFermer}>Annuler</button>
-            <button type="button" className="bouton bouton--plein" disabled={aucun} onClick={() => setEtape('apercu')}>Voir l'aperçu</button>
+            <button type="button" className="bouton bouton--plein" disabled={aucun || Boolean(erreurEtiquette)} onClick={() => setEtape('apercu')}>Voir l'aperçu</button>
           </div>
         </div>
       ) : (
@@ -160,6 +202,11 @@ export default function MasseSheet({ action, sets, tous, statut, emplacementsCon
               {apercu.modifies} {apercu.modifies > 1 ? 'seront modifiés' : 'sera modifié'}
               {apercu.inchanges > 0 && `, ${apercu.inchanges} ${apercu.inchanges > 1 ? 'sont déjà à jour' : 'est déjà à jour'}`}.
             </p>
+            {apercu.etiquettesRefusees > 0 && (
+              <p className="masse__attention">
+                {apercu.etiquettesRefusees} set{apercu.etiquettesRefusees > 1 ? 's' : ''} {apercu.etiquettesRefusees > 1 ? 'ont' : 'a'} déjà 8 étiquettes : {apercu.etiquettesRefusees > 1 ? 'inchangés' : 'inchangé'}.
+              </p>
+            )}
             {Object.entries(apercu.ecrases).filter(([, v]) => v > 0).map(([champ, v]) => (
               <p key={champ} className="masse__attention">
                 {v} set{v > 1 ? 's' : ''} {v > 1 ? 'avaient' : 'avait'} déjà {NOMS_CHAMPS[champ]} différent : il sera remplacé.

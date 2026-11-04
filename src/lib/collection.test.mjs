@@ -193,7 +193,7 @@ test('apercuModification : fiches modifiées, déjà à jour et écrasées', () 
   // a3 : salon → étagère (écrasé) ; a4 : déjà « étagère » (inchangé).
   const liste = LISTE.map((s) => (s.id === 'a4' ? { ...s, emplacement: 'étagère' } : s));
   const a = apercuModification(liste, ids('a1', 'a2', 'a3', 'a4'), { emplacement: 'étagère' });
-  assert.deepEqual(a, { total: 4, modifies: 3, inchanges: 1, ecrases: { emplacement: 2, etat: 0, boite: 0, notice: 0 } });
+  assert.deepEqual(a, { total: 4, modifies: 3, inchanges: 1, ecrases: { emplacement: 2, etat: 0, boite: 0, notice: 0 }, etiquettesRefusees: 0 });
 });
 
 test('apercuModification : plusieurs champs comptés séparément', () => {
@@ -249,4 +249,39 @@ test('exemplairesPossedes : compte par numéro les sets possédés, pas les souh
   assert.equal(n.get('10294-1'), 1);
   assert.equal(n.has('21330-1'), false);
   assert.equal(exemplairesPossedes([]).size, 0);
+});
+
+const E = (id, etiquettes) => ({ ...base(id), etiquettes });
+
+test('étiquettes en masse : ajout et retrait propres à chaque set, sans toucher aux autres', () => {
+  const liste = [E('a1', ['cadeau']), E('a2', []), E('a3', ['à offrir', 'cadeau']), E('a4', ['x'])];
+  const r = modifierPlusieurs(liste, ids('a1', 'a2', 'a3'), { etiquettes: { ajouter: ['Noël'], retirer: ['Cadeau'] } });
+  assert.deepEqual(r.find((s) => s.id === 'a1').etiquettes, ['Noël']);
+  assert.deepEqual(r.find((s) => s.id === 'a2').etiquettes, ['Noël']);
+  assert.deepEqual(r.find((s) => s.id === 'a3').etiquettes, ['à offrir', 'Noël']);
+  assert.deepEqual(r.find((s) => s.id === 'a4').etiquettes, ['x']);
+});
+
+test('étiquettes en masse : une étiquette déjà présente (casse et accents ignorés) n\'est pas dupliquée', () => {
+  const r = modifierPlusieurs([E('a1', ['Noël'])], ids('a1'), { etiquettes: { ajouter: ['noel'] } });
+  assert.deepEqual(r[0].etiquettes, ['Noël']);
+});
+
+test('étiquettes en masse : au-delà de 8, le set reste tel quel et le refus est compté', () => {
+  const pleine = Array.from({ length: 8 }, (_, i) => `e${i}`);
+  const liste = [E('a1', pleine), E('a2', ['x'])];
+  const changements = { etiquettes: { ajouter: ['de trop'] } };
+  const r = modifierPlusieurs(liste, ids('a1', 'a2'), changements);
+  assert.deepEqual(r[0].etiquettes, pleine);
+  assert.deepEqual(r[1].etiquettes, ['x', 'de trop']);
+  const a = apercuModification(liste, ids('a1', 'a2'), changements);
+  assert.equal(a.etiquettesRefusees, 1);
+  assert.equal(a.modifies, 1);
+  assert.equal(a.inchanges, 1);
+});
+
+test('apercuModification : retirer une étiquette absente ne modifie personne', () => {
+  const a = apercuModification([E('a1', ['x'])], ids('a1'), { etiquettes: { retirer: ['y'] } });
+  assert.equal(a.modifies, 0);
+  assert.equal(a.inchanges, 1);
 });
