@@ -1,3 +1,4 @@
+import { cleEmplacement, ecrituresEmplacements, memeEmplacement } from './emplacements.js';
 import { PRIORITES } from './model.js';
 import { aEtiquette } from './etiquettes.js';
 
@@ -37,7 +38,7 @@ export function filtrer(sets, { statut, texte = '', theme = '', etat = '', annee
     if (statut && s.statut !== statut) return false;
     if (theme && s.theme !== theme) return false;
     if (etat && s.etat !== etat) return false;
-    if (emplacement && s.emplacement !== emplacement) return false;
+    if (emplacement && !memeEmplacement(s.emplacement, emplacement)) return false;
     if (boite && s.boite !== boite) return false;
     if (notice && s.notice !== notice) return false;
     if (priorite && s.priorite !== priorite) return false;
@@ -112,21 +113,23 @@ export function themes(sets) {
 
 // Découpe une liste en groupes par emplacement : un groupe par emplacement dans l'ordre
 // naturel, puis « Non rangé » en dernier (c'est là que tombe un set sans emplacement).
-// Deux écritures qui ne diffèrent que par la casse (« Salon », « salon ») font deux
-// groupes : un filtre sur l'emplacement les distingue aussi, les deux doivent concorder.
+// « Salon » et « salon » forment un seul groupe (voir `cleEmplacement`), affiché avec l'écriture la
+// plus fréquente ; le filtre sur l'emplacement suit la même règle, les deux concordent.
 export const NON_RANGE = 'Non rangé';
 
 export function grouperParEmplacement(sets) {
+  const ecritures = ecrituresEmplacements(sets);
   const parLieu = new Map();
   const nonranges = [];
   for (const s of sets) {
-    if (!s.emplacement) { nonranges.push(s); continue; }
-    if (!parLieu.has(s.emplacement)) parLieu.set(s.emplacement, []);
-    parLieu.get(s.emplacement).push(s);
+    const cle = cleEmplacement(s.emplacement);
+    if (cle === '') { nonranges.push(s); continue; }
+    if (!parLieu.has(cle)) parLieu.set(cle, []);
+    parLieu.get(cle).push(s);
   }
   const groupes = [...parLieu]
-    .sort(([a], [b]) => comparerEmplacements(a, b))
-    .map(([lieu, liste]) => ({ cle: lieu, libelle: lieu, sets: [...liste].sort(comparerNoms) }));
+    .map(([cle, liste]) => ({ cle: ecritures.get(cle), libelle: ecritures.get(cle), sets: [...liste].sort(comparerNoms) }))
+    .sort((a, b) => comparerEmplacements(a.libelle, b.libelle));
   if (nonranges.length > 0) groupes.push({ cle: '', libelle: NON_RANGE, sets: [...nonranges].sort(comparerNoms) });
   return groupes;
 }
@@ -134,15 +137,18 @@ export function grouperParEmplacement(sets) {
 // Les emplacements déjà utilisés : proposés en suggestion dans le formulaire et en
 // filtre. Comme les thèmes, ils viennent de la collection, pas d'une liste fermée.
 export function emplacements(sets) {
-  return [...new Set(sets.map((s) => s.emplacement).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base', numeric: true }));
+  return [...ecrituresEmplacements(sets).values()].sort(comparerEmplacements);
 }
 
 // Les emplacements avec le nombre de sets rangés dedans : le décompte aide à choisir
 // « l'étagère 2 » sans avoir à se rappeler ce qu'elle contient.
 export function comptesEmplacements(sets) {
   const n = new Map();
-  for (const s of sets) if (s.emplacement) n.set(s.emplacement, (n.get(s.emplacement) ?? 0) + 1);
-  return emplacements(sets).map((nom) => ({ nom, n: n.get(nom) }));
+  for (const s of sets) {
+    const cle = cleEmplacement(s.emplacement);
+    if (cle !== '') n.set(cle, (n.get(cle) ?? 0) + 1);
+  }
+  return emplacements(sets).map((nom) => ({ nom, n: n.get(cleEmplacement(nom)) }));
 }
 
 // Les années se regroupent par décennie dès que la collection s'étale sur plus de

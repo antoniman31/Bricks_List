@@ -176,3 +176,13 @@ test('activité : absente tant qu\'aucune date n\'est saisie', () => {
 test('activité : une année sans achat affiche 0, pas rien', () => {
   assert.deepEqual(calculerStats(ACT, new Date(2030, 0, 1)).activite, { annee: 2030, achetes: 0, montes: 0 });
 });
+
+test('stats : « Salon » et « salon » ne font qu\'une barre d\'emplacement', () => {
+  const st = calculerStats([
+    set({ nom: 'A', emplacement: 'Salon' }), set({ nom: 'B', emplacement: 'salon' }), set({ nom: 'C', emplacement: 'Salon' }), set({ nom: 'D', emplacement: 'Cave' }),
+  ]);
+  const salon = st.emplacements.find((b) => b.libelle === 'Salon');
+  assert.equal(salon.sets, 3);
+  assert.equal(st.emplacements.filter((b) => /salon/i.test(b.libelle)).length, 1);
+  assert.equal(salon.filtre.emplacement, 'Salon');
+});
