@@ -29,6 +29,20 @@ function LigneEditable({ libelle, valeur, ouvert, desactive, onBasculer, childre
   )
 }
 
+// Boîte et notice : présente, absente ou non précisée, un appui pour choisir.
+function LigneOuiNon({ libelle, champ, set, ouvert, desactive, onBasculer, onChoisir }) {
+  const v = set[champ]
+  return (
+    <LigneEditable libelle={libelle} valeur={v === 'oui' ? 'présente' : v === 'non' ? 'absente' : 'Non précisé'} ouvert={ouvert} desactive={desactive} onBasculer={onBasculer}>
+      <div className="groupe__options" role="group" aria-label={libelle}>
+        {[['oui', 'Présente'], ['non', 'Absente'], [null, 'Non précisé']].map(([valeur, texte]) => (
+          <button key={texte} type="button" className="puce" aria-pressed={(v ?? null) === valeur} onClick={() => onChoisir(valeur)}>{texte}</button>
+        ))}
+      </div>
+    </LigneEditable>
+  )
+}
+
 // Le contenu d'une fiche, sans son contenant : la feuille en dessous de 840 px, le panneau de
 // droite au-dessus. Même contenu, mêmes gestes, un seul endroit à tenir à jour.
 export function FicheContenu({ set, lectureSeule, lieux = [], lieuRecent = '', etiquettesConnues = [], onChanger, onModifier, onAcheter, onSupprimer }) {
@@ -98,8 +112,12 @@ export function FicheContenu({ set, lectureSeule, lieux = [], lieuRecent = '', e
             </dd>
           </div>
         )}
-        <Ligne libelle="Boîte" valeur={set.boite ? (set.boite === 'oui' ? 'présente' : 'absente') : null} />
-        <Ligne libelle="Notice" valeur={set.notice ? (set.notice === 'oui' ? 'présente' : 'absente') : null} />
+        {possede && (
+          <>
+            <LigneOuiNon libelle="Boîte" champ="boite" set={set} ouvert={edition === 'boite'} desactive={lectureSeule} onBasculer={() => basculer('boite')} onChoisir={(v) => { if (changer({ boite: v })) setEdition('') }} />
+            <LigneOuiNon libelle="Notice" champ="notice" set={set} ouvert={edition === 'notice'} desactive={lectureSeule} onBasculer={() => basculer('notice')} onChoisir={(v) => { if (changer({ notice: v })) setEdition('') }} />
+          </>
+        )}
         <LigneEditable libelle="Étiquettes" valeur={etiquettes.length > 0 ? etiquettes.join(', ') : 'Ajouter'} ouvert={edition === 'etiquettes'} desactive={lectureSeule} onBasculer={() => basculer('etiquettes')}>
           {choixEtiquettes.length > 0 && (
             <div className="groupe__options" role="group" aria-label="Étiquettes">
