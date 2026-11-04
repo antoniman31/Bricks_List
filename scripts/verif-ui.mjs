@@ -170,6 +170,7 @@ const ECRANS = {
     await p.click('.fiche__ligne--edit:has(dt:text-is("État")) .fiche__valeur');
     await p.click('.fiche__ligne--edit:has(dt:text-is("Étiquettes")) .fiche__valeur');
     await p.click('.fiche__ligne--edit:has(dt:text-is("Boîte")) .fiche__valeur');
+    await p.click('.fiche__ligne--edit:has(dt:text-is("Acheté le")) .fiche__valeur');
     await p.waitForSelector('.fiche__edition');
   },
   'ajout rapide': async (p) => { await p.click(AJOUTER); await p.waitForSelector('#rapide-numero'); },
