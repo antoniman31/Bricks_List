@@ -27,8 +27,9 @@ export default function CarteSet({ set, onOuvrir, selection, onBasculer, vue = '
   )
 
   if (vue === 'grille') {
-    // Tuile : l'image en grand, l'état en pastille dessus, le nom et l'essentiel dessous.
-    // L'état d'un set possédé, sinon la priorité d'un set souhaité : un seul repère sur l'image.
+    // Tuile : l'image en grand, puis le nom, l'essentiel et l'état en pastille. La pastille est sous l'image :
+    // le bas d'une boîte porte le numéro et les pièces, qu'elle cachait.
+    // L'état d'un set possédé, sinon la priorité d'un set souhaité : un seul repère.
     // La majuscule est mise ici, pas par le CSS : `text-transform: capitalize` ne la met pas quand le
     // texte qui précède dans le DOM (le numéro d'une vignette sans image) finit par une lettre ou un chiffre.
     const repere = set.etat ? set.etat[0].toUpperCase() + set.etat.slice(1) : set.priorite ? LIBELLES_PRIORITE[set.priorite] : null
@@ -37,7 +38,6 @@ export default function CarteSet({ set, onOuvrir, selection, onBasculer, vue = '
         <button type="button" className="carte carte--tuile" {...interaction}>
           <div className="tuile__image">
             <Vignette image={set.image} numero={set.numero} variante="tuile" />
-            {repere && <span className="tuile__repere">{repere}</span>}
             {coche}
           </div>
           <div className="carte__texte">
@@ -46,6 +46,7 @@ export default function CarteSet({ set, onOuvrir, selection, onBasculer, vue = '
               {set.pieces != null ? `${set.pieces.toLocaleString('fr-FR')} pièces` : set.numero}
               {set.emplacement && ` · ${set.emplacement}`}
             </p>
+            {repere && <span className="tuile__repere">{repere}</span>}
           </div>
         </button>
       </li>
