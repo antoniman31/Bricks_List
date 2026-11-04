@@ -1,6 +1,6 @@
 # Bricks-List : où on en est, et la suite
 
-État au 3 novembre 2026. Site : https://antoniman31.github.io/Bricks_List/ (la version se lit en bas des Réglages).
+État au 4 novembre 2026. Site : https://antoniman31.github.io/Bricks_List/ (la version se lit en bas des Réglages).
 Ce fichier sert à reprendre le travail sans relire la conversation qui l'a produit.
 
 ## Ce qui est fait et en ligne
@@ -18,8 +18,13 @@ testé avec sa vraie collection, tout fonctionne.
   image). Bouton « Chercher » aussi dans la modification d'une fiche.
 - **Ajout par lot** : on colle des numéros, vérification avant écriture (trouvés, introuvables,
   doublons), une seule écriture. Sans clé Rebrickable, seuls les numéros sont ajoutés.
-- **Stats** : sets, pièces, répartition par thème, année et état, wishlist. Chaque barre ouvre
-  la liste filtrée correspondante ; un test vérifie que chiffre et liste coïncident.
+- **Stats** (design « D », novembre 2026) : cartes de chiffres clés, état en anneau, thèmes en blocs
+  proportionnels (`src/lib/treemap.js`, les petits dans « Autres »), années en courbe, avancement du
+  montage et pile à monter, activité sur 12 mois (achats, montages, ajouts, délai achat → montage), taille
+  des sets (filtre « Taille »), emplacements, boîte et notice, étiquettes, records et repères, wishlist.
+  Chaque forme qui mène à une liste est cliquable, et un test vérifie que chiffre et liste coïncident. La
+  courbe et les colonnes par mois ne le sont pas (des dizaines de cibles de 48 px ne tiendraient pas). Les
+  couleurs de données (`--serie-*`, `--echelle-*`) ont leurs contrastes mesurés dans `src/index.css`.
 - **Thème** clair, sombre (noir pur) ou automatique, appliqué avant le premier rendu.
 - **Navigation** : barre du bas sur téléphone, rail à gauche dès 600 px.
 - **« Je l'ai déjà ? »** : la recherche montre aussi les résultats de l'autre onglet (section
@@ -42,7 +47,13 @@ testé avec sa vraie collection, tout fonctionne.
 - **Dates d'achat et de montage** (AAAA-MM-JJ, validées), tri « Date d'achat », ligne « En 2026 : n
   achetés, n montés » dans les Stats ; « Acheté » note le jour.
 - **Étiquettes libres** (8 au plus, 30 caractères) : saisie sur la fiche avec puces des étiquettes
-  existantes, filtre, recherche texte. Pas encore d'édition en masse.
+  existantes, filtre, recherche texte, ajout et retrait en masse (un set qui dépasserait 8 reste inchangé et
+  l'aperçu le dit).
+- **États** : scellé, neuf, en cours, monté. « Démonté » et « incomplet » ont été supprimés : un set qui
+  les porte (collection ou import) passe à « non précisé » et un message le dit à l'ouverture.
+- **Emplacements** : casse, accents et espaces ignorés (« Salon » = « salon »), affichés avec l'écriture la
+  plus fréquente ; chaque set garde la sienne.
+- **Badge ×2** sur les sets possédés en plusieurs exemplaires (liste et grille).
 - **Refonte d'interface (novembre 2026), inspirée de Material 3 et des guides Android** :
   - *Noyau* : cibles tactiles de 48 px (norme Android, contrôlé par `verif:ui`), couches d'état au
     toucher et au survol, `prefers-reduced-motion`, jetons « conteneur » teintés (sélection, puces
@@ -74,12 +85,15 @@ testé avec sa vraie collection, tout fonctionne.
   - *Emplacements par puces* (`ChoixEmplacement`) avec décompte, « Nouveau » pour un nom inédit, dans le
     formulaire, l'ajout rapide et la modification en masse ; « Ranger dans… » devient la ligne Emplacement de la
     fiche (`RangerSheet` : recherche au-delà de 8 emplacements, dernier utilisé en tête).
-  - *Fiche modifiable sur place* : État, Priorité (souhaités), Emplacement et Étiquettes s'enregistrent à
-    l'appui (`changerSet` dans `App.jsx`) ; un refus du modèle ou un dépassement s'affiche. « Plus d'options »
-    ouvre le formulaire complet.
+  - *Fiche « étiquette de boîte »* : bandeau jaune (numéro en badge, nom, thème), pièces, année et état en
+    gros ; l'état (ou la priorité d'un set souhaité), l'emplacement, la boîte, la notice, les dates et les
+    étiquettes se modifient sur place, un chevron marque les valeurs modifiables (`changerSet` dans
+    `App.jsx`) ; un refus du modèle ou un dépassement s'affiche. « Plus d'options » ouvre le formulaire complet.
   - *Ajout rapide* (`AjoutRapide`) : le + ouvre numéro, emplacement et état ; « Ajouter » grisé tant que le
     numéro est invalide. Avec clé Rebrickable le nom est cherché ; sans clé (ou échec) il est facultatif et le set
-    s'appelle « Set 75192 », comme l'ajout par lot. « Plus d'options » ouvre le formulaire complet, en plein
+    s'appelle « Set 75192 », comme l'ajout par lot. Un seul champ accepte un numéro ou un nom (la recherche par
+    nom part après une pause de frappe) ; le rangement et l'état du dernier ajout sont repris (`bl_dernier_ajout`,
+    hors export). « Plus d'options » ouvre le formulaire complet, en plein
     écran, avec les valeurs déjà saisies ; en modification, « Enregistrer » est grisé tant que rien n'a changé.
 - **Mises à jour de l'app installée** (même principe que Chrono-MCU) : la page d'accueil passe par le
   réseau d'abord (4 s, cache hors ligne), les fichiers de code sont immuables (empreinte dans le nom), donc
@@ -92,8 +106,8 @@ testé avec sa vraie collection, tout fonctionne.
   de répondre « à jour » par défaut (`verifierMiseAJour`).
   *Limite* : si on installe l'app puis qu'on coupe le réseau avant le deuxième lancement, la page d'accueil
   n'est pas encore en cache.
-- **Qualité** : `npm run lint`, `npm test` (292 tests), `npm run verif:ui` (axe-core, cibles de
-  48 px, débordements, navigation, recherche visible clavier ouvert ; 32 écrans × 2 thèmes × 4
+- **Qualité** : `npm run lint`, `npm test` (334 tests), `npm run verif:ui` (axe-core, cibles de
+  48 px, débordements, navigation, recherche visible clavier ouvert ; 35 écrans × 2 thèmes × 4
   largeurs : 360, 412, 900, 1280). Les trois tournent dans le CI avant le déploiement.
 
 ## Décisions de cadrage (ne pas rouvrir sans raison)
@@ -131,20 +145,17 @@ ce sont de petits projets de loisir, récents, la plupart sur serveur.
 ### Reste à décider ou à faire
 
 0. **Idées retenues, pas encore faites** (ordre à choisir par Antoni) :
-   - **Stats rangement** : sets sans boîte, sans notice, avec lien vers la liste filtrée
-     (« sans emplacement » existe déjà dans « À compléter »).
-   - **Export CSV** en plus du JSON : séparateur point-virgule, BOM UTF-8 pour l'Excel français.
-   - **Pile à monter** : sets scellés, nombre de pièces à monter, raccourci de filtre.
+   - **Export CSV** en plus du JSON : séparateur point-virgule, BOM UTF-8 pour l'Excel français ; une copie à
+     lire, pas ré-importable, sans la clé Rebrickable.
    - **Tirage au sort** « quoi monter ce week-end » parmi scellés, neufs et en cours.
-   - **Badge ×2** pour les numéros en doublon.
-   - **Étiquettes en masse** (ajouter ou retirer une étiquette à la sélection).
    - **Synchronisation entre téléphone et PC** (Antoni utilise les deux au quotidien) : à faire en
      deux temps. D'abord une date de modification par fiche et une trace des suppressions, avec une
      fonction de fusion pure (la plus récente gagne ; suppressions jamais propagées sans
      confirmation, choix d'Antoni) ; ensuite la synchro via l'API Google Drive (dossier réservé à
      l'app, projet Google Cloud à créer par Antoni, identifiant client saisi dans les Réglages,
      jamais dans le dépôt). Manuelle, avec résumé avant écriture, annulation et export préalable.
-   - Rappel : fusion **demandée à Antoni à chaque PR**, sauf autorisation explicite par lot.
+   - Rappel : fusion **automatique après CI verte** (choix d'Antoni), sauf si une donnée peut être perdue :
+     alors on demande, et on rappelle d'exporter d'abord.
 
 1. **Photographier une boîte (Brickognize)** : Antoni a répondu « je ne sais pas » sur l'envoi
    des photos. Si on la fait : option **désactivée par défaut** dans les Réglages avec
@@ -198,7 +209,6 @@ Corollaire : la recherche par nom de Rebrickable ne trouve que de l'anglais (« 
   répond oui (testé par Antoni le 3 novembre 2026). Le partage retombe sur un fichier `.txt`
   (`text/plain`, même contenu), choix retenu dans `bl_partage_texte` ; l'import accepte `.txt`.
   Le nom exact de l'erreur n'a pas été relevé.
-- Les emplacements sont comparés au caractère près : « Salon » et « salon » font deux groupes.
 
 ## Particularités techniques utiles
 
