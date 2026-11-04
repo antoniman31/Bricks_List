@@ -12,10 +12,10 @@ const COLLECTION = [
   set({ nom: 'Faucon', theme: 'Star Wars', annee: 2017, pieces: 7541, etat: 'scellé' }),
   set({ nom: 'Titanic', theme: 'Icons', annee: 2021, pieces: 9090, etat: 'monté' }),
   set({ nom: 'Fondcombe', theme: 'Icons', annee: 2023, pieces: 6167, etat: 'monté' }),
-  set({ nom: 'Ferrari', theme: 'Technic', annee: 2022, pieces: 3778, etat: 'démonté' }),
+  set({ nom: 'Ferrari', theme: 'Technic', annee: 2022, pieces: 3778, etat: 'en cours' }),
   set({ nom: 'Maman', theme: 'Ideas', annee: 2021, pieces: 3955 }),
   set({ nom: 'Sans rien' }),
-  set({ nom: 'Sans pièces', theme: 'Technic', annee: 2020, etat: 'incomplet' }),
+  set({ nom: 'Sans pièces', theme: 'Technic', annee: 2020, etat: 'neuf' }),
   set({ nom: 'Souhaité 1', theme: 'Icons', annee: 2023, pieces: 2000, statut: 'souhaité' }),
   set({ nom: 'Souhaité 2', theme: 'Ideas', statut: 'souhaité' }),
 ];
@@ -68,7 +68,7 @@ test('thèmes triés par taille puis par nom, « Non renseigné » en dernier', 
 
 test('états dans l\'ordre du modèle, avec « Non renseigné » quand il en manque', () => {
   const e = calculerStats(COLLECTION).etats;
-  assert.deepEqual(e.map((b) => b.libelle), ['scellé', 'monté', 'démonté', 'incomplet', 'Non renseigné']);
+  assert.deepEqual(e.map((b) => b.libelle), ['scellé', 'neuf', 'en cours', 'monté', 'Non renseigné']);
 });
 
 test('années dans l\'ordre du temps, par année quand l\'étalement est court', () => {

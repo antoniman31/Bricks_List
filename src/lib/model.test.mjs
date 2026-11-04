@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { normaliserSet, validerSets } from './model.js';
+import { normaliserSet, validerSets, ETATS } from './model.js';
 
 const OK = { id: 'a', numero: '75192-1', nom: 'Faucon', theme: 'Star Wars', annee: 2017, pieces: 7541, statut: 'possédé', etat: 'scellé', dateAjout: '2026-10-01' };
 
@@ -82,7 +82,7 @@ test('validerSets compte corrigées et rejetées, et réattribue les doublons d\
 });
 
 test('validerSets ignore ce qui n\'est pas une liste', () => {
-  assert.deepEqual(validerSets({ a: 1 }), { sets: [], corriges: 0, rejetes: 0 });
+  assert.deepEqual(validerSets({ a: 1 }), { sets: [], corriges: 0, rejetes: 0, etatsRetires: 0 });
 });
 
 test('emplacement, boîte et notice : valeurs valides conservées pour un set possédé', () => {
@@ -180,4 +180,31 @@ test('étiquettes : valeur non fiable nettoyée et comptée', () => {
   assert.deepEqual(r.set.etiquettes, ['a']);
   assert.equal(r.corrections, 1);
   assert.deepEqual(normaliserSet({ numero: '75192-1', nom: 'F', etiquettes: 'cadeau' }).set.etiquettes, []);
+});
+
+test('états : scellé, neuf, en cours, monté, dans cet ordre', () => {
+  assert.deepEqual(ETATS, ['scellé', 'neuf', 'en cours', 'monté']);
+  for (const etat of ETATS) assert.equal(normaliserSet({ ...OK, etat }).set.etat, etat);
+});
+
+test('anciens états « démonté » et « incomplet » : remis à non précisé et comptés', () => {
+  const r = validerSets([
+    { ...OK, id: 'a', numero: '75192-1', etat: 'démonté' },
+    { ...OK, id: 'b', numero: '10294-1', etat: 'incomplet' },
+    { ...OK, id: 'c', numero: '21330-1', etat: 'monté' },
+  ]);
+  assert.equal(r.etatsRetires, 2);
+  assert.deepEqual(r.sets.map((s) => s.etat), [null, null, 'monté']);
+  assert.equal(r.rejetes, 0);
+});
+
+test('un état inconnu autre que les anciens n\'est pas compté comme ancien état', () => {
+  const r = validerSets([{ ...OK, etat: 'cassé' }]);
+  assert.equal(r.etatsRetires, 0);
+  assert.equal(r.sets[0].etat, null);
+});
+
+test('un ancien état sur un set souhaité n\'est pas compté (l\'état n\'y a pas de sens)', () => {
+  const r = validerSets([{ ...OK, statut: 'souhaité', etat: 'démonté' }]);
+  assert.equal(r.etatsRetires, 0);
 });

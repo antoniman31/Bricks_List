@@ -338,7 +338,7 @@ export default function App() {
   const nbPourPluriel = vueStats ? sets.length : visibles.length
   const contexte = `${nomSection} · ${nbAffiches} set${nbPourPluriel > 1 ? 's' : ''}`
 
-  const { erreur, corriges, rejetes } = depart.info
+  const { erreur, corriges, rejetes, etatsRetires = 0 } = depart.info
   // Panneau de détail : grand écran et affichage en liste. En grille (tuiles larges, pas de colonne
   // pour un panneau) et sur téléphone, le détail s'ouvre en feuille, comme avant.
   const panneau = large && vue === 'liste' && !vueStats
@@ -474,9 +474,14 @@ export default function App() {
           <button type="button" className="lien lien--bouton" onClick={() => { setConfirmation(''); setRetour(null) }}>Fermer</button>
         </p>
       )}
-      {(corriges > 0 || rejetes > 0) && (
+      {etatsRetires > 0 && (
         <p className="avis" role="status">
-          {corriges} fiche{corriges > 1 ? 's' : ''} corrigée{corriges > 1 ? 's' : ''}, {rejetes} ignorée{rejetes > 1 ? 's' : ''} au chargement.
+          {etatsRetires} set{etatsRetires > 1 ? 's' : ''} remis à « non précisé » : « démonté » et « incomplet » n'existent plus.
+        </p>
+      )}
+      {(corriges - etatsRetires > 0 || rejetes > 0) && (
+        <p className="avis" role="status">
+          {Math.max(0, corriges - etatsRetires)} fiche{corriges - etatsRetires > 1 ? 's' : ''} corrigée{corriges - etatsRetires > 1 ? 's' : ''}, {rejetes} ignorée{rejetes > 1 ? 's' : ''} au chargement.
         </p>
       )}
 

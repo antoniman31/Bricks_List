@@ -3,7 +3,11 @@ import { dateValide } from './dates.js';
 import { normaliserEtiquettes } from './etiquettes.js';
 
 export const STATUTS = ['possédé', 'souhaité'];
-export const ETATS = ['scellé', 'monté', 'démonté', 'incomplet'];
+// Du moins avancé au plus avancé : le tri des stats et les puces suivent cet ordre.
+export const ETATS = ['scellé', 'neuf', 'en cours', 'monté'];
+// Anciens états, supprimés : « démonté » et « incomplet » ne sont plus proposés. Une collection ou une
+// sauvegarde qui les contient les voit remis à « non précisé » (comptés, pour le dire à l'ouverture).
+export const ETATS_RETIRES = ['démonté', 'incomplet'];
 
 const ANNEE_MIN = 1949; // premières briques LEGO à tenons
 const NOTES_MAX = 2000;
@@ -51,6 +55,7 @@ export function normaliserSet(brut, { anneeMax = new Date().getFullYear() + 2, m
   const statut = statutValide ? brut.statut : 'possédé';
   // L'état n'a de sens que pour un set possédé : un set souhaité n'est ni
   // monté ni scellé, et un état résiduel fausserait le filtre par état.
+  const etatRetire = statut === 'possédé' && ETATS_RETIRES.includes(brut.etat);
   const etatValide = brut.etat == null || ETATS.includes(brut.etat);
   const etat = statut === 'possédé' && ETATS.includes(brut.etat) ? brut.etat : null;
   const annee = entierDansBornes(brut.annee, ANNEE_MIN, anneeMax);
@@ -101,6 +106,7 @@ export function normaliserSet(brut, { anneeMax = new Date().getFullYear() + 2, m
       dateMontage: corriger(brut.dateMontage == null || !possede || dateMontage !== null, dateMontage),
     },
     corrections,
+    etatRetire,
   };
 }
 
@@ -111,15 +117,17 @@ export function validerSets(liste, options) {
   const vus = new Set();
   let corriges = 0;
   let rejetes = 0;
-  if (!Array.isArray(liste)) return { sets, corriges, rejetes: 0 };
+  let etatsRetires = 0;
+  if (!Array.isArray(liste)) return { sets, corriges, rejetes: 0, etatsRetires: 0 };
 
   for (const brut of liste) {
     const r = normaliserSet(brut, options);
     if (!r) { rejetes += 1; continue; }
     if (r.corrections > 0) corriges += 1;
+    if (r.etatRetire) etatsRetires += 1;
     if (vus.has(r.set.id)) { r.set.id = nouvelId(); corriges += 1; }
     vus.add(r.set.id);
     sets.push(r.set);
   }
-  return { sets, corriges, rejetes };
+  return { sets, corriges, rejetes, etatsRetires };
 }
