@@ -106,8 +106,21 @@ testé avec sa vraie collection, tout fonctionne.
   de répondre « à jour » par défaut (`verifierMiseAJour`).
   *Limite* : si on installe l'app puis qu'on coupe le réseau avant le deuxième lancement, la page d'accueil
   n'est pas encore en cache.
-- **Qualité** : `npm run lint`, `npm test` (334 tests), `npm run verif:ui` (axe-core, cibles de
-  48 px, débordements, navigation, recherche visible clavier ouvert ; 35 écrans × 2 thèmes × 4
+- **Photos de boîte** (novembre 2026) : les vignettes (liste, grille, fiche, aperçus) affichent la photo de la
+  boîte chez BrickLink, `img.bricklink.com/ItemImage/ON/0/<numéro>.png` (`src/lib/boite.js`, `Vignette.jsx`).
+  Rien n'est stocké : l'adresse se déduit du numéro. Si elle répond 404, repli sur le rendu Rebrickable puis sur
+  le numéro. Vérifié sur 7 sets (200, `access-control-allow-origin: *`) ; ce n'est pas une API officielle, ses
+  adresses peuvent changer. Les images pèsent 400 à 750 Ko : cache hors ligne séparé (`boites-sets`, 150
+  entrées) et requête CORS pour que la taille réelle soit comptée. Dans la grille, la pastille d'état est sous
+  l'image (le bas de la boîte porte numéro et pièces) et le nom prend deux lignes.
+- **Filtres et tri retenus, par onglet** : collection et wishlist ont chacune leurs filtres et leur tri, gardés
+  au rechargement (`bl_filtres`, hors export, `src/lib/filtresMemo.js`, entrée validée ; l'ancien format à un
+  seul jeu est lu). La recherche texte n'est pas retenue et se vide au changement d'onglet. Un raccourci des
+  Stats remplace les filtres de la collection.
+- **Qualité** : `npm run lint`, `npm test` (344 tests), `npm run verif:ui` (axe-core, cibles de
+  48 px, débordements, navigation, recherche visible clavier ouvert, et quatre parcours qui vérifient un
+  comportement : filtres conservés au rechargement, onglets indépendants, import d'un `.txt`, repli des
+  boîtes ; 39 écrans × 2 thèmes × 4
   largeurs : 360, 412, 900, 1280). Les trois tournent dans le CI avant le déploiement.
 
 ## Décisions de cadrage (ne pas rouvrir sans raison)
@@ -140,7 +153,7 @@ ce sont de petits projets de loisir, récents, la plupart sur serveur.
 - **Idées reprises** : « je l'ai déjà ? » (lego-collector), recherche par nom (Nupplo, plinthos),
   emplacement de rangement, boîte et notice (plinthos, BrickHoard, lego-collector).
 - **Idées écartées** : photos personnelles de boîtes (stockage sur l'appareil, export JSON
-  difficile), synchronisation serveur, valorisation et mode vente.
+  difficile ; BrickLink les remplace), synchronisation serveur, valorisation et mode vente.
 
 ### Reste à décider ou à faire
 
@@ -148,7 +161,15 @@ ce sont de petits projets de loisir, récents, la plupart sur serveur.
    - **Export CSV** en plus du JSON : séparateur point-virgule, BOM UTF-8 pour l'Excel français ; une copie à
      lire, pas ré-importable, sans la clé Rebrickable.
    - **Tirage au sort** « quoi monter ce week-end » parmi scellés, neufs et en cours.
-   - **Synchronisation entre téléphone et PC** (Antoni utilise les deux au quotidien) : à faire en
+   - **Transfert entre téléphone et PC** (Antoni transfère « parfois », collection sous 100 sets) : essayer
+     d'abord ce qui existe, **Partager** (Partage rapide Android vers Windows) puis **Importer un fichier**,
+     sans code. Si le geste pèse : **lien** (collection compressée dans la partie après le `#`, que GitHub
+     Pages ne reçoit pas ; aperçu puis Fusionner à l'ouverture ; entrée validée ; « lien incomplet » si une
+     messagerie le coupe) et **QR allégé** (sans identifiants ni images, mesuré ~0,9 Ko pour 40 sets
+     fictifs, à confirmer sur la vraie collection ; un QR contient au plus ~2,9 Ko). Le QR ne sert que du PC
+     vers le téléphone (l'appareil photo lit l'écran) : Chrome sur Windows n'a pas de lecteur de QR. Dépendance
+     ajoutée : un petit générateur de QR. Écartés : WebRTC (fragile), serveur à nous (contraire au cadrage).
+   - **Synchronisation entre téléphone et PC** (plus lourde, seulement si le transfert devient fréquent) : à faire en
      deux temps. D'abord une date de modification par fiche et une trace des suppressions, avec une
      fonction de fusion pure (la plus récente gagne ; suppressions jamais propagées sans
      confirmation, choix d'Antoni) ; ensuite la synchro via l'API Google Drive (dossier réservé à
@@ -162,17 +183,8 @@ ce sont de petits projets de loisir, récents, la plupart sur serveur.
    l'avertissement ci-dessus, envoi seulement après un geste explicite, liste de candidats avec
    score à confirmer avant tout ajout. **Avant de coder, tester sur quelques vraies boîtes** :
    si la bonne n'est pas dans les trois premières dans la plupart des cas, abandonner.
-2. **Vraies images de boîtes** (Brickset). Les images de Rebrickable, Brickset et BrickLink sont
-   toutes le même rendu du modèle monté sur fond blanc : changer de source parmi elles n'apporte
-   pas la boîte. Il faudrait l'API Brickset (images additionnelles), une clé et un relais
-   Cloudflare (leur API n'envoie pas de CORS). Antoni : « je verrai plus tard ».
-   - À mesurer avant de construire (impossible sans clé) : quelle image additionnelle est la
-     boîte, et existe-t-elle pour tous les sets ?
-   - Relais sur le modèle de celui de game-library (aucune clé dedans) ; champs « URL du relais »
-     et « Clé Brickset » dans les Réglages, jamais exportés ; écran de diagnostic sans la clé.
-   - À faire par Antoni, sans jamais donner de clé dans une conversation ni dans le dépôt :
-     demander une clé Brickset, déployer le relais (`wrangler deploy`, ou secrets
-     `CLOUDFLARE_API_TOKEN` et `CLOUDFLARE_ACCOUNT_ID` du dépôt).
+2. **Vraies images de boîtes** : faites, via BrickLink (voir « Photos de boîte »). Brickset, qui donnait
+   le même rendu que Rebrickable et n'a pas de CORS, n'est plus nécessaire.
 3. **Retrouver un set par code-barres** : seulement si l'API Brickset le permet, ce qui n'est pas
    établi. Sinon, le scan n'a pas de source : le dire plutôt que le bricoler.
 
@@ -192,13 +204,13 @@ Corollaire : la recherche par nom de Rebrickable ne trouve que de l'anglais (« 
 - **Clavier Android à confirmer sur le S26** : la recherche en bas et le rangement de la navigation
   pendant la saisie sont testés en simulation (`verif:ui`, parcours navigateur), pas sur un vrai
   clavier. Si la barre est recouverte, le réglage à revoir est `interactive-widget` dans `index.html`.
-- La grille montre les rendus du modèle monté (fond blanc), pas des boîtes : elle est plus
-  uniforme avec de vraies images de boîte (voir « Vraies images de boîtes »).
+- Les photos de boîte viennent de BrickLink, sans accord ni API officielle : si leurs adresses changent,
+  l'app retombe sur le rendu Rebrickable puis sur le numéro, sans erreur visible (à surveiller à la main).
 - Pas de couleurs dynamiques Material You : à ma connaissance une page web n'y a pas accès (non vérifié
   sur une source officielle). La palette est fixe, sombre par défaut et claire au choix.
 - Pas de bouton flottant « étendu » (avec le mot « Ajouter ») sur téléphone : l'icône seule suffit, avec
   le nom accessible « Ajouter un set ». Sur grand écran, le mot est affiché.
-- Les images ont un fond blanc intégré : elles restent sur un panneau blanc, même en thème sombre.
+- Les images (boîtes comme rendus) ont un fond blanc intégré : elles restent sur un panneau blanc, même en thème sombre.
 - L'écran de démarrage de la PWA installée reste noir en thème clair (un manifeste n'a qu'une couleur).
 - La durée réelle d'un lot dépend de la limite de débit de Rebrickable ; un 429 est retenté une fois.
 - Un set dont le numéro contient des lettres (rares sets promotionnels) ne peut pas être rangé :
