@@ -26,7 +26,7 @@
   --texte-doux: #a3a7b3;
   --accent: #f5c518;           /* texte et liens, lus SUR le fond */
   --accent-fond: #f5c518;      /* aplat qui porte du texte --sur-accent */
-  --remplissage: #f5c518;      /* barres, cases cochées */
+  --remplissage: #f5c518;      /* cases cochées et progression (les barres des stats prennent --accent-fond) */
   --vignette: #ffffff;         /* fond des images de sets : leur blanc est intégré à l'image */
   --sur-accent: #15161a;       /* 11,1:1 sur --accent-fond */
   --danger: #ff6b6d;
@@ -47,9 +47,12 @@
   --rail: 96px;
   --rayon: 12px;
   --espace: 12px;
-  /* Couleurs de données (stats) : palette catégorielle validée (écart de teinte pour le daltonisme), dans l'ordre
-     fixe. Contraste du repère sur la surface : 5,1 / 4,8 / 5,5 / 6,1:1. Le sens est toujours aussi écrit (légende chiffrée). */
-  --serie-1: #3987e5; --serie-2: #d95926; --serie-3: #199e70; --serie-4: #c98500;
+  /* Couleurs de données (stats) : palette catégorielle (écart de teinte pour le daltonisme), dans l'ordre fixe.
+     Contraste du repère sur la surface : 5,1 / 4,8 / 5,5 / 11,5:1. Le sens est toujours aussi écrit (légende chiffrée).
+     La 4e série est le jaune de la marque (un seul jaune à l'écran) : choix d'Antoni ; il sort de la bande de clarté
+     de la palette validée, mais la séparation daltonisme (ΔE 9,4) et la distinction à l'œil restent bonnes. */
+  --serie-1: #3987e5; --serie-2: #d95926; --serie-3: #199e70; --serie-4: var(--accent-fond);
+  --voile: rgb(0 0 0 / 0.6);   /* fond derrière une feuille ouverte */
   --serie-vide: #7b8094;       /* « non renseigné » : 4,8:1 sur surface */
   /* Échelle d'une seule teinte pour les tailles (thèmes) : 1 = faible, 5 = forte. Texte dessus : 11,1 / 8,0 / 5,2 / 5,4 / 9,0:1. */
   --echelle-1: #1d3558; --sur-echelle-1: #f2f3f5;
@@ -80,9 +83,11 @@ html[data-theme='light'] {
   --ombre-fab: 0 4px 14px rgb(0 0 0 / 0.25);
   --survol: rgb(20 22 28 / 0.08);
   --appui: rgb(20 22 28 / 0.14);
-  /* Couleurs de données, thème clair. Contraste du repère sur surface : 4,4 / 3,2 / 2,8 / 2,2:1 : les deux derniers
-     sont sous 3:1, d'où la légende chiffrée toujours affichée à côté (le repère n'est jamais seul à porter le sens). */
-  --serie-1: #2a78d6; --serie-2: #eb6834; --serie-3: #1baf7a; --serie-4: #eda100;
+  /* Couleurs de données, thème clair. Contraste du repère sur surface : 5,5 / 3,2 / 2,8 / 1,6:1 : les deux derniers
+     sont sous 3:1, d'où la légende chiffrée toujours affichée à côté (le repère n'est jamais seul à porter le sens).
+     Un seul bleu : la série 1 est le même bleu que l'échelle des blocs (--echelle-4). La série 4 reste le jaune de la marque. */
+  --serie-1: #2468c4; --serie-2: #eb6834; --serie-3: #1baf7a;
+  --voile: rgb(0 0 0 / 0.6);
   --serie-vide: #8a8f9e;       /* 3,2:1 sur surface */
   /* Échelle des tailles, thème clair. Texte dessus : 13,5 / 9,6 / 6,5 / 5,5 / 8,1:1. */
   --echelle-1: #cfe0f7; --sur-echelle-1: #15161a;
@@ -179,7 +184,7 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
   background: var(--surface);
   color: var(--texte);
 }
-.sheet::backdrop { background: rgb(0 0 0 / 0.6); }
+.sheet::backdrop { background: var(--voile); }
 /* Colonne : poignée et titre restent fixes, seul le contenu défile, les actions restent visibles. */
 .sheet__corps { display: flex; flex-direction: column; min-width: 0; max-height: 85vh; padding-bottom: env(safe-area-inset-bottom); }
 .sheet { transition: transform 0.2s ease; }
@@ -284,7 +289,7 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
 .barre-stat__texte { display: flex; justify-content: space-between; gap: var(--espace); }
 .barre-stat__valeur { color: var(--texte-doux); font-size: 0.8125rem; text-align: right; }
 .barre-stat__piste { display: block; height: 8px; border-radius: 4px; background: var(--surface-haute); }
-.barre-stat__remplissage { display: block; height: 100%; min-width: 4px; border-radius: 4px; background: var(--remplissage); }
+.barre-stat__remplissage { display: block; height: 100%; min-width: 4px; border-radius: 4px; background: var(--accent-fond); }
 
 /* Ajout par lot */
 .progression { width: 100%; height: 12px; accent-color: var(--remplissage); }
