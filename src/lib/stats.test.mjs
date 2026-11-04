@@ -214,3 +214,12 @@ test('boîte et notice non précisées rejoignent « à compléter » une fois l
   assert.equal(st.aCompleter.champs.find((c) => c.cle === 'boite').nombre, 1);
   assert.equal(calculerStats([set({ nom: 'A', theme: '' })]).aCompleter.champs.some((c) => c.cle === 'boite'), false);
 });
+
+test('résumé : moyenne de pièces sur les sets connus seulement, et nombre de thèmes distincts', () => {
+  const st = calculerStats([
+    set({ nom: 'A', pieces: 1000, theme: 'X' }), set({ nom: 'B', pieces: 3000, theme: 'Y' }), set({ nom: 'C', pieces: null, theme: 'X' }), set({ nom: 'D', pieces: 2000, theme: '' }),
+  ]);
+  assert.equal(st.resume.moyennePieces, 2000);
+  assert.equal(st.resume.themes, 2);
+  assert.equal(calculerStats([set({ nom: 'A', pieces: null })]).resume.moyennePieces, null);
+});

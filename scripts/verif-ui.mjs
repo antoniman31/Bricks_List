@@ -155,6 +155,12 @@ const ECRANS = {
     await p.waitForSelector('dialog[open] [role=status]:has-text("dernière version")');
   },
   'stats': async (p) => { await p.click('.nav__item:has-text("Stats")'); await p.waitForSelector('.stats'); },
+  'stats (détails dépliés)': async (p) => {
+    await p.click('.nav__item:has-text("Stats")'); await p.waitForSelector('.stats');
+    await p.click('.stats__detail:has-text("thèmes")');
+    const annees = p.locator('.stats__detail:has-text("Voir par année")');
+    if (await annees.count()) await annees.click();
+  },
   'wishlist': async (p) => { await p.click('.nav__item:has-text("Wishlist")'); },
   'recherche (résultats de l\'autre onglet)': async (p) => { await p.fill('input[type=search]', 'Souhait'); await p.waitForSelector('.ailleurs'); await p.locator('input[type=search]').blur(); },
   // Clavier ouvert (champ actif) : sur téléphone la navigation se range, la recherche reste en bas de l'écran.
