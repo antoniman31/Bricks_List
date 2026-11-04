@@ -95,6 +95,79 @@ function records(possedes, themes, emplacements) {
   };
 }
 
+
+// ---- Avancement, pile à monter, activité ----
+
+// « Monté » est l'état d'arrivée ; scellé, neuf et en cours sont ce qu'il reste à monter. Un set sans état
+// n'est dans aucun des deux : on ne devine pas, il est signalé à part. Les pièces ne comptent que pour les sets
+// dont on les connaît.
+const A_MONTER = ['scellé', 'neuf', 'en cours'];
+
+function avancement(possedes) {
+  const avecEtat = possedes.filter((s) => s.etat != null);
+  const montes = avecEtat.filter((s) => s.etat === 'monté');
+  const restants = avecEtat.filter((s) => A_MONTER.includes(s.etat));
+  if (montes.length + restants.length === 0) return null;
+  const pm = total(montes);
+  const pr = total(restants);
+  return {
+    montes: { sets: montes.length, pieces: pm },
+    restants: { sets: restants.length, pieces: pr },
+    pourcentage: pm + pr > 0 ? Math.round((pm / (pm + pr)) * 100) : null,
+    sansEtat: possedes.length - avecEtat.length,
+    sansPieces: avecEtat.filter((s) => s.pieces == null).length,
+    parEtat: A_MONTER.map((e) => barre(e, e, restants.filter((s) => s.etat === e), { etat: e })).filter((b) => b.sets > 0),
+  };
+}
+
+// Les douze derniers mois, du plus ancien au courant, avec ce qui s'y est passé. Les dates d'achat et de montage
+// sont des jours locaux (AAAA-MM-JJ) ; la date d'ajout est un instant, ramené au mois local de l'appareil.
+export function moisRecents(maintenant, n = 12) {
+  const liste = [];
+  for (let i = n - 1; i >= 0; i -= 1) {
+    const d = new Date(maintenant.getFullYear(), maintenant.getMonth() - i, 1);
+    liste.push({ cle: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`, annee: d.getFullYear(), mois: d.getMonth() });
+  }
+  return liste;
+}
+
+function moisLocal(iso) {
+  if (typeof iso !== 'string') return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function activiteMensuelle(possedes, maintenant) {
+  const mois = moisRecents(maintenant).map((m) => ({
+    ...m,
+    achetes: possedes.filter((s) => typeof s.dateAchat === 'string' && s.dateAchat.slice(0, 7) === m.cle).length,
+    montes: possedes.filter((s) => typeof s.dateMontage === 'string' && s.dateMontage.slice(0, 7) === m.cle).length,
+    ajoutes: possedes.filter((s) => moisLocal(s.dateAjout) === m.cle).length,
+  }));
+  const somme = (c) => mois.reduce((t, m) => t + m[c], 0);
+  return {
+    mois,
+    achetes: somme('achetes'),
+    montes: somme('montes'),
+    ajoutes: somme('ajoutes'),
+  };
+}
+
+// Délai entre l'achat et le montage, pour les sets qui ont les deux dates dans le bon ordre.
+function delaiAchatMontage(possedes) {
+  const jours = [];
+  for (const s of possedes) {
+    if (typeof s.dateAchat !== 'string' || typeof s.dateMontage !== 'string') continue;
+    const a = Date.parse(`${s.dateAchat}T00:00:00Z`);
+    const m = Date.parse(`${s.dateMontage}T00:00:00Z`);
+    if (Number.isNaN(a) || Number.isNaN(m) || m < a) continue;
+    jours.push(Math.round((m - a) / 86400000));
+  }
+  if (jours.length === 0) return null;
+  return { jours: Math.round(jours.reduce((t, j) => t + j, 0) / jours.length), sets: jours.length };
+}
+
 const parTaille = (a, b) => b.sets - a.sets || a.libelle.localeCompare(b.libelle, 'fr', { sensitivity: 'base' });
 
 export function calculerStats(sets, maintenant = new Date()) {
@@ -152,6 +225,10 @@ export function calculerStats(sets, maintenant = new Date()) {
         montes: possedes.filter((s) => anneeDe(s.dateMontage) === maintenant.getFullYear()).length,
       }
       : null,
+    avancement: avancement(possedes),
+    // Seulement s'il s'est passé quelque chose sur les douze derniers mois : sinon douze colonnes vides.
+    mensuel: (() => { const m = activiteMensuelle(possedes, maintenant); return m.achetes + m.montes + m.ajoutes > 0 ? m : null; })(),
+    delai: delaiAchatMontage(possedes),
     wishlist: {
       sets: souhaites.length,
       pieces: total(souhaites),

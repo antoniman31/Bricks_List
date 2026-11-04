@@ -34,50 +34,66 @@ function Barres({ barres, onOuvrir }) {
   )
 }
 
-// L'état en anneau : le total au centre, chaque ligne de la légende est un bouton qui ouvre la liste. Les
-// couleurs suivent l'ordre fixe des états ; « non renseigné » est gris. Le sens est aussi écrit (légende chiffrée).
-function Anneau({ barres, total, onOuvrir }) {
+// Un anneau : le total ou le pourcentage au centre, une légende dont chaque ligne qui mène à une liste est un
+// bouton. Les couleurs viennent de l'appelant (l'ordre fixe des états, par exemple) ; le sens est toujours écrit
+// dans la légende, jamais porté par la couleur seule.
+function Anneau({ nom, parts, centre, onOuvrir }) {
   const R = 42
   const C = 2 * Math.PI * R
-  const parts = barres.filter((b) => b.sets > 0)
-  const somme = parts.reduce((t, b) => t + b.sets, 0)
-  const couleur = (b) => { const i = ETATS.indexOf(b.cle); return i >= 0 && i < SERIES.length ? SERIES[i] : 'var(--serie-vide)' }
-  const trou = parts.length > 1 ? 2.5 : 0
+  const visibles = parts.filter((p) => p.valeur > 0)
+  const somme = visibles.reduce((t, p) => t + p.valeur, 0)
+  const trou = visibles.length > 1 ? 2.5 : 0
   // Chaque arc commence là où le précédent finit : le décalage cumulé est calculé d'avance, pas pendant le rendu.
-  const arcs = parts.reduce((liste, b) => {
+  const arcs = visibles.reduce((liste, p) => {
     const debut = liste.length > 0 ? liste[liste.length - 1].debut + liste[liste.length - 1].l : 0
-    return [...liste, { b, debut, l: (C * b.sets) / somme }]
+    return [...liste, { p, debut, l: (C * p.valeur) / somme }]
   }, [])
   return (
     <div className="anneau">
       <div className="anneau__dessin">
-        <svg viewBox="0 0 120 120" role="img" aria-label={`Par état : ${parts.map((b) => `${b.libelle} ${b.sets}`).join(', ')}`}>
-          {arcs.map(({ b, debut, l }) => {
+        <svg viewBox="0 0 120 120" role="img" aria-label={`${nom} : ${visibles.map((p) => `${p.libelle} ${p.affiche ?? p.valeur}`).join(', ')}`}>
+          {arcs.map(({ p, debut, l }) => {
             const trait = Math.max(0, l - trou)
             return (
-              <circle key={b.cle || 'vide'} cx="60" cy="60" r={R} fill="none" stroke={couleur(b)} strokeWidth="14"
+              <circle key={p.cle || 'vide'} cx="60" cy="60" r={R} fill="none" stroke={p.couleur} strokeWidth="14"
                 strokeDasharray={`${trait} ${C - trait}`} strokeDashoffset={-debut} transform="rotate(-90 60 60)" />
             )
           })}
         </svg>
         <div className="anneau__centre" aria-hidden="true">
-          <span className="anneau__total">{nombre(total)}</span>
-          <span className="anneau__unite">set{total > 1 ? 's' : ''}</span>
+          <span className="anneau__total">{centre.valeur}</span>
+          <span className="anneau__unite">{centre.unite}</span>
         </div>
       </div>
       <ul className="anneau__legende">
-        {parts.map((b) => (
-          <li key={b.cle || 'vide'}>
-            <button type="button" className="anneau__ligne" onClick={() => onOuvrir(b.filtre)}>
-              <span className="anneau__pastille" style={{ background: couleur(b) }} aria-hidden="true" />
-              <span>{majuscule(b.libelle)}</span>
-              <span className="anneau__valeur">{nombre(b.sets)}</span>
-            </button>
-          </li>
-        ))}
+        {visibles.map((p) => {
+          const contenu = (
+            <>
+              <span className="anneau__pastille" style={{ background: p.couleur }} aria-hidden="true" />
+              <span>{p.libelle}</span>
+              <span className="anneau__valeur">{p.affiche ?? nombre(p.valeur)}</span>
+            </>
+          )
+          return (
+            <li key={p.cle || 'vide'}>
+              {p.filtre ? (
+                <button type="button" className="anneau__ligne" onClick={() => onOuvrir(p.filtre)}>{contenu}</button>
+              ) : (
+                <div className="anneau__ligne">{contenu}</div>
+              )}
+            </li>
+          )
+        })}
       </ul>
     </div>
   )
+}
+
+// Les états en anneau, dans l'ordre fixe des couleurs ; « non renseigné » est gris.
+function AnneauEtats({ barres, total, onOuvrir }) {
+  const couleur = (b) => { const i = ETATS.indexOf(b.cle); return i >= 0 && i < SERIES.length ? SERIES[i] : 'var(--serie-vide)' }
+  const parts = barres.map((b) => ({ cle: b.cle, libelle: majuscule(b.libelle), valeur: b.sets, couleur: couleur(b), filtre: b.filtre }))
+  return <Anneau nom="Par état" parts={parts} centre={{ valeur: nombre(total), unite: `set${total > 1 ? 's' : ''}` }} onOuvrir={onOuvrir} />
 }
 
 // Les thèmes en blocs proportionnels : la surface suit le nombre de sets, la teinte aussi (une seule couleur,
@@ -168,6 +184,68 @@ function Records({ stats, onOuvrir }) {
   )
 }
 
+// Colonnes groupées par mois : une couleur par mesure, la légende nomme chacune. Pas cliquable (douze mois × deux
+// colonnes ne tiendraient pas en cibles de 48 px) ; le texte alternatif donne tous les chiffres.
+function Mensuel({ nom, mois, mesures }) {
+  const W = 300, H = 112, PAD = 6
+  const bas = H - 16
+  const max = Math.max(1, ...mois.flatMap((m) => mesures.map((x) => m[x.cle])))
+  const pas = (W - 2 * PAD) / mois.length
+  const largeur = Math.min(10, (pas - 4) / mesures.length)
+  const court = (m) => new Date(m.annee, m.mois, 1).toLocaleDateString('fr-FR', { month: 'short' })
+  const long = (m) => new Date(m.annee, m.mois, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+  return (
+    <div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="courbe" role="img"
+        aria-label={`${nom} : ${mois.filter((m) => mesures.some((x) => m[x.cle] > 0)).map((m) => `${long(m)} : ${mesures.map((x) => `${m[x.cle]} ${x.libelle.toLowerCase()}`).join(', ')}`).join(' ; ')}`}>
+        <line x1={PAD} x2={W - PAD} y1={bas} y2={bas} className="courbe__base" />
+        {mois.map((m, i) => {
+          const x0 = PAD + i * pas + (pas - largeur * mesures.length) / 2
+          return (
+            <g key={m.cle}>
+              {mesures.map((x, k) => {
+                const h = (m[x.cle] / max) * (bas - 12)
+                return m[x.cle] > 0 ? <rect key={x.cle} x={x0 + k * largeur} y={bas - h} width={largeur - 1} height={h} rx="2" fill={x.couleur} /> : null
+              })}
+              {i % 2 === 0 || i === mois.length - 1 ? <text className="courbe__axe" x={PAD + i * pas + pas / 2} y={H - 3} textAnchor="middle">{court(m)}</text> : null}
+            </g>
+          )
+        })}
+      </svg>
+      <ul className="legende-mesures">
+        {mesures.map((x) => (
+          <li key={x.cle}><span className="anneau__pastille" style={{ background: x.couleur }} aria-hidden="true" />{x.libelle} <b>{mois.reduce((t, m) => t + m[x.cle], 0)}</b></li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+// L'avancement du montage : la part des pièces déjà montées, et ce qui reste, état par état.
+function Avancement({ avancement: a, onOuvrir }) {
+  const parts = [
+    { cle: 'montees', libelle: 'Montées', valeur: a.montes.pieces, affiche: `${nombre(a.montes.pieces)} pièces`, couleur: 'var(--serie-4)', filtre: { etat: 'monté' } },
+    { cle: 'restantes', libelle: 'À monter', valeur: a.restants.pieces, affiche: `${nombre(a.restants.pieces)} pièces`, couleur: 'var(--serie-vide)' },
+  ]
+  return (
+    <>
+      {a.pourcentage != null ? (
+        <Anneau nom="Avancement du montage" parts={parts} centre={{ valeur: `${a.pourcentage} %`, unite: 'montées' }} onOuvrir={onOuvrir} />
+      ) : (
+        <p className="stats__note">Pièces inconnues : pourcentage impossible.</p>
+      )}
+      <h3 className="bloc__sous">À monter · {pluriel(a.restants.sets, 'set')}</h3>
+      <Barres barres={a.parEtat} onOuvrir={onOuvrir} />
+      {(a.sansEtat > 0 || a.sansPieces > 0) && (
+        <p className="stats__note">
+          {a.sansEtat > 0 && `${pluriel(a.sansEtat, 'set')} sans état, non comptés. `}
+          {a.sansPieces > 0 && `${pluriel(a.sansPieces, 'set')} sans pièces, comptés dans les sets seulement.`}
+        </p>
+      )}
+    </>
+  )
+}
+
 function Bloc({ titre, children }) {
   return (
     <section className="bloc">
@@ -180,7 +258,7 @@ function Bloc({ titre, children }) {
 export default function StatsView({ stats, onOuvrir, onVoirWishlist }) {
   const [tousLesThemes, setTousLesThemes] = useState(false)
   const [anneesDetail, setAnneesDetail] = useState(false)
-  const { resume, themes, annees, etats, tailles, etiquettes, emplacements, boiteNotice, aCompleter, wishlist, activite } = stats
+  const { resume, themes, annees, etats, tailles, etiquettes, emplacements, boiteNotice, aCompleter, wishlist, activite, avancement, mensuel, delai } = stats
 
   if (resume.sets === 0) {
     return (
@@ -204,11 +282,6 @@ export default function StatsView({ stats, onOuvrir, onVoirWishlist }) {
       {resume.sansPieces > 0 && (
         <p className="stats__note">
           Pièces connues pour {pluriel(resume.sets - resume.sansPieces, 'set')} ({resume.sansPieces} sans).
-        </p>
-      )}
-      {activite && (
-        <p className="stats__note">
-          En {activite.annee} : {pluriel(activite.achetes, 'set')} {activite.achetes > 1 ? 'achetés' : 'acheté'}, {pluriel(activite.montes, 'set')} {activite.montes > 1 ? 'montés' : 'monté'}.
         </p>
       )}
 
@@ -248,7 +321,41 @@ export default function StatsView({ stats, onOuvrir, onVoirWishlist }) {
 
       {etats.length > 0 && (
         <Bloc titre="Par état">
-          <Anneau barres={etats} total={resume.sets} onOuvrir={onOuvrir} />
+          <AnneauEtats barres={etats} total={resume.sets} onOuvrir={onOuvrir} />
+        </Bloc>
+      )}
+
+      {avancement && (
+        <Bloc titre="Avancement et pile à monter">
+          <Avancement avancement={avancement} onOuvrir={onOuvrir} />
+        </Bloc>
+      )}
+
+      {(mensuel || delai || activite) && (
+        <Bloc titre="Activité">
+          {activite && (
+            <p className="stats__note">
+              En {activite.annee} : {pluriel(activite.achetes, 'set')} {activite.achetes > 1 ? 'achetés' : 'acheté'}, {pluriel(activite.montes, 'set')} {activite.montes > 1 ? 'montés' : 'monté'}.
+            </p>
+          )}
+          {mensuel && (mensuel.achetes > 0 || mensuel.montes > 0) && (
+            <>
+              <h3 className="bloc__sous">Achats et montages, 12 mois</h3>
+              <Mensuel nom="Achats et montages par mois" mois={mensuel.mois}
+                mesures={[{ cle: 'achetes', libelle: 'Achats', couleur: 'var(--serie-1)' }, { cle: 'montes', libelle: 'Montages', couleur: 'var(--serie-2)' }]} />
+            </>
+          )}
+          {delai && (
+            <p className="stats__note">
+              Délai moyen entre achat et montage : {pluriel(delai.jours, 'jour')} (sur {pluriel(delai.sets, 'set')}).
+            </p>
+          )}
+          {mensuel && mensuel.ajoutes > 0 && (
+            <>
+              <h3 className="bloc__sous">Sets ajoutés, 12 mois</h3>
+              <Mensuel nom="Sets ajoutés par mois" mois={mensuel.mois} mesures={[{ cle: 'ajoutes', libelle: 'Ajoutés', couleur: 'var(--serie-3)' }]} />
+            </>
+          )}
         </Bloc>
       )}
 
@@ -289,12 +396,26 @@ export default function StatsView({ stats, onOuvrir, onVoirWishlist }) {
           <p className="stats__note">Aucun set souhaité.</p>
         ) : (
           <>
-            <p className="stats__note">
-              {pluriel(wishlist.sets, 'set')} à acquérir
-              {wishlist.pieces > 0 && `, ${nombre(wishlist.pieces)} pièces${wishlist.sansPieces > 0 ? ' connues' : ''}`}.
-            </p>
+            <div className="kpis kpis--deux">
+              <div className="kpi"><span className="kpi__valeur">{nombre(wishlist.sets)}</span><span className="kpi__libelle">set{wishlist.sets > 1 ? 's' : ''} à acquérir</span></div>
+              {wishlist.pieces > 0 && (
+                <div className="kpi"><span className="kpi__valeur">{nombre(wishlist.pieces)}</span><span className="kpi__libelle">pièces{wishlist.sansPieces > 0 ? ' connues' : ''}</span></div>
+              )}
+            </div>
             {wishlist.priorites.length > 0 && (
-              <p className="stats__note">{wishlist.priorites.map((p) => `${p.libelle} : ${p.sets}`).join(' · ')}</p>
+              <div className="wishlist__priorites">
+                <h3 className="bloc__sous">Par priorité</h3>
+                <div className="empile" role="img" aria-label={`Par priorité : ${wishlist.priorites.map((p) => `${p.libelle} ${p.sets}`).join(', ')}`}>
+                  {wishlist.priorites.map((p, i) => (
+                    <span key={p.cle || 'vide'} style={{ flex: p.sets, background: p.cle === '' ? 'var(--serie-vide)' : SERIES[i % SERIES.length] }} />
+                  ))}
+                </div>
+                <ul className="legende-mesures">
+                  {wishlist.priorites.map((p, i) => (
+                    <li key={p.cle || 'vide'}><span className="anneau__pastille" style={{ background: p.cle === '' ? 'var(--serie-vide)' : SERIES[i % SERIES.length] }} aria-hidden="true" />{p.libelle} <b>{p.sets}</b></li>
+                  ))}
+                </ul>
+              </div>
             )}
             <button type="button" className="bouton" onClick={onVoirWishlist}>Voir la wishlist</button>
           </>
