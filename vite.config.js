@@ -63,6 +63,17 @@ export default defineConfig({
             handler: 'NetworkFirst',
             options: { cacheName: 'pages', networkTimeoutSeconds: 4, cacheableResponse: { statuses: [200] } },
           },
+          // Les photos de boîte (BrickLink) pèsent 400 à 750 Ko : cache plus court, et demandées en CORS
+          // (voir Vignette) pour que le navigateur compte leur vraie taille et non un forfait « opaque ».
+          {
+            urlPattern: ({ url }) => url.hostname === 'img.bricklink.com',
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'boites-sets',
+              expiration: { maxEntries: 150, maxAgeSeconds: 60 * 60 * 24 * 90 },
+              cacheableResponse: { statuses: [200] },
+            },
+          },
           {
             urlPattern: ({ url }) => /cdn\.rebrickable\.com$/.test(url.hostname),
             handler: 'CacheFirst',

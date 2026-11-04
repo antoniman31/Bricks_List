@@ -259,6 +259,10 @@ try {
     for (const largeur of LARGEURS) {
       const ctx = await navigateur.newContext({ colorScheme: theme, viewport: { width: largeur, height: 900 } });
       await ctx.route('https://cdn.rebrickable.com/**', (r) => r.fulfill({ status: 200, contentType: 'image/png', body: PNG }));
+      // Photos de boîte : une sur deux existe, l'autre répond 404 et doit retomber sur le rendu Rebrickable.
+      await ctx.route('https://img.bricklink.com/**', (r) => (parseInt(r.request().url().split('/').pop(), 10) % 2
+        ? r.fulfill({ status: 200, contentType: 'image/png', headers: { 'access-control-allow-origin': '*' }, body: PNG })
+        : r.fulfill({ status: 404, contentType: 'text/html', body: '' })));
       // Un Rebrickable de test : une recherche par nom paginée, et un thème.
       await ctx.route('https://rebrickable.com/api/v3/lego/**', (r) => {
         const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'authorization, accept, content-type', 'access-control-allow-methods': 'GET, OPTIONS' };
