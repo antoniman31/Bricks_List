@@ -12,14 +12,19 @@ dans le navigateur et s'exportent en JSON.
 - **Ajout rapide** : un champ pour le numéro ou le nom (« 75192 », « falcon »), le rangement et
   l'état repris du dernier ajout. *Plus d'options* ouvre le formulaire complet ; *Plusieurs* ajoute
   une liste de numéros d'un coup.
-- **Fiche** : numéro, nom, thème, année, pièces, image, état, emplacement, boîte, notice, dates
-  d'achat et de montage, étiquettes, notes. Tout se modifie sur place, d'un appui.
-- **Retrouver un set** : recherche, filtres (thème, état, année, emplacement, étiquette, boîte,
-  notice, priorité, fiches à compléter), tri, vue liste ou grille, regroupement par emplacement.
-- **Modifier plusieurs sets** : sélection, changement en masse, suppression, avec annulation juste après.
+- **Fiche** : bandeau jaune avec le numéro et le nom, puis pièces, année et état en gros. Emplacement,
+  boîte, notice, dates d'achat et de montage, étiquettes se modifient sur place, d'un appui.
+  Un « ×2 » signale un set possédé en plusieurs exemplaires.
+- **Retrouver un set** : recherche, filtres (thème, état, année, taille, emplacement, étiquette, boîte,
+  notice, priorité, fiches à compléter), tri, vue liste ou grille, regroupement par emplacement
+  (« Salon » et « salon » sont le même).
+- **Modifier plusieurs sets** : sélection, changement en masse (rangement, état, boîte, notice,
+  étiquettes à ajouter ou retirer), suppression, avec annulation juste après.
 - **Wishlist** : priorité (forte, un jour, pas pressé), « Acheté » qui bascule le set dans la collection,
   copie de la liste en texte.
-- **Statistiques** : sets, pièces, répartition par thème, année et état ; chaque barre ouvre la liste filtrée.
+- **Statistiques** : chiffres clés, état en anneau, thèmes en blocs, années en courbe, avancement du
+  montage et pile à monter, activité sur 12 mois, taille des sets, étiquettes, records, wishlist.
+  Les formes qui mènent à une liste sont cliquables.
 - **Thème** automatique, clair ou sombre ; boutons de 48 px, accessibilité vérifiée.
 
 ### États d'un set possédé
