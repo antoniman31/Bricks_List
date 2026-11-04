@@ -111,8 +111,73 @@ async function trier(p, libelle) {
   await p.click('dialog[open] .bouton--plein');
 }
 
+// Les parcours qui vérifient un comportement (et pas seulement un rendu) lèvent une erreur au moindre
+// écart : elle est rapportée comme « écran inaccessible » avec ce message.
+const exiger = (ok, message) => { if (!ok) throw new Error(message); };
+async function filtrerTheme(p, theme) {
+  await p.click(FILTRES);
+  await p.click('dialog[open] .groupe__ligne:has-text("Thème")');
+  await p.click(`dialog[open] .groupe:has(.groupe__ligne:has-text("Thème")) .puce:text-is("${theme}")`);
+  await p.click('dialog[open] .bouton--plein');
+}
+const nbFiltresActifs = async (p) => Number(((await p.getAttribute(FILTRES, 'aria-label')).match(/(\d+) actif/) ?? [0, 0])[1]);
+
 const ECRANS = {
   'liste': async () => {},
+  // Comportements : chaque onglet garde ses filtres, et ils survivent à un rechargement.
+  'filtres conservés après rechargement': async (p) => {
+    const total = await p.locator('.carte').count();
+    await filtrerTheme(p, 'Icons');
+    const filtrees = await p.locator('.carte').count();
+    exiger(filtrees > 0 && filtrees < total, 'le filtre ne réduit pas la liste');
+    await p.reload(); await p.waitForSelector('.carte');
+    exiger(await p.locator('.carte').count() === filtrees, 'le filtre n\'a pas survécu au rechargement');
+    exiger(await nbFiltresActifs(p) === 1, 'la pastille ne compte pas le filtre rétabli');
+  },
+  'onglets : filtres indépendants': async (p) => {
+    await filtrerTheme(p, 'Icons');
+    await p.click('.nav__item:has-text("Wishlist")');
+    exiger(await nbFiltresActifs(p) === 0, 'la wishlist hérite du filtre de la collection');
+    await p.click(FILTRES);
+    await p.click('dialog[open] .groupe__ligne:has-text("Priorité")');
+    await p.locator('dialog[open] .groupe:has(.groupe__ligne:has-text("Priorité")) .puce').nth(1).click();
+    await p.click('dialog[open] .bouton--plein');
+    exiger(await nbFiltresActifs(p) === 1, 'le filtre de la wishlist n\'est pas appliqué');
+    await p.click('.nav__item:has-text("Collection")');
+    exiger(await nbFiltresActifs(p) === 1, 'la collection a perdu son filtre');
+    await p.click(FILTRES);
+    exiger(await p.locator('dialog[open] .groupe__ligne:has-text("Thème") .groupe__valeur:text-is("Icons")').count() === 1, 'la collection n\'a pas gardé son thème');
+  },
+  // Un export partagé en .txt (repli de Chrome Android) s'importe comme le .json.
+  'import d\'un fichier .txt': async (p) => {
+    await p.click(REGLAGES);
+    await p.click('dialog[open] summary:has-text("Importer un fichier")');
+    const contenu = JSON.stringify({ version: 1, sets: [{ id: 'imp1', numero: '30009-1', nom: 'Set importé', statut: 'possédé', theme: 'City', annee: 2024, pieces: 300, etat: 'neuf', dateAjout: '2026-10-10T00:00:00.000Z' }] });
+    await p.setInputFiles('dialog[open] input[type=file]', { name: 'transfert.txt', mimeType: 'text/plain', buffer: Buffer.from(contenu) });
+    await p.waitForSelector('dialog[open] .avis:has-text("1 set lu")');
+    await p.click('dialog[open] button:has-text("Fusionner")');
+    await p.waitForSelector('dialog[open] [role=status]:has-text("1 ajouté")');
+    exiger(await p.evaluate(() => JSON.parse(localStorage.getItem('bl_v1')).sets.some((x) => x.numero === '30009-1')), 'le set importé n\'est pas enregistré');
+  },
+  // Boîte (BrickLink) si elle existe, sinon rendu Rebrickable, sinon le numéro. Le test simule BrickLink :
+  // les numéros impairs ont une photo, les pairs répondent 404.
+  'boîtes : repli sur le rendu puis le numéro': async (p) => {
+    const base = { statut: 'possédé', theme: 'City', annee: 2024, pieces: 300, etat: 'neuf', dateAjout: '2026-10-11T00:00:00.000Z' };
+    await p.evaluate((b) => {
+      const d = JSON.parse(localStorage.getItem('bl_v1'));
+      d.sets.push({ ...b, id: 'bA', numero: '30001-1', nom: 'Boîte test A', image: null }, { ...b, id: 'bB', numero: '30002-1', nom: 'Boîte test B', image: 'https://cdn.rebrickable.com/media/sets/test.png' }, { ...b, id: 'bC', numero: '30004-1', nom: 'Boîte test C', image: null });
+      localStorage.setItem('bl_v1', JSON.stringify(d));
+    }, base);
+    await p.reload(); await p.waitForSelector('.carte');
+    await p.fill('input[type=search]', 'Boîte test');
+    await p.waitForFunction(() => document.querySelectorAll('.carte').length === 3);
+    await p.waitForFunction(() => {
+      const source = (c) => { const i = c.querySelector('img.vignette'); return !i ? 'numero' : i.src.includes('bricklink') ? 'boite' : i.src.includes('rebrickable') ? 'rendu' : '?'; };
+      const lues = Object.fromEntries([...document.querySelectorAll('.carte')].map((c) => [c.querySelector('.carte__nom').textContent.trim().slice(-1), source(c)]));
+      return lues.A === 'boite' && lues.B === 'rendu' && lues.C === 'numero';
+    });
+    await p.locator('input[type=search]').blur();
+  },
   'liste par emplacement': async (p) => { await trier(p, 'Emplacement'); await p.waitForSelector('.rangee'); },
   'liste par emplacement (sélection)': async (p) => {
     await trier(p, 'Emplacement');

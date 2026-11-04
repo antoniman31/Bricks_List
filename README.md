@@ -12,12 +12,15 @@ dans le navigateur et s'exportent en JSON.
 - **Ajout rapide** : un champ pour le numéro ou le nom (« 75192 », « falcon »), le rangement et
   l'état repris du dernier ajout. *Plus d'options* ouvre le formulaire complet ; *Plusieurs* ajoute
   une liste de numéros d'un coup.
+- **Photos de boîte** : affichées partout, déduites du numéro (BrickLink, rien n'est stocké), avec repli sur
+  le rendu Rebrickable puis sur le numéro.
 - **Fiche** : bandeau jaune avec le numéro et le nom, puis pièces, année et état en gros. Emplacement,
   boîte, notice, dates d'achat et de montage, étiquettes se modifient sur place, d'un appui.
   Un « ×2 » signale un set possédé en plusieurs exemplaires.
 - **Retrouver un set** : recherche, filtres (thème, état, année, taille, emplacement, étiquette, boîte,
   notice, priorité, fiches à compléter), tri, vue liste ou grille, regroupement par emplacement
-  (« Salon » et « salon » sont le même).
+  (« Salon » et « salon » sont le même). Collection et wishlist gardent chacune leurs filtres et leur tri,
+  même après un rechargement.
 - **Modifier plusieurs sets** : sélection, changement en masse (rangement, état, boîte, notice,
   étiquettes à ajouter ou retirer), suppression, avec annulation juste après.
 - **Wishlist** : priorité (forte, un jour, pas pressé), « Acheté » qui bascule le set dans la collection,
@@ -59,7 +62,7 @@ Tout est dans le `localStorage`. Seule la collection est exportée.
 | --- | --- |
 | `bl_v1` | la collection |
 | `bl_rebrickable` | la clé Rebrickable (jamais exportée) |
-| `bl_themes`, `bl_derniere_sauvegarde`, `bl_partage_texte`, `bl_theme`, `bl_vue`, `bl_dernier_ajout` | cache de thèmes Rebrickable, date de sauvegarde, repli de partage, thème, liste/grille, dernier rangement |
+| `bl_themes`, `bl_derniere_sauvegarde`, `bl_partage_texte`, `bl_theme`, `bl_vue`, `bl_dernier_ajout`, `bl_filtres` | cache de thèmes Rebrickable, date de sauvegarde, repli de partage, thème, liste/grille, dernier rangement, onglet et filtres par onglet |
 
 ## Développement
 
@@ -73,7 +76,8 @@ CHROMIUM=/opt/pw-browsers/chromium npm run icones   # régénère les icônes PN
 ```
 
 `verif:ui` construit l'app puis parcourt chaque écran en 2 thèmes × 4 largeurs (360, 412, 900, 1280 px) :
-accessibilité (axe-core), cibles de 48 px, débordements, navigation. Lint, tests et `verif:ui` tournent
+accessibilité (axe-core), cibles de 48 px, débordements, navigation, et quelques parcours qui vérifient un
+comportement (filtres conservés, import, repli des images). Lint, tests et `verif:ui` tournent
 dans le CI avant chaque déploiement. Adapter `CHROMIUM` au chemin du navigateur local.
 
 ### Organisation
