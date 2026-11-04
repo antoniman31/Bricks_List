@@ -10,7 +10,7 @@ import JSON. Utilisée par Antoni sur un Galaxy S26 Ultra et un PC Windows (Chro
 testé avec sa vraie collection, tout fonctionne.
 
 - **Collection et wishlist** : un set est une fiche (numéro, nom, thème, année, pièces, image,
-  statut possédé ou souhaité, état scellé/monté/démonté/incomplet, notes). Deux exemplaires
+  statut possédé ou souhaité, état scellé/neuf/en cours/monté, notes). Deux exemplaires
   d'un même set sont deux fiches.
 - **Recherche, filtres, tri** : insensible aux accents, filtres thème, état, année (par
   décennie au-delà de 15 ans d'étalement) et « À compléter » (sans thème, année, pièces, état).
@@ -135,7 +135,7 @@ ce sont de petits projets de loisir, récents, la plupart sur serveur.
      (« sans emplacement » existe déjà dans « À compléter »).
    - **Export CSV** en plus du JSON : séparateur point-virgule, BOM UTF-8 pour l'Excel français.
    - **Pile à monter** : sets scellés, nombre de pièces à monter, raccourci de filtre.
-   - **Tirage au sort** « quoi monter ce week-end » parmi scellés et démontés.
+   - **Tirage au sort** « quoi monter ce week-end » parmi scellés, neufs et en cours.
    - **Badge ×2** pour les numéros en doublon.
    - **Étiquettes en masse** (ajouter ou retirer une étiquette à la sélection).
    - **Synchronisation entre téléphone et PC** (Antoni utilise les deux au quotidien) : à faire en

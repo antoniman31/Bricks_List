@@ -142,10 +142,10 @@ test('modifierPlusieurs : un champ absent des changements n\'est pas touché', (
 });
 
 test('modifierPlusieurs : plusieurs champs d\'un coup', () => {
-  const r = modifierPlusieurs(LISTE, ids('a1', 'a4'), { emplacement: 'bureau', etat: 'démonté', boite: 'oui', notice: 'non' });
+  const r = modifierPlusieurs(LISTE, ids('a1', 'a4'), { emplacement: 'bureau', etat: 'en cours', boite: 'oui', notice: 'non' });
   for (const id of ['a1', 'a4']) {
     const s = r.find((x) => x.id === id);
-    assert.deepEqual([s.emplacement, s.etat, s.boite, s.notice], ['bureau', 'démonté', 'oui', 'non']);
+    assert.deepEqual([s.emplacement, s.etat, s.boite, s.notice], ['bureau', 'en cours', 'oui', 'non']);
   }
 });
 
