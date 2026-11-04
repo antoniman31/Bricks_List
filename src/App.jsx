@@ -46,12 +46,16 @@ export default function App() {
   const [erreurEcriture, setErreurEcriture] = useState('')
   const [cle, setCle] = useState(lireCle)
   // Onglet, filtres et tri reviennent comme on les a laissés (voir filtresMemo.js).
+  // Chaque onglet a les siens : `filtres` et `tri` ci-dessous sont ceux de l'onglet affiché.
   const [memo] = useState(lireFiltres)
   const [statut, setStatut] = useState(memo.statut)
+  const [reglages, setReglages] = useState(memo.reglages)
   const [texte, setTexte] = useState('')
-  const [filtres, setFiltres] = useState(memo.filtres)
-  const [tri, setTri] = useState(memo.tri)
-  useEffect(() => { ecrireFiltres({ statut, filtres, tri }) }, [statut, filtres, tri])
+  const { filtres, tri } = reglages[statut]
+  const majOnglet = (cible, changement) => setReglages((r) => ({ ...r, [cible]: { ...r[cible], ...changement } }))
+  const setFiltres = (f) => majOnglet(statut, { filtres: f })
+  const setTri = (t) => majOnglet(statut, { tri: t })
+  useEffect(() => { ecrireFiltres({ statut, reglages }) }, [statut, reglages])
   const [feuille, setFeuille] = useState(false)
   const [vueStats, setVueStats] = useState(false)
   const [confirmation, setConfirmation] = useState('')
@@ -261,12 +265,11 @@ export default function App() {
     setConfirmation('Modification annulée.')
   }
 
-  // Les filtres d'un onglet ne veulent rien dire dans l'autre (un état n'existe
-  // pas pour un set souhaité) : changer d'onglet les remet à zéro, sinon un
-  // filtre survivant afficherait une liste vide sans qu'on comprenne pourquoi.
+  // Les filtres d'un onglet ne veulent rien dire dans l'autre (un état n'existe pas pour un set
+  // souhaité) : chacun garde les siens et on les retrouve en y revenant. La recherche texte, elle, est
+  // ponctuelle : elle est vidée.
   function changerOnglet(s) {
     setStatut(s)
-    setFiltres(FILTRES_VIDES)
     setTexte('')
   }
 
@@ -288,7 +291,7 @@ export default function App() {
     setVueStats(false)
     setStatut('possédé')
     setTexte('')
-    setFiltres({ ...FILTRES_VIDES, ...filtre })
+    majOnglet('possédé', { filtres: { ...FILTRES_VIDES, ...filtre } })
   }
 
   // « À compléter » ne propose que ce qui manque réellement, avec le nombre de
@@ -362,7 +365,7 @@ export default function App() {
     appliquer(nouveaux)
     setVueStats(false)
     setStatut(statutDuLot)
-    setFiltres(FILTRES_VIDES)
+    majOnglet(statutDuLot, { filtres: FILTRES_VIDES })
     setTexte('')
     setConfirmation(`${ajoutes.length} set${ajoutes.length > 1 ? 's' : ''} ajouté${ajoutes.length > 1 ? 's' : ''}.`)
     fermer()
@@ -609,7 +612,7 @@ export default function App() {
         onFermer={() => setFeuille(false)}
         groupes={groupes}
         filtres={filtres}
-        onChanger={(cle, v) => setFiltres((f) => ({ ...f, [cle]: v }))}
+        onChanger={(cle, v) => setReglages((r) => ({ ...r, [statut]: { ...r[statut], filtres: { ...r[statut].filtres, [cle]: v } } }))}
         onReinitialiser={() => setFiltres(FILTRES_VIDES)}
         nbResultats={visibles.length}
         tris={TRIS.filter((t) => !t.statut || t.statut === statut)}
@@ -677,7 +680,7 @@ export default function App() {
               appliquer(ajouter(sets, brut).sets)
               setConfirmation('')
               setStatut(brut.statut)
-              setFiltres(FILTRES_VIDES)
+              majOnglet(brut.statut, { filtres: FILTRES_VIDES })
               setTexte('')
               fermer()
             }
