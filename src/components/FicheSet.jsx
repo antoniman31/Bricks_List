@@ -95,30 +95,34 @@ export function FicheContenu({ set, lectureSeule, lieux = [], lieuRecent = '', e
     <>
       <Vignette image={set.image} numero={set.numero} variante="fiche" />
 
-      <dl className="fiche">
-        <Ligne libelle="Numéro" valeur={set.numero} />
-        <Ligne libelle="Statut" valeur={set.statut} />
-        {!possede && (
-          <LigneEditable libelle="Priorité" valeur={set.priorite ? LIBELLES_PRIORITE[set.priorite] : 'Non précisée'} ouvert={edition === 'priorite'} desactive={lectureSeule} onBasculer={() => basculer('priorite')}>
-            <div className="groupe__options" role="group" aria-label="Priorité">
-              {PRIORITES.map((p) => (
-                <button key={p} type="button" className="puce" aria-pressed={set.priorite === p} onClick={() => { if (changer({ priorite: p })) setEdition('') }}>
-                  {LIBELLES_PRIORITE[p]}
-                </button>
-              ))}
-            </div>
-          </LigneEditable>
-        )}
-        {possede && (
-          <LigneEditable libelle="État" valeur={set.etat ?? 'Non précisé'} ouvert={edition === 'etat'} desactive={lectureSeule} onBasculer={() => basculer('etat')}>
+      <div className="chiffres">
+        <div><b>{set.pieces != null ? set.pieces.toLocaleString('fr-FR') : '—'}</b><small>pièces</small></div>
+        <div><b>{set.annee ?? '—'}</b><small>année</small></div>
+        <button type="button" className="chiffres__cle" aria-expanded={edition === 'cle'} disabled={lectureSeule} onClick={() => basculer('cle')}>
+          <b>{possede ? (set.etat ?? '—') : (set.priorite ? LIBELLES_PRIORITE[set.priorite] : '—')}</b>
+          <small className={lectureSeule ? '' : 'chev'}>{possede ? 'état' : 'priorité'}</small>
+        </button>
+      </div>
+      {edition === 'cle' && (
+        <div className="fiche__edition fiche__edition--libre">
+          {possede ? (
             <div className="groupe__options" role="group" aria-label="État">
               <button type="button" className="puce" aria-pressed={!set.etat} onClick={() => { if (changer({ etat: null })) setEdition('') }}>Non précisé</button>
               {ETATS.map((e) => (
                 <button key={e} type="button" className="puce" aria-pressed={set.etat === e} onClick={() => { if (changer({ etat: e })) setEdition('') }}>{e}</button>
               ))}
             </div>
-          </LigneEditable>
-        )}
+          ) : (
+            <div className="groupe__options" role="group" aria-label="Priorité">
+              {PRIORITES.map((p) => (
+                <button key={p} type="button" className="puce" aria-pressed={set.priorite === p} onClick={() => { if (changer({ priorite: p })) setEdition('') }}>{LIBELLES_PRIORITE[p]}</button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <dl className="fiche">
         {possede ? (
           <>
             <LigneDate libelle="Acheté le" valeur={set.dateAchat} ouvert={edition === 'dateAchat'} desactive={lectureSeule} onBasculer={() => basculer('dateAchat')} onChoisir={(v) => changerDate('dateAchat', v)} />
@@ -165,9 +169,6 @@ export function FicheContenu({ set, lectureSeule, lieux = [], lieuRecent = '', e
             <button type="submit" className="bouton" disabled={nouvelle.trim() === ''}>Ajouter</button>
           </form>
         </LigneEditable>
-        <Ligne libelle="Thème" valeur={set.theme} />
-        <Ligne libelle="Année" valeur={set.annee} />
-        <Ligne libelle="Pièces" valeur={set.pieces != null ? set.pieces.toLocaleString('fr-FR') : null} />
         <Ligne libelle="Ajouté le" valeur={set.dateAjout ? new Date(set.dateAjout).toLocaleDateString('fr-FR') : null} />
         <Ligne libelle="Notes" valeur={set.notes} />
       </dl>
@@ -220,9 +221,24 @@ export function FicheContenu({ set, lectureSeule, lieux = [], lieuRecent = '', e
   )
 }
 
+// Le haut de la fiche, commun à la feuille (qui le reprend dans son bandeau) et au panneau de droite.
+function etiquetteDe(set) {
+  return set.statut === 'souhaité' ? `${set.numero} · souhaité` : set.numero
+}
+
+export function EnteteFiche({ set }) {
+  return (
+    <div className="bandeau bandeau--panneau">
+      <span className="bandeau__num">{etiquetteDe(set)}</span>
+      <h2 className="bandeau__titre">{set.nom}</h2>
+      {set.theme && <p className="bandeau__sous">{set.theme}</p>}
+    </div>
+  )
+}
+
 export default function FicheSet({ set, lectureSeule, lieux, lieuRecent, etiquettesConnues, onChanger, onModifier, onAcheter, onSupprimer, onFermer }) {
   return (
-    <Sheet ouvert onFermer={onFermer} titre={set.nom}>
+    <Sheet ouvert onFermer={onFermer} titre={set.nom} bandeau={{ badge: etiquetteDe(set), sous: set.theme }}>
       <FicheContenu set={set} lectureSeule={lectureSeule} lieux={lieux} lieuRecent={lieuRecent} etiquettesConnues={etiquettesConnues} onChanger={onChanger} onModifier={onModifier} onAcheter={onAcheter} onSupprimer={onSupprimer} />
     </Sheet>
   )

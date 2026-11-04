@@ -8,7 +8,7 @@ import { surveillerMisesAJour } from './lib/miseAJour.js'
 import { autreVue, ecrireVue, lireVue } from './lib/vue.js'
 import { texteWishlist } from './lib/wishlist.js'
 import FiltersSheet from './components/FiltersSheet.jsx'
-import FicheSet, { FicheContenu } from './components/FicheSet.jsx'
+import FicheSet, { EnteteFiche, FicheContenu } from './components/FicheSet.jsx'
 import FormulaireSet from './components/FormulaireSet.jsx'
 import LotSheet from './components/LotSheet.jsx'
 import AjoutRapide from './components/AjoutRapide.jsx'
@@ -571,7 +571,7 @@ export default function App() {
         <aside className="detail" aria-label="Détail du set">
           {detail ? (
             <>
-              <h2 className="detail__titre">{detail.nom}</h2>
+              <EnteteFiche set={detail} />
               <FicheContenu
                 key={detail.id}
                 set={detail}

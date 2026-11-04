@@ -642,7 +642,6 @@ button:not(:disabled):active, .champ:active { box-shadow: inset 0 0 0 999px var(
   border-radius: var(--rayon-carte);
   background: var(--surface);
 }
-.detail__titre { margin: 0 0 var(--espace); font-family: var(--police-titre); font-weight: 600; font-size: 1.5rem; }
 .detail__vide { margin: 0; color: var(--texte-doux); }
 /* Le set affiché dans le panneau est repéré dans la liste. */
 .carte[aria-current='true'] { outline: 2px solid var(--accent-fond); outline-offset: -2px; }
@@ -709,3 +708,20 @@ button:not(:disabled):active, .champ:active { box-shadow: inset 0 0 0 999px var(
 .fiche__valeur[aria-expanded='true']::after { transform: rotate(45deg); }
 /* Sans image, le gabarit 4:3 mangeait la moitié de l'écran : une bande suffit, le numéro est déjà dans le titre. */
 .vignette--fiche.vignette--vide { aspect-ratio: auto; height: 48px; }
+
+/* Fiche « étiquette de boîte » : le haut reprend le jaune d'une boîte LEGO. Le texte dessus est
+   --sur-accent (11,1:1 sur --accent-fond en sombre) ; le badge inverse les deux. */
+.bandeau { background: var(--accent-fond); color: var(--sur-accent); }
+.sheet__haut.bandeau { padding-bottom: 16px; border-radius: 28px 28px 0 0; }
+.bandeau .sheet__poignee { background: var(--sur-accent); opacity: 0.4; }
+.bandeau .icone-btn { color: var(--sur-accent); }
+.bandeau__num { display: inline-flex; align-items: center; min-height: 28px; padding: 0 12px; border-radius: var(--rayon-pilule); background: var(--sur-accent); color: var(--accent-fond); font-family: var(--police-titre); font-weight: 600; font-size: 0.8125rem; letter-spacing: 0.04em; }
+.bandeau__titre { margin: 10px 0 0; font-family: var(--police-titre); font-weight: 600; font-size: 1.625rem; line-height: 1.1; text-wrap: balance; }
+.bandeau__sous { margin: 4px 0 0; font-size: 0.875rem; }
+.bandeau--panneau { margin: -20px -20px 12px; padding: 20px; }
+.chiffres { display: grid; grid-template-columns: repeat(3, 1fr); text-align: center; margin-bottom: 4px; }
+.chiffres > *, .chiffres__cle { display: grid; align-content: center; justify-items: center; min-height: 64px; padding: 4px; border: 0; background: transparent; color: inherit; font: inherit; }
+.chiffres b { font-family: var(--police-titre); font-weight: 600; font-size: 1.375rem; text-transform: capitalize; }
+.chiffres small { color: var(--texte-doux); font-size: 0.75rem; }
+.chiffres__cle:not(:disabled) b { color: var(--accent); }
+.fiche__edition--libre { padding-bottom: 8px; }
