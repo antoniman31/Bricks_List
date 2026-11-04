@@ -4,7 +4,7 @@ import Vignette from './Vignette.jsx'
 import RangerSheet from './RangerSheet.jsx'
 import { ETATS, LIBELLES_PRIORITE, PRIORITES } from '../lib/model.js'
 import { aEtiquette, ajouterEtiquettes, basculerEtiquette } from '../lib/etiquettes.js'
-import { formaterDate } from '../lib/dates.js'
+import { aujourdhuiISO, dateValide, formaterDate } from '../lib/dates.js'
 
 function Ligne({ libelle, valeur }) {
   if (valeur == null || valeur === '') return null
@@ -43,6 +43,16 @@ function LigneOuiNon({ libelle, champ, set, ouvert, desactive, onBasculer, onCho
   )
 }
 
+// Une date s'édite avec le sélecteur du système ; « Effacer » la retire.
+function LigneDate({ libelle, valeur, ouvert, desactive, onBasculer, onChoisir }) {
+  return (
+    <LigneEditable libelle={libelle} valeur={valeur ? formaterDate(valeur) : 'Ajouter'} ouvert={ouvert} desactive={desactive} onBasculer={onBasculer}>
+      <input className="champ" type="date" aria-label={libelle} min="1949-01-01" max={aujourdhuiISO()} value={valeur ?? ''} onChange={(e) => onChoisir(e.target.value)} />
+      {valeur && <button type="button" className="bouton" onClick={() => onChoisir(null)}>Effacer</button>}
+    </LigneEditable>
+  )
+}
+
 // Le contenu d'une fiche, sans son contenant : la feuille en dessous de 840 px, le panneau de
 // droite au-dessus. Même contenu, mêmes gestes, un seul endroit à tenir à jour.
 export function FicheContenu({ set, lectureSeule, lieux = [], lieuRecent = '', etiquettesConnues = [], onChanger, onModifier, onAcheter, onSupprimer }) {
@@ -64,6 +74,15 @@ export function FicheContenu({ set, lectureSeule, lieux = [], lieuRecent = '', e
   const basculer = (nom) => { setEdition((e) => (e === nom ? '' : nom)); setProbleme('') }
 
   const possede = set.statut === 'possédé'
+
+  // Un champ date vide ou à moitié tapé (sur ordinateur) n'est pas une date : on attend qu'elle soit
+  // complète. Une date refusée (futur, avant 1949) l'est à voix haute, comme tout refus du modèle.
+  function changerDate(champ, v) {
+    if (v === null) { if (changer({ [champ]: null })) setEdition(''); return }
+    if (v === '') return
+    if (dateValide(v) === null) return setProbleme('Date invalide (pas dans le futur).')
+    if (changer({ [champ]: v })) setEdition('')
+  }
   const etiquettes = set.etiquettes ?? []
   const choixEtiquettes = [...etiquettes, ...etiquettesConnues.filter((c) => !aEtiquette(set, c))]
 
@@ -100,8 +119,14 @@ export function FicheContenu({ set, lectureSeule, lieux = [], lieuRecent = '', e
             </div>
           </LigneEditable>
         )}
-        <Ligne libelle="Acheté le" valeur={formaterDate(set.dateAchat)} />
-        <Ligne libelle="Monté le" valeur={formaterDate(set.dateMontage)} />
+        {possede ? (
+          <>
+            <LigneDate libelle="Acheté le" valeur={set.dateAchat} ouvert={edition === 'dateAchat'} desactive={lectureSeule} onBasculer={() => basculer('dateAchat')} onChoisir={(v) => changerDate('dateAchat', v)} />
+            <LigneDate libelle="Monté le" valeur={set.dateMontage} ouvert={edition === 'dateMontage'} desactive={lectureSeule} onBasculer={() => basculer('dateMontage')} onChoisir={(v) => changerDate('dateMontage', v)} />
+          </>
+        ) : (
+          <Ligne libelle="Acheté le" valeur={formaterDate(set.dateAchat)} />
+        )}
         {possede && (
           <div className="fiche__ligne fiche__ligne--edit">
             <dt>Emplacement</dt>
