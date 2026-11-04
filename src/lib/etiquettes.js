@@ -95,3 +95,22 @@ export function ajouterEtiquettes(liste, saisie) {
   if (new Set(toutes.map(cleEtiquette)).size > ETIQUETTES_MAX) return { liste, erreur: `${ETIQUETTES_MAX} étiquettes au plus.` };
   return { liste: normaliserEtiquettes(toutes).liste, erreur: '' };
 }
+
+// Ajouter et retirer des étiquettes sur un set, pour la modification en masse : chaque set part de ses
+// propres étiquettes, donc le résultat diffère d'un set à l'autre. Si l'ajout dépasse la limite, le set
+// reste tel quel (`refuse`) : on ne choisit pas à sa place laquelle des étiquettes sauter.
+export function appliquerEtiquettes(liste, { ajouter = [], retirer = [] } = {}) {
+  const aRetirer = new Set(retirer.map(cleEtiquette));
+  const reste = liste.filter((e) => !aRetirer.has(cleEtiquette(e)));
+  const presentes = new Set(reste.map(cleEtiquette));
+  const nouvelles = [];
+  for (const e of ajouter) {
+    const cle = cleEtiquette(e);
+    if (cle === '' || presentes.has(cle)) continue;
+    presentes.add(cle);
+    nouvelles.push(e);
+  }
+  const resultat = [...reste, ...nouvelles];
+  if (resultat.length > ETIQUETTES_MAX) return { liste, refuse: true };
+  return { liste: resultat, refuse: false };
+}

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cleEtiquette, normaliserEtiquettes, analyserSaisie, formaterSaisie, etiquettesConnues, basculerDansSaisie, aEtiquette, basculerEtiquette, ajouterEtiquettes, ETIQUETTES_MAX, ETIQUETTE_LONGUEUR_MAX } from './etiquettes.js';
+import { cleEtiquette, normaliserEtiquettes, analyserSaisie, formaterSaisie, etiquettesConnues, basculerDansSaisie, aEtiquette, basculerEtiquette, ajouterEtiquettes, appliquerEtiquettes, ETIQUETTES_MAX, ETIQUETTE_LONGUEUR_MAX } from './etiquettes.js';
 
 test('cleEtiquette ignore casse, accents et espaces de bord', () => {
   assert.equal(cleEtiquette(' Cadéau '), 'cadeau');
@@ -87,4 +87,17 @@ test('ajouterEtiquettes : fusionne sans doublon, refuse trop long et trop nombre
   const r = ajouterEtiquettes(pleine, 'nouvelle');
   assert.deepEqual(r.liste, pleine);
   assert.match(r.erreur, /au plus/);
+});
+
+test('appliquerEtiquettes : retire puis ajoute, sans doublon, dans l\'ordre', () => {
+  assert.deepEqual(appliquerEtiquettes(['a', 'b'], { ajouter: ['c', 'A'], retirer: ['B'] }), { liste: ['a', 'c'], refuse: false });
+  assert.deepEqual(appliquerEtiquettes([], { ajouter: ['x'] }), { liste: ['x'], refuse: false });
+  assert.deepEqual(appliquerEtiquettes(['a'], {}), { liste: ['a'], refuse: false });
+});
+
+test('appliquerEtiquettes : refuse un dépassement de la limite sans rien changer', () => {
+  const pleine = Array.from({ length: ETIQUETTES_MAX }, (_, i) => `e${i}`);
+  assert.deepEqual(appliquerEtiquettes(pleine, { ajouter: ['de trop'] }), { liste: pleine, refuse: true });
+  // retirer d'abord libère la place : l'ajout passe
+  assert.equal(appliquerEtiquettes(pleine, { ajouter: ['de trop'], retirer: ['e0'] }).refuse, false);
 });

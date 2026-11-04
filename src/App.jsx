@@ -699,6 +699,7 @@ export default function App() {
           tous={sets}
           statut={statut}
           emplacementsConnus={emplacementsConnus}
+          etiquettesConnues={etiquettesUtilisees}
           onAppliquer={appliquerMasse}
           onSupprimer={supprimerMasse}
           onFermer={fermer}
