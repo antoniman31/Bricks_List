@@ -6,6 +6,7 @@ import { cleEtiquette, etiquettesConnues as etiquettesDe } from './lib/etiquette
 import useLarge from './useLarge.js'
 import { surveillerMisesAJour } from './lib/miseAJour.js'
 import { autreVue, ecrireVue, lireVue } from './lib/vue.js'
+import { FILTRES_VIDES, ecrireFiltres, lireFiltres } from './lib/filtresMemo.js'
 import { texteWishlist } from './lib/wishlist.js'
 import FiltersSheet from './components/FiltersSheet.jsx'
 import FicheSet, { EnteteFiche, FicheContenu } from './components/FicheSet.jsx'
@@ -31,7 +32,6 @@ import { chercherSet, completerResultat, messageErreur, rechercherSets } from '.
 import { ecrireCle, ecrireThemes, lireCle, lireThemes } from './lib/reglages.js'
 import { COULEUR_BARRE, LIBELLES, ecrireMode, lireMode, modeSuivant, resoudreTheme } from './lib/apparence.js'
 
-const FILTRES_VIDES = { theme: '', etat: '', annee: '', manque: '', emplacement: '', boite: '', notice: '', priorite: '', etiquette: '', taille: '' }
 const AUCUN = new Set()
 const PRESENTE_ABSENTE = [{ valeur: 'oui', libelle: 'Présente' }, { valeur: 'non', libelle: 'Absente' }]
 
@@ -45,10 +45,13 @@ export default function App() {
   const [sets, setSets] = useState(depart.sets)
   const [erreurEcriture, setErreurEcriture] = useState('')
   const [cle, setCle] = useState(lireCle)
-  const [statut, setStatut] = useState('possédé')
+  // Onglet, filtres et tri reviennent comme on les a laissés (voir filtresMemo.js).
+  const [memo] = useState(lireFiltres)
+  const [statut, setStatut] = useState(memo.statut)
   const [texte, setTexte] = useState('')
-  const [filtres, setFiltres] = useState(FILTRES_VIDES)
-  const [tri, setTri] = useState('ajout')
+  const [filtres, setFiltres] = useState(memo.filtres)
+  const [tri, setTri] = useState(memo.tri)
+  useEffect(() => { ecrireFiltres({ statut, filtres, tri }) }, [statut, filtres, tri])
   const [feuille, setFeuille] = useState(false)
   const [vueStats, setVueStats] = useState(false)
   const [confirmation, setConfirmation] = useState('')
