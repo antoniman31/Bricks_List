@@ -11,7 +11,7 @@ const SEUIL_VITESSE = 0.6
 //
 // `modifie` : des saisies seraient perdues à la fermeture, on demande confirmation.
 // `pied` : actions toujours visibles sous le contenu qui défile.
-export default function Sheet({ ouvert, onFermer, titre, children, modifie = false, pied = null, pleinEcran = false, bandeau = null }) {
+export default function Sheet({ ouvert, onFermer, titre, children, modifie = false, pied = null, pleinEcran = false, bandeau = null, actionHaut = null }) {
   const ref = useRef(null)
   const glisse = useRef(null)
   const [confirmer, setConfirmer] = useState(false)
@@ -74,9 +74,12 @@ export default function Sheet({ ouvert, onFermer, titre, children, modifie = fal
           <span className="sheet__poignee" aria-hidden="true" />
           <div className="sheet__entete">
             {bandeau ? <span className="bandeau__num">{bandeau.badge}</span> : <h2 className="sheet__titre">{titre}</h2>}
-            <button type="button" className="icone-btn" aria-label="Fermer" onClick={demanderFermer}>
-              <Icone nom="fermer" />
-            </button>
+            <span className="sheet__droite">
+              {actionHaut}
+              <button type="button" className="icone-btn" aria-label="Fermer" onClick={demanderFermer}>
+                <Icone nom="fermer" />
+              </button>
+            </span>
           </div>
           {bandeau && (
             <>
