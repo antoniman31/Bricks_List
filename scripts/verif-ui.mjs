@@ -181,6 +181,12 @@ const ECRANS = {
     await p.waitForSelector('input[aria-label="Nom du nouvel emplacement"]');
   },
   'formulaire (erreur)': async (p) => { await FORMULAIRE(p); await p.click('dialog[open] button[type=submit]'); },
+  'ajout rapide (recherche par nom)': async (p) => {
+    await p.evaluate(() => localStorage.setItem('bl_rebrickable', 'cle-de-test-0123456789'));
+    await p.reload(); await p.waitForSelector('.carte');
+    await p.click(AJOUTER);
+    await p.fill('#rapide-recherche-nom', 'millennium falcon'); await p.keyboard.press('Enter'); await p.waitForSelector('dialog[open] .resultat');
+  },
   'formulaire (recherche par nom)': async (p) => {
     await p.evaluate(() => localStorage.setItem('bl_rebrickable', 'cle-de-test-0123456789'));
     await p.reload(); await p.waitForSelector('.carte');

@@ -627,6 +627,8 @@ export default function App() {
           lieux={emplacementsConnus}
           compterExemplaires={(numero) => compterExemplaires(sets, numero)}
           onChercher={chercher}
+          onRechercherNom={rechercherNom}
+          onChoisirResultat={choisirResultat}
           onLot={() => setEcran({ type: 'lot' })}
           onPlus={(valeurs) => setEcran({ type: 'formulaire', id: null, valeurs })}
           onFermer={fermer}
