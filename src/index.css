@@ -47,6 +47,16 @@
   --rail: 96px;
   --rayon: 12px;
   --espace: 12px;
+  /* Couleurs de données (stats) : palette catégorielle validée (écart de teinte pour le daltonisme), dans l'ordre
+     fixe. Contraste du repère sur la surface : 5,1 / 4,8 / 5,5 / 6,1:1. Le sens est toujours aussi écrit (légende chiffrée). */
+  --serie-1: #3987e5; --serie-2: #d95926; --serie-3: #199e70; --serie-4: #c98500;
+  --serie-vide: #7b8094;       /* « non renseigné » : 4,8:1 sur surface */
+  /* Échelle d'une seule teinte pour les tailles (thèmes) : 1 = faible, 5 = forte. Texte dessus : 11,1 / 8,0 / 5,2 / 5,4 / 9,0:1. */
+  --echelle-1: #1d3558; --sur-echelle-1: #f2f3f5;
+  --echelle-2: #24508f; --sur-echelle-2: #ffffff;
+  --echelle-3: #2f6bc2; --sur-echelle-3: #ffffff;
+  --echelle-4: #3987e5; --sur-echelle-4: #0b0b0b;
+  --echelle-5: #7fb2f2; --sur-echelle-5: #0b0b0b;
   color-scheme: dark;
 }
 
@@ -70,6 +80,16 @@ html[data-theme='light'] {
   --ombre-fab: 0 4px 14px rgb(0 0 0 / 0.25);
   --survol: rgb(20 22 28 / 0.08);
   --appui: rgb(20 22 28 / 0.14);
+  /* Couleurs de données, thème clair. Contraste du repère sur surface : 4,4 / 3,2 / 2,8 / 2,2:1 : les deux derniers
+     sont sous 3:1, d'où la légende chiffrée toujours affichée à côté (le repère n'est jamais seul à porter le sens). */
+  --serie-1: #2a78d6; --serie-2: #eb6834; --serie-3: #1baf7a; --serie-4: #eda100;
+  --serie-vide: #8a8f9e;       /* 3,2:1 sur surface */
+  /* Échelle des tailles, thème clair. Texte dessus : 13,5 / 9,6 / 6,5 / 5,5 / 8,1:1. */
+  --echelle-1: #cfe0f7; --sur-echelle-1: #15161a;
+  --echelle-2: #9cc0ee; --sur-echelle-2: #15161a;
+  --echelle-3: #5d97e0; --sur-echelle-3: #0b0b0b;
+  --echelle-4: #2468c4; --sur-echelle-4: #ffffff;
+  --echelle-5: #1b4f96; --sur-echelle-5: #ffffff;
   color-scheme: light;
 }
 
@@ -244,10 +264,6 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
 
 /* Statistiques (phase 2) */
 .stats { display: grid; gap: var(--espace); margin-top: var(--espace); }
-.chiffres { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--espace); }
-.chiffre { display: grid; padding: 12px; border-radius: var(--rayon); background: var(--surface);  border: 1px solid var(--bordure); }
-.chiffre__valeur { font-size: 1.75rem; font-weight: 700; color: var(--accent); }
-.chiffre__libelle { color: var(--texte-doux); font-size: 0.875rem; }
 .stats__note { margin: 0; color: var(--texte-doux); font-size: 0.875rem; }
 .stats__puces { display: flex; flex-wrap: wrap; gap: 8px; }
 
@@ -749,3 +765,43 @@ button:not(:disabled):active, .champ:active { box-shadow: inset 0 0 0 999px var(
 .carte__badge { display: inline-block; margin-left: 8px; padding: 0 8px; border-radius: var(--rayon-pilule); background: var(--accent-conteneur); color: var(--sur-accent-conteneur); font-size: 0.75rem; font-weight: 600; line-height: 1.5; vertical-align: 1px; }
 
 .bloc__sous { margin: 12px 0 4px; font-family: var(--police-titre); font-weight: 600; font-size: 0.9375rem; color: var(--texte-doux); }
+
+/* ---- Stats en formes : cartes, anneau, blocs proportionnels, courbe ---- */
+.kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+@media (min-width: 560px) { .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.kpi { display: grid; justify-items: center; gap: 2px; padding: 14px 8px; border-radius: var(--rayon-carte); background: var(--surface-haute); text-align: center; }
+.kpi__valeur { font-family: var(--police-titre); font-weight: 600; font-size: 1.5rem; line-height: 1.05; }
+.kpi__libelle { color: var(--texte-doux); font-size: 0.75rem; }
+
+.anneau { display: flex; align-items: center; gap: 16px; }
+.anneau__dessin { position: relative; flex: none; width: 140px; height: 140px; }
+.anneau__dessin svg { display: block; width: 100%; height: 100%; }
+.anneau__centre { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+.anneau__total { font-family: var(--police-titre); font-weight: 600; font-size: 1.75rem; line-height: 1; }
+.anneau__unite { color: var(--texte-doux); font-size: 0.75rem; }
+.anneau__legende { list-style: none; margin: 0; padding: 0; flex: 1; min-width: 0; }
+.anneau__ligne { display: flex; align-items: center; gap: 8px; width: 100%; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; }
+.anneau__pastille { flex: none; width: 10px; height: 10px; border-radius: 50%; }
+.anneau__valeur { margin-left: auto; font-weight: 600; }
+@media (max-width: 400px) { .anneau { flex-direction: column; align-items: stretch; } .anneau__dessin { align-self: center; } }
+
+.blocs { position: relative; width: 100%; aspect-ratio: 100 / 62; }
+.blocs__case { position: absolute; padding: 1.5px; }
+.blocs__bloc { position: relative; display: flex; flex-direction: column; justify-content: space-between; width: 100%; height: 100%; padding: 8px 10px; border: 0; border-radius: 8px; text-align: left; font: inherit; overflow: hidden; }
+.blocs__nom { font-size: 0.8125rem; font-weight: 600; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; }
+.blocs__nombre { font-family: var(--police-titre); font-weight: 600; font-size: 1.25rem; line-height: 1; }
+.blocs__bloc--e1 { background: var(--echelle-1); color: var(--sur-echelle-1); }
+.blocs__bloc--e2 { background: var(--echelle-2); color: var(--sur-echelle-2); }
+.blocs__bloc--e3 { background: var(--echelle-3); color: var(--sur-echelle-3); }
+.blocs__bloc--e4 { background: var(--echelle-4); color: var(--sur-echelle-4); }
+.blocs__bloc--e5 { background: var(--echelle-5); color: var(--sur-echelle-5); }
+.blocs__bloc--vide { background: var(--surface-haute); color: var(--texte); border: 1px dashed var(--bordure-champ); }
+
+.courbe { display: block; width: 100%; height: auto; }
+.courbe__base { stroke: var(--bordure); stroke-width: 1; }
+.courbe__aire { fill: var(--serie-1); opacity: 0.22; }
+.courbe__trait { fill: none; stroke: var(--serie-1); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.courbe__point { fill: var(--serie-1); stroke: var(--surface); stroke-width: 2; }
+.courbe__axe { font-size: 9px; fill: var(--texte-doux); }
+.courbe__valeur { font-size: 10px; font-weight: 600; fill: var(--texte); }
+.stats__detail { margin-top: 8px; }

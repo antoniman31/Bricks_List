@@ -62,6 +62,9 @@ export function calculerStats(sets, maintenant = new Date()) {
       sets: possedes.length,
       pieces: total(possedes),
       sansPieces: possedes.length - avecPieces.length,
+      // La moyenne ne porte que sur les sets dont on connaît les pièces : compter les autres comme zéro la tirerait vers le bas.
+      moyennePieces: avecPieces.length > 0 ? Math.round(total(avecPieces) / avecPieces.length) : null,
+      themes: new Set(possedes.map((s) => s.theme).filter(Boolean)).size,
       plusGros: plusGros ? { nom: plusGros.nom, pieces: plusGros.pieces } : null,
     },
     themes: repartir(possedes, (s) => s.theme, (t) => t, (t) => ({ theme: t }), 'theme', parTaille),
