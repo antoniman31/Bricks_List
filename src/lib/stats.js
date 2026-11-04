@@ -33,6 +33,17 @@ function repartir(sets, cleDe, libelleDe, filtreDe, champManquant, trierBarres, 
   return barres;
 }
 
+// Boîte ou notice : présente, absente, non précisée. Chaque barre porte son filtre (les filtres `boite`
+// et `notice` de `filtrer`, ou « à compléter » pour le non précisé), donc le chiffre et la liste concordent.
+function repartirOuiNon(sets, champ) {
+  const parValeur = (v) => sets.filter((s) => (s[champ] ?? null) === v);
+  return [
+    barre('oui', 'Présente', parValeur('oui'), { [champ]: 'oui' }),
+    barre('non', 'Absente', parValeur('non'), { [champ]: 'non' }),
+    barre('', 'Non précisée', parValeur(null), { manque: champ }),
+  ].filter((b) => b.sets > 0);
+}
+
 const parTaille = (a, b) => b.sets - a.sets || a.libelle.localeCompare(b.libelle, 'fr', { sensitivity: 'base' });
 
 export function calculerStats(sets, maintenant = new Date()) {
@@ -65,6 +76,11 @@ export function calculerStats(sets, maintenant = new Date()) {
       ? repartir(possedes, (s) => cleEmplacement(s.emplacement), (c) => ecritures.get(c), (c) => ({ emplacement: ecritures.get(c) }), 'emplacement',
         (a, b) => a.libelle.localeCompare(b.libelle, 'fr', { sensitivity: 'base', numeric: true }), 'Non rangé')
       : [],
+    // Seulement si la fonction sert : sans aucune boîte ni notice renseignée, « 12 sets non précisés »
+    // répéterait le nombre de sets sans rien apprendre.
+    boiteNotice: possedes.some((s) => s.boite != null || s.notice != null)
+      ? { boite: repartirOuiNon(possedes, 'boite'), notice: repartirOuiNon(possedes, 'notice') }
+      : null,
     aCompleter: manquants(possedes),
     // Seulement si au moins une date est saisie : sinon « 0 achetés, 0 montés » ferait
     // croire que rien n'a été acheté alors que rien n'a été renseigné.

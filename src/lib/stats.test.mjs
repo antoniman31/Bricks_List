@@ -186,3 +186,31 @@ test('stats : « Salon » et « salon » ne font qu\'une barre d\'emplacement', 
   assert.equal(st.emplacements.filter((b) => /salon/i.test(b.libelle)).length, 1);
   assert.equal(salon.filtre.emplacement, 'Salon');
 });
+
+// ---------- boîte et notice ----------
+const BN = [
+  set({ nom: 'A', boite: 'oui', notice: 'oui' }), set({ nom: 'B', boite: 'oui', notice: 'non' }), set({ nom: 'C', boite: 'non', notice: null }),
+  set({ nom: 'D' }), set({ nom: 'W', statut: 'souhaité', boite: 'oui' }),
+];
+
+test('boîte et notice : trois barres au plus, et chaque barre égale la liste filtrée correspondante', () => {
+  const st = calculerStats(BN);
+  assert.deepEqual(st.boiteNotice.boite.map((b) => [b.libelle, b.sets]), [['Présente', 2], ['Absente', 1], ['Non précisée', 1]]);
+  assert.deepEqual(st.boiteNotice.notice.map((b) => [b.libelle, b.sets]), [['Présente', 1], ['Absente', 1], ['Non précisée', 2]]);
+  for (const b of [...st.boiteNotice.boite, ...st.boiteNotice.notice]) {
+    assert.equal(b.sets, filtrer(BN, { statut: 'possédé', ...b.filtre }).length, b.libelle);
+  }
+});
+
+test('boîte et notice : un set souhaité ne compte pas, et sans aucune valeur renseignée le bloc n\'existe pas', () => {
+  assert.equal(calculerStats([set({ nom: 'A' }), set({ nom: 'B' })]).boiteNotice, null);
+  assert.equal(calculerStats([set({ nom: 'W', statut: 'souhaité', boite: 'oui' })]).boiteNotice, null);
+});
+
+test('boîte et notice non précisées rejoignent « à compléter » une fois la fonction utilisée', () => {
+  const st = calculerStats(BN);
+  const cles = st.aCompleter.champs.map((c) => c.cle);
+  assert.ok(cles.includes('boite') && cles.includes('notice'));
+  assert.equal(st.aCompleter.champs.find((c) => c.cle === 'boite').nombre, 1);
+  assert.equal(calculerStats([set({ nom: 'A', theme: '' })]).aCompleter.champs.some((c) => c.cle === 'boite'), false);
+});
