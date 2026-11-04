@@ -21,7 +21,7 @@ import BarreActionsMasse from './components/BarreActionsMasse.jsx'
 import MasseSheet from './components/MasseSheet.jsx'
 import StatsView from './components/StatsView.jsx'
 import { charger, sauver } from './lib/storage.js'
-import { ajouter, ajouterPlusieurs, acheter, compterExemplaires, modifier, modifierPlusieurs, supprimer, supprimerPlusieurs } from './lib/collection.js'
+import { ajouter, ajouterPlusieurs, acheter, compterExemplaires, exemplairesPossedes, modifier, modifierPlusieurs, supprimer, supprimerPlusieurs } from './lib/collection.js'
 import { ETATS, LIBELLES_PRIORITE, PRIORITES } from './lib/model.js'
 import { memeEmplacement } from './lib/emplacements.js'
 import { TRIS, emplacements, filtrer, groupesAnnees, grouperParEmplacement, comptesEmplacements, manquants, triPourOnglet, CHAMPS_A_COMPLETER, rechercherAilleurs, themes, trier } from './lib/recherche.js'
@@ -185,6 +185,7 @@ export default function App() {
     [sets, statut, texte, triEffectif],
   )
   const themesConnus = useMemo(() => themes(sets), [sets])
+  const exemplaires = useMemo(() => exemplairesPossedes(sets), [sets])
   const emplacementsConnus = useMemo(() => comptesEmplacements(sets), [sets])
   // Le lieu du set ajouté le plus récemment : on range souvent plusieurs sets à la suite.
   const lieuRecent = useMemo(() => {
@@ -520,6 +521,7 @@ export default function App() {
           onBasculer={basculerSelection}
           onChoisirGroupe={choisirGroupe}
           vue={vue}
+          exemplaires={exemplaires}
         />
       ) : visibles.length > 0 ? (
         <ul className={`liste${vue === 'grille' ? ' liste--grille' : ''}`}>
@@ -530,6 +532,7 @@ export default function App() {
               vue={vue}
               onOuvrir={ouvrirFiche}
               courante={detail?.id === s.id}
+              exemplaires={exemplaires}
               selection={selection ? { selectionne: idsActifs.has(s.id) } : undefined}
               onBasculer={basculerSelection}
             />

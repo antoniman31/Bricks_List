@@ -2,7 +2,12 @@
 import Vignette from './Vignette.jsx'
 import { LIBELLES_PRIORITE } from '../lib/model.js'
 
-export default function CarteSet({ set, onOuvrir, selection, onBasculer, vue = 'liste', courante = false }) {
+export default function CarteSet({ set, onOuvrir, selection, onBasculer, vue = 'liste', courante = false, exemplaires }) {
+  // « ×2 » quand le même numéro existe en plusieurs exemplaires possédés : on les repère d'un coup d'œil.
+  const n = set.statut === 'possédé' ? exemplaires?.get(set.numero) ?? 1 : 1
+  const badge = n > 1 && (
+    <span className="carte__badge" role="img" aria-label={`${n} exemplaires`}>×{n}</span>
+  )
   const details = [
     set.theme || null,
     set.annee,
@@ -36,7 +41,7 @@ export default function CarteSet({ set, onOuvrir, selection, onBasculer, vue = '
             {coche}
           </div>
           <div className="carte__texte">
-            <p className="carte__nom">{set.nom}</p>
+            <p className="carte__nom">{set.nom}{badge}</p>
             <p className="carte__details">
               {set.pieces != null ? `${set.pieces.toLocaleString('fr-FR')} pièces` : set.numero}
               {set.emplacement && ` · ${set.emplacement}`}
@@ -53,7 +58,7 @@ export default function CarteSet({ set, onOuvrir, selection, onBasculer, vue = '
         {coche}
         <Vignette image={set.image} numero={set.numero} />
         <div className="carte__texte">
-          <p className="carte__nom">{set.nom}</p>
+          <p className="carte__nom">{set.nom}{badge}</p>
           <p className="carte__details">{set.numero}{details.length > 0 && ` · ${details.join(' · ')}`}</p>
           {set.priorite && <p className="carte__etat">{LIBELLES_PRIORITE[set.priorite]}</p>}
           {set.etiquettes?.length > 0 && <p className="carte__etat">{set.etiquettes.join(' · ')}</p>}
