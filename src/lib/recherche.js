@@ -199,6 +199,9 @@ export const CHAMPS_A_COMPLETER = [
   // Seulement tant que la fonction sert (voir manquants) : sinon tout set « manque »
   // d'un emplacement qu'on n'a jamais eu l'idée de saisir.
   { cle: 'emplacement', libelle: 'Sans emplacement', manque: (s) => s.statut === 'possédé' && !s.emplacement, actif: (sets) => sets.some((s) => s.emplacement) },
+  // Boîte et notice : seulement une fois renseignées pour au moins un set possédé, comme l'emplacement.
+  { cle: 'boite', libelle: 'Boîte non précisée', manque: (s) => s.statut === 'possédé' && s.boite == null, actif: (sets) => sets.some((s) => s.statut === 'possédé' && s.boite != null) },
+  { cle: 'notice', libelle: 'Notice non précisée', manque: (s) => s.statut === 'possédé' && s.notice == null, actif: (sets) => sets.some((s) => s.statut === 'possédé' && s.notice != null) },
   { cle: 'priorite', libelle: 'Priorité non précisée', manque: (s) => s.statut === 'souhaité' && !s.priorite, actif: (sets) => sets.some((s) => s.priorite) },
 ];
 
