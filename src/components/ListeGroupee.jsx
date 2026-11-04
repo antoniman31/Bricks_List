@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import CarteSet from './CarteSet.jsx'
 
-export default function ListeGroupee({ groupes, onOuvrir, selection, idsChoisis, onBasculer, onChoisirGroupe, vue, idCourant }) {
+export default function ListeGroupee({ groupes, onOuvrir, selection, idsChoisis, onBasculer, onChoisirGroupe, vue, idCourant, exemplaires }) {
   // On mémorise les groupes repliés (et non dépliés) : un nouvel emplacement apparaît ouvert.
   const [repliees, setRepliees] = useState(() => new Set())
 
@@ -52,6 +52,7 @@ export default function ListeGroupee({ groupes, onOuvrir, selection, idsChoisis,
                     onBasculer={onBasculer}
                     vue={vue}
                     courante={idCourant === s.id}
+                    exemplaires={exemplaires}
                   />
                 ))}
               </ul>

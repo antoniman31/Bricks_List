@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ajouter, ajouterPlusieurs, modifier, supprimer, acheter, fusionner, compterExemplaires, modifierPlusieurs, supprimerPlusieurs, apercuModification } from './collection.js';
+import { ajouter, ajouterPlusieurs, modifier, supprimer, acheter, fusionner, compterExemplaires, exemplairesPossedes, modifierPlusieurs, supprimerPlusieurs, apercuModification } from './collection.js';
 
 const BASE = { numero: '75192-1', nom: 'Faucon', theme: 'Star Wars', annee: 2017, pieces: 7541, statut: 'possédé', etat: 'scellé' };
 
@@ -237,4 +237,16 @@ test('acheter note le jour de l\'achat (jour local)', () => {
   const achete = acheter([s], s.id, 'scellé', new Date(2026, 10, 3, 23, 50))[0];
   assert.equal(achete.statut, 'possédé');
   assert.equal(achete.dateAchat, '2026-11-03');
+});
+
+test('exemplairesPossedes : compte par numéro les sets possédés, pas les souhaités', () => {
+  const sets = [
+    { numero: '75192-1', statut: 'possédé' }, { numero: '75192-1', statut: 'possédé' }, { numero: '75192-1', statut: 'souhaité' },
+    { numero: '10294-1', statut: 'possédé' }, { numero: '21330-1', statut: 'souhaité' },
+  ];
+  const n = exemplairesPossedes(sets);
+  assert.equal(n.get('75192-1'), 2);
+  assert.equal(n.get('10294-1'), 1);
+  assert.equal(n.has('21330-1'), false);
+  assert.equal(exemplairesPossedes([]).size, 0);
 });

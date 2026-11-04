@@ -9,6 +9,15 @@ export function compterExemplaires(sets, numero) {
   return sets.filter((s) => s.numero === numero).length;
 }
 
+// Le nombre d'exemplaires possédés par numéro, d'un seul passage : la liste en a besoin pour chaque
+// carte, et recompter à chaque carte ferait un parcours par ligne. Un set souhaité ne compte pas :
+// vouloir un set qu'on a déjà n'est pas un doublon.
+export function exemplairesPossedes(sets) {
+  const n = new Map();
+  for (const s of sets) if (s.statut === 'possédé') n.set(s.numero, (n.get(s.numero) ?? 0) + 1);
+  return n;
+}
+
 // L'id est toujours attribué ici : un id venu de la saisie ou d'une API
 // pourrait entrer en collision avec une fiche existante.
 export function ajouter(sets, brut, maintenant = new Date().toISOString()) {

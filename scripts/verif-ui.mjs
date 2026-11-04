@@ -25,7 +25,8 @@ const THEMES_SETS = ['Star Wars', 'Icons', 'Technic', 'Ideas', 'City'];
 const SETS = [];
 for (let i = 0; i < 16; i += 1) {
   SETS.push({
-    id: `p${i}`, numero: `${10000 + i}-1`, nom: `Set numéro ${i} avec un nom assez long pour passer à la ligne`,
+    id: `p${i}`, numero: i === 5 ? '10000-1' : `${10000 + i}-1`, // p0 et p5 : un doublon, pour le badge ×2
+    nom: `Set numéro ${i} avec un nom assez long pour passer à la ligne`,
     theme: i % 7 === 3 ? '' : THEMES_SETS[i % 5], annee: i % 6 === 2 ? null : 2008 + ((i * 3) % 17),
     pieces: i % 5 === 1 ? null : 300 + i * 211, statut: 'possédé', etat: ['scellé', 'neuf', 'en cours', 'monté', null][i % 5],
     emplacement: i % 3 === 0 ? 'étagère 2' : '', boite: ['oui', 'non', null][i % 3], notice: [null, 'oui', 'non'][i % 3],
