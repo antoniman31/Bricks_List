@@ -132,6 +132,42 @@ function Courbe({ barres }) {
   )
 }
 
+// Les records et repères : chaque ligne qui mène à une liste est un bouton ; les autres sont de simples lignes.
+function Records({ stats, onOuvrir }) {
+  const { resume, records } = stats
+  const lignes = []
+  if (resume.plusGros) lignes.push({ cle: 'gros', libelle: 'Plus gros set', valeur: `${resume.plusGros.nom} · ${nombre(resume.plusGros.pieces)} pièces` })
+  if (records.plusPetit) lignes.push({ cle: 'petit', libelle: 'Plus petit set', valeur: `${records.plusPetit.nom} · ${nombre(records.plusPetit.pieces)} pièces` })
+  if (records.plusAncien) lignes.push({ cle: 'ancien', libelle: 'Plus ancien', valeur: `${records.plusAncien.nom} · ${records.plusAncien.annee}` })
+  if (records.plusRecent) lignes.push({ cle: 'recent', libelle: 'Plus récent', valeur: `${records.plusRecent.nom} · ${records.plusRecent.annee}` })
+  if (records.themeFavori) lignes.push({ cle: 'theme', libelle: 'Thème préféré', valeur: `${records.themeFavori.libelle} · ${pluriel(records.themeFavori.sets, 'set')}`, filtre: records.themeFavori.filtre })
+  if (records.decennie) lignes.push({ cle: 'decennie', libelle: 'Décennie dominante', valeur: `${records.decennie.libelle} · ${pluriel(records.decennie.sets, 'set')}`, filtre: records.decennie.filtre })
+  if (records.emplacementPlein) lignes.push({ cle: 'lieu', libelle: 'Emplacement le plus rempli', valeur: `${records.emplacementPlein.libelle} · ${pluriel(records.emplacementPlein.sets, 'set')}`, filtre: records.emplacementPlein.filtre })
+  if (records.doublons) lignes.push({ cle: 'doublons', libelle: 'Doublons', valeur: `${pluriel(records.doublons.numeros, 'numéro')} en plusieurs exemplaires (${records.doublons.enTrop} en trop)` })
+  if (lignes.length === 0) return null
+  return (
+    <Bloc titre="Records et repères">
+      <ul className="records">
+        {lignes.map((l) => (
+          <li key={l.cle}>
+            {l.filtre ? (
+              <button type="button" className="records__ligne records__ligne--bouton" onClick={() => onOuvrir(l.filtre)}>
+                <span className="records__libelle">{l.libelle}</span>
+                <span className="records__valeur">{l.valeur}</span>
+              </button>
+            ) : (
+              <div className="records__ligne">
+                <span className="records__libelle">{l.libelle}</span>
+                <span className="records__valeur">{l.valeur}</span>
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+    </Bloc>
+  )
+}
+
 function Bloc({ titre, children }) {
   return (
     <section className="bloc">
@@ -144,7 +180,7 @@ function Bloc({ titre, children }) {
 export default function StatsView({ stats, onOuvrir, onVoirWishlist }) {
   const [tousLesThemes, setTousLesThemes] = useState(false)
   const [anneesDetail, setAnneesDetail] = useState(false)
-  const { resume, themes, annees, etats, emplacements, boiteNotice, aCompleter, wishlist, activite } = stats
+  const { resume, themes, annees, etats, tailles, etiquettes, emplacements, boiteNotice, aCompleter, wishlist, activite } = stats
 
   if (resume.sets === 0) {
     return (
@@ -174,9 +210,6 @@ export default function StatsView({ stats, onOuvrir, onVoirWishlist }) {
         <p className="stats__note">
           En {activite.annee} : {pluriel(activite.achetes, 'set')} {activite.achetes > 1 ? 'achetés' : 'acheté'}, {pluriel(activite.montes, 'set')} {activite.montes > 1 ? 'montés' : 'monté'}.
         </p>
-      )}
-      {resume.plusGros && (
-        <p className="stats__note">Plus gros set : {resume.plusGros.nom} ({nombre(resume.plusGros.pieces)} pièces).</p>
       )}
 
       {aCompleter.fiches > 0 && (
@@ -219,6 +252,12 @@ export default function StatsView({ stats, onOuvrir, onVoirWishlist }) {
         </Bloc>
       )}
 
+      {tailles.some((b) => b.cle !== '') && (
+        <Bloc titre="Taille des sets">
+          <Barres barres={tailles} onOuvrir={onOuvrir} />
+        </Bloc>
+      )}
+
       {emplacements.length > 0 && (
         <Bloc titre="Par emplacement">
           <Barres barres={emplacements} onOuvrir={onOuvrir} />
@@ -233,6 +272,17 @@ export default function StatsView({ stats, onOuvrir, onVoirWishlist }) {
           <Barres barres={boiteNotice.notice} onOuvrir={onOuvrir} />
         </Bloc>
       )}
+
+      {etiquettes.barres.length > 0 && (
+        <Bloc titre="Étiquettes les plus utilisées">
+          <Barres barres={etiquettes.barres} onOuvrir={onOuvrir} />
+          {etiquettes.total > etiquettes.barres.length && (
+            <p className="stats__note">{etiquettes.barres.length} sur {etiquettes.total} étiquettes.</p>
+          )}
+        </Bloc>
+      )}
+
+      <Records stats={stats} onOuvrir={onOuvrir} />
 
       <Bloc titre="Wishlist">
         {wishlist.sets === 0 ? (

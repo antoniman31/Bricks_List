@@ -31,7 +31,7 @@ export function triPourOnglet(cle, statut) {
 // La recherche porte sur le nom, le thème, le numéro et l'emplacement de rangement. Les notes en sont
 // exclues volontairement : un mot d'une note faisait remonter des sets sans
 // rapport avec ce qu'on cherchait.
-export function filtrer(sets, { statut, texte = '', theme = '', etat = '', annee = '', manque = '', emplacement = '', boite = '', notice = '', priorite = '', etiquette = '' } = {}) {
+export function filtrer(sets, { statut, texte = '', theme = '', etat = '', annee = '', manque = '', emplacement = '', boite = '', notice = '', priorite = '', etiquette = '', taille = '' } = {}) {
   const q = normaliserTexte(texte);
   const champManquant = CHAMPS_A_COMPLETER.find((c) => c.cle === manque);
   return sets.filter((s) => {
@@ -42,6 +42,7 @@ export function filtrer(sets, { statut, texte = '', theme = '', etat = '', annee
     if (boite && s.boite !== boite) return false;
     if (notice && s.notice !== notice) return false;
     if (priorite && s.priorite !== priorite) return false;
+    if (taille && cleTaille(s.pieces) !== taille) return false;
     if (etiquette && !aEtiquette(s, etiquette)) return false;
     if (annee && !correspondAnnee(s.annee, annee)) return false;
     if (champManquant && !champManquant.manque(s)) return false;
@@ -149,6 +150,23 @@ export function comptesEmplacements(sets) {
     if (cle !== '') n.set(cle, (n.get(cle) ?? 0) + 1);
   }
   return emplacements(sets).map((nom) => ({ nom, n: n.get(cleEmplacement(nom)) }));
+}
+
+// La taille d'un set, d'après son nombre de pièces : quatre tranches, du petit set au très gros. Les bornes
+// sont celles qu'on utilise à l'œil (moins de 500, jusqu'à 1 500, jusqu'à 3 000, au-delà). Un set sans
+// nombre de pièces n'a pas de taille : il tombe dans « Non renseigné » côté stats.
+export const TAILLES = [
+  { cle: 'petit', libelle: 'Petits (moins de 500 pièces)', min: 0 },
+  { cle: 'moyen', libelle: 'Moyens (500 à 1 499)', min: 500 },
+  { cle: 'grand', libelle: 'Grands (1 500 à 2 999)', min: 1500 },
+  { cle: 'tres-grand', libelle: 'Très grands (3 000 et plus)', min: 3000 },
+];
+
+export function cleTaille(pieces) {
+  if (pieces == null) return null;
+  let cle = null;
+  for (const t of TAILLES) if (pieces >= t.min) cle = t.cle;
+  return cle;
 }
 
 // Les années se regroupent par décennie dès que la collection s'étale sur plus de
