@@ -173,10 +173,11 @@ const ECRANS = {
     await p.click('.fiche__ligne--edit:has(dt:text-is("Acheté le")) .fiche__valeur');
     await p.waitForSelector('.fiche__edition');
   },
-  'ajout rapide': async (p) => { await p.click(AJOUTER); await p.waitForSelector('#rapide-numero'); },
+  'ajout rapide': async (p) => { await p.click(AJOUTER); await p.waitForSelector('#rapide-champ'); },
   'ajout rapide (numéro saisi)': async (p) => {
     await p.click(AJOUTER);
-    await p.fill('#rapide-numero', '75192');
+    await p.fill('#rapide-champ', '75192');
+    await p.click('dialog[open] .resume');
     await p.click('dialog[open] .puce:has-text("Nouveau")');
     await p.waitForSelector('input[aria-label="Nom du nouvel emplacement"]');
   },
@@ -185,7 +186,7 @@ const ECRANS = {
     await p.evaluate(() => localStorage.setItem('bl_rebrickable', 'cle-de-test-0123456789'));
     await p.reload(); await p.waitForSelector('.carte');
     await p.click(AJOUTER);
-    await p.fill('#rapide-recherche-nom', 'millennium falcon'); await p.keyboard.press('Enter'); await p.waitForSelector('dialog[open] .resultat');
+    await p.fill('#rapide-champ', 'millennium falcon'); await p.keyboard.press('Enter'); await p.waitForSelector('dialog[open] .resultat');
   },
   'formulaire (recherche par nom)': async (p) => {
     await p.evaluate(() => localStorage.setItem('bl_rebrickable', 'cle-de-test-0123456789'));
@@ -222,12 +223,12 @@ const ECRANS = {
   },
   'formulaire (abandon)': async (p) => {
     await p.click(AJOUTER);
-    await p.fill('#rapide-numero', '75192');
+    await p.fill('#rapide-champ', '75192');
     await p.click('dialog[open] button[aria-label="Fermer"]');
     await p.waitForSelector('.sheet__garde');
   },
   'lot (vérification)': async (p) => {
-    await p.click(AJOUTER); await p.click('button:has-text("Ajouter plusieurs sets")');
+    await p.click(AJOUTER); await p.click('dialog[open] button:has-text("Plusieurs")');
     await p.fill('dialog[open] textarea', '10001\n10002\n99001'); await p.click('dialog[open] button:has-text("Continuer")'); await p.waitForSelector('.coche');
   },
 };

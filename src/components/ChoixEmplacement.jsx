@@ -5,7 +5,7 @@ import { useState } from 'react'
 // sur la puce choisie la désélectionne (édition en masse, où vide veut dire « ne pas changer »).
 // Un emplacement qui n'existe pas encore se saisit via « Nouveau », ce qui garde la liberté
 // de l'ancien champ libre sans lui laisser la place centrale.
-export default function ChoixEmplacement({ lieux, valeur, onChange, vide = null, desactive = false, libelle }) {
+export default function ChoixEmplacement({ lieux, valeur, onChange, vide = null, desactive = false, libelle, uneLigne = false }) {
   const connu = lieux.some((l) => l.nom === valeur)
   const [nouveau, setNouveau] = useState(valeur !== '' && !connu)
 
@@ -16,7 +16,7 @@ export default function ChoixEmplacement({ lieux, valeur, onChange, vide = null,
 
   return (
     <div className="choix">
-      <div className="groupe__options" role="group" aria-label={libelle}>
+      <div className={`groupe__options${uneLigne ? ' groupe__options--ligne' : ''}`} role="group" aria-label={libelle}>
         {vide && (
           <button type="button" className="puce" disabled={desactive} aria-pressed={valeur === '' && !nouveau} onClick={() => choisir('')}>
             {vide}
