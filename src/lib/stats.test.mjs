@@ -300,3 +300,62 @@ test('records : doublons comptés par numéro, sets souhaités exclus', () => {
   assert.deepEqual(calculerStats(sets).records.doublons, { numeros: 2, enTrop: 3 });
   assert.equal(calculerStats([set({ nom: 'A' })]).records.doublons, null);
 });
+
+// ---------- avancement, mois, délai ----------
+import { moisRecents } from './stats.js';
+
+test('avancement : pièces montées et restantes, pourcentage, sets sans état à part', () => {
+  const a = calculerStats([
+    set({ nom: 'A', etat: 'monté', pieces: 3000 }), set({ nom: 'B', etat: 'scellé', pieces: 1000 }), set({ nom: 'C', etat: 'en cours', pieces: 2000 }),
+    set({ nom: 'D', etat: 'neuf', pieces: null }), set({ nom: 'E', etat: null, pieces: 500 }),
+  ]).avancement;
+  assert.deepEqual(a.montes, { sets: 1, pieces: 3000 });
+  assert.deepEqual(a.restants, { sets: 3, pieces: 3000 });
+  assert.equal(a.pourcentage, 50);
+  assert.equal(a.sansEtat, 1);
+  assert.equal(a.sansPieces, 1);
+  assert.deepEqual(a.parEtat.map((b) => [b.cle, b.sets]), [['scellé', 1], ['neuf', 1], ['en cours', 1]]);
+});
+
+test('avancement : chaque barre de la pile égale la liste filtrée, rien sans état, un set souhaité ne compte pas', () => {
+  const sets = [set({ nom: 'A', etat: 'scellé', pieces: 100 }), set({ nom: 'B', etat: 'scellé', pieces: 200 }), set({ nom: 'W', statut: 'souhaité', etat: null })];
+  const a = calculerStats(sets).avancement;
+  for (const b of a.parEtat) assert.equal(b.sets, filtrer(sets, { statut: 'possédé', ...b.filtre }).length, b.libelle);
+  assert.equal(a.pourcentage, 0);
+  assert.equal(calculerStats([set({ nom: 'A', etat: null }), set({ nom: 'W', statut: 'souhaité' })]).avancement, null);
+});
+
+test('moisRecents : douze mois, du plus ancien au courant, en passant l\'année', () => {
+  const m = moisRecents(new Date(2026, 1, 15));
+  assert.equal(m.length, 12);
+  assert.equal(m[0].cle, '2025-03');
+  assert.equal(m[11].cle, '2026-02');
+  assert.deepEqual(m.slice(9).map((x) => x.cle), ['2025-12', '2026-01', '2026-02']);
+});
+
+test('mensuel : achats, montages et ajouts par mois ; rien hors des douze mois ; absent sans activité', () => {
+  const maintenant = new Date(2026, 10, 15);
+  const st = calculerStats([
+    set({ nom: 'A', dateAchat: '2026-11-03', dateMontage: '2026-11-20' }),
+    set({ nom: 'B', dateAchat: '2026-10-30', dateMontage: null }),
+    set({ nom: 'C', dateAchat: '2019-01-01', dateMontage: '2019-02-01' }),
+    set({ nom: 'D', dateAjout: new Date(2026, 10, 2, 12).toISOString() }),
+  ], maintenant);
+  const nov = st.mensuel.mois.find((m) => m.cle === '2026-11');
+  const oct = st.mensuel.mois.find((m) => m.cle === '2026-10');
+  assert.deepEqual([nov.achetes, nov.montes, nov.ajoutes], [1, 1, 1]);
+  assert.deepEqual([oct.achetes, oct.montes], [1, 0]);
+  assert.equal(st.mensuel.achetes, 2, 'l\'achat de 2019 est hors des douze mois');
+  assert.equal(calculerStats([set({ nom: 'Vieux', dateAchat: '2010-05-05', dateAjout: '2010-05-05T00:00:00.000Z' })], maintenant).mensuel, null);
+});
+
+test('délai entre achat et montage : moyenne en jours, seulement les dates complètes et dans l\'ordre', () => {
+  const d = calculerStats([
+    set({ nom: 'A', dateAchat: '2026-01-01', dateMontage: '2026-01-11' }),
+    set({ nom: 'B', dateAchat: '2026-02-01', dateMontage: '2026-02-21' }),
+    set({ nom: 'C', dateAchat: '2026-03-10', dateMontage: '2026-03-01' }),
+    set({ nom: 'D', dateAchat: '2026-03-10', dateMontage: null }),
+  ]).delai;
+  assert.deepEqual(d, { jours: 15, sets: 2 });
+  assert.equal(calculerStats([set({ nom: 'A', dateAchat: '2026-03-10' })]).delai, null);
+});
