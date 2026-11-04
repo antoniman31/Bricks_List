@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { memeEmplacement } from '../lib/emplacements.js'
 
 // Choix d'un emplacement par puces : un appui au lieu de retaper « Étagère 2 » à chaque fois.
 // `vide` ajoute une puce pour « aucun emplacement » (formulaire) ; sans elle, appuyer de nouveau
@@ -6,12 +7,12 @@ import { useState } from 'react'
 // Un emplacement qui n'existe pas encore se saisit via « Nouveau », ce qui garde la liberté
 // de l'ancien champ libre sans lui laisser la place centrale.
 export default function ChoixEmplacement({ lieux, valeur, onChange, vide = null, desactive = false, libelle, uneLigne = false }) {
-  const connu = lieux.some((l) => l.nom === valeur)
+  const connu = lieux.some((l) => memeEmplacement(l.nom, valeur))
   const [nouveau, setNouveau] = useState(valeur !== '' && !connu)
 
   function choisir(nom) {
     setNouveau(false)
-    onChange(nom === valeur && !vide ? '' : nom)
+    onChange(memeEmplacement(nom, valeur) && !vide ? '' : nom)
   }
 
   return (
@@ -23,7 +24,7 @@ export default function ChoixEmplacement({ lieux, valeur, onChange, vide = null,
           </button>
         )}
         {lieux.map((l) => (
-          <button key={l.nom} type="button" className="puce" disabled={desactive} aria-pressed={!nouveau && valeur === l.nom} onClick={() => choisir(l.nom)}>
+          <button key={l.nom} type="button" className="puce" disabled={desactive} aria-pressed={!nouveau && memeEmplacement(valeur, l.nom)} onClick={() => choisir(l.nom)}>
             {l.nom} · {l.n}
           </button>
         ))}

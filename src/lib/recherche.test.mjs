@@ -188,12 +188,13 @@ const RANGEMENT = [R('1', 'Zèbre', 'étagère 10'), R('2', 'Alpha', 'étagère 
 
 test('grouperParEmplacement : ordre naturel, « Non rangé » en dernier', () => {
   const g = grouperParEmplacement(RANGEMENT);
-  assert.deepEqual(g.map((x) => x.libelle), ['cave', 'étagère 2', 'Étagère 2', 'étagère 10', NON_RANGE]);
+  // « étagère 2 » et « Étagère 2 » ne font qu'un groupe, affiché avec l'écriture la plus fréquente.
+  assert.deepEqual(g.map((x) => x.libelle), ['cave', 'étagère 2', 'étagère 10', NON_RANGE]);
 });
 
 test('grouperParEmplacement : les sets de chaque groupe sont par nom', () => {
   const g = grouperParEmplacement(RANGEMENT);
-  assert.deepEqual(g.find((x) => x.cle === 'étagère 2').sets.map((s) => s.nom), ['Alpha', 'Delta']);
+  assert.deepEqual(g.find((x) => x.cle === 'étagère 2').sets.map((s) => s.nom), ['Alpha', 'Delta', 'Gamma']);
   assert.deepEqual(g.find((x) => x.cle === '').sets.map((s) => s.nom), ['Aaron', 'Beta']);
 });
 
@@ -290,4 +291,13 @@ test('comptesEmplacements : compte les sets par emplacement, trié, sans les set
   const sets = [{ emplacement: 'Étagère 2' }, { emplacement: 'Carton A' }, { emplacement: 'Étagère 2' }, { emplacement: '' }, {}];
   assert.deepEqual(comptesEmplacements(sets), [{ nom: 'Carton A', n: 1 }, { nom: 'Étagère 2', n: 2 }]);
   assert.deepEqual(comptesEmplacements([]), []);
+});
+
+test('Salon et salon : un seul emplacement pour le filtre, la liste et les décomptes', () => {
+  const sets = [R('1', 'A', 'Salon'), R('2', 'B', 'salon'), R('3', 'C', 'Salón'), R('4', 'D', 'Cave')];
+  assert.deepEqual(emplacements(sets), ['Cave', 'Salon']);
+  assert.deepEqual(comptesEmplacements(sets), [{ nom: 'Cave', n: 1 }, { nom: 'Salon', n: 3 }]);
+  assert.deepEqual(ids(filtrer(sets, { emplacement: 'salon' })), ['1', '2', '3']);
+  assert.deepEqual(ids(filtrer(sets, { emplacement: 'SALÓN' })), ['1', '2', '3']);
+  assert.deepEqual(ids(filtrer(sets, { emplacement: 'Cave' })), ['4']);
 });

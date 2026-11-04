@@ -4,6 +4,7 @@ import ChoixEmplacement from './ChoixEmplacement.jsx'
 import Vignette from './Vignette.jsx'
 import { normaliserNumero } from '../lib/numero.js'
 import { normaliserSet, ETATS } from '../lib/model.js'
+import { memeEmplacement } from '../lib/emplacements.js'
 import { lireDernierAjout, ecrireDernierAjout } from '../lib/dernierAjout.js'
 import { messageErreur, MOTS_MIN } from '../lib/rebrickable.js'
 
@@ -19,7 +20,8 @@ export default function AjoutRapide({ statut, aCle, lieux, compterExemplaires, o
   // Le rangement du dernier ajout, sans un emplacement qui n'existe plus (set supprimé depuis).
   const [depart] = useState(() => {
     const d = lireDernierAjout()
-    return { lieu: lieux.some((l) => l.nom === d.lieu) ? d.lieu : '', etat: d.etat }
+    const connu = lieux.find((l) => memeEmplacement(l.nom, d.lieu))
+    return { lieu: connu ? connu.nom : '', etat: d.etat }
   })
   const [lieu, setLieu] = useState(depart.lieu)
   const [etat, setEtat] = useState(depart.etat)

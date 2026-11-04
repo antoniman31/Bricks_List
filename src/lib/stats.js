@@ -1,3 +1,4 @@
+import { cleEmplacement, ecrituresEmplacements } from './emplacements.js';
 import { ETATS, LIBELLES_PRIORITE, PRIORITES } from './model.js';
 import { anneeDe } from './dates.js';
 import { cleAnnee, libelleAnnee, manquants, modeAnnees } from './recherche.js';
@@ -42,6 +43,8 @@ export function calculerStats(sets, maintenant = new Date()) {
   const plusGros = avecPieces.reduce((max, s) => (max === null || s.pieces > max.pieces ? s : max), null);
 
   const mode = modeAnnees(possedes);
+  // « Salon » et « salon » ne font qu'une barre, affichée avec l'écriture la plus fréquente.
+  const ecritures = ecrituresEmplacements(possedes);
 
   return {
     resume: {
@@ -59,7 +62,7 @@ export function calculerStats(sets, maintenant = new Date()) {
     // Seulement si la fonction sert : sans aucun emplacement, une seule barre « Non rangé »
     // qui répéterait le nombre total de sets n'apprendrait rien.
     emplacements: possedes.some((s) => s.emplacement)
-      ? repartir(possedes, (s) => s.emplacement, (e) => e, (e) => ({ emplacement: e }), 'emplacement',
+      ? repartir(possedes, (s) => cleEmplacement(s.emplacement), (c) => ecritures.get(c), (c) => ({ emplacement: ecritures.get(c) }), 'emplacement',
         (a, b) => a.libelle.localeCompare(b.libelle, 'fr', { sensitivity: 'base', numeric: true }), 'Non rangé')
       : [],
     aCompleter: manquants(possedes),

@@ -23,6 +23,7 @@ import StatsView from './components/StatsView.jsx'
 import { charger, sauver } from './lib/storage.js'
 import { ajouter, ajouterPlusieurs, acheter, compterExemplaires, modifier, modifierPlusieurs, supprimer, supprimerPlusieurs } from './lib/collection.js'
 import { ETATS, LIBELLES_PRIORITE, PRIORITES } from './lib/model.js'
+import { memeEmplacement } from './lib/emplacements.js'
 import { TRIS, emplacements, filtrer, groupesAnnees, grouperParEmplacement, comptesEmplacements, manquants, triPourOnglet, CHAMPS_A_COMPLETER, rechercherAilleurs, themes, trier } from './lib/recherche.js'
 import { calculerStats } from './lib/stats.js'
 import { appeler } from './lib/api.js'
@@ -315,7 +316,7 @@ export default function App() {
     // Comme « À compléter » : un filtre posé dont la dernière fiche vient de changer
     // doit rester visible, sinon le groupe emporterait avec lui le seul moyen de l'enlever.
     const lieux = emplacements(duOnglet)
-    if (filtres.emplacement !== '' && !lieux.includes(filtres.emplacement)) lieux.push(filtres.emplacement)
+    if (filtres.emplacement !== '' && !lieux.some((l) => memeEmplacement(l, filtres.emplacement))) lieux.push(filtres.emplacement)
     if (lieux.length > 0) groupes.push({ cle: 'emplacement', libelle: 'Emplacement', options: lieux.map((l) => ({ valeur: l, libelle: l })) })
     if (filtres.boite !== '' || duOnglet.some((x) => x.boite)) groupes.push({ cle: 'boite', libelle: 'Boîte', options: PRESENTE_ABSENTE })
     if (filtres.notice !== '' || duOnglet.some((x) => x.notice)) groupes.push({ cle: 'notice', libelle: 'Notice', options: PRESENTE_ABSENTE })

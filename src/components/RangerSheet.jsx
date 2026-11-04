@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Sheet from './Sheet.jsx'
+import { memeEmplacement } from '../lib/emplacements.js'
 
 // Choisir où ranger un set depuis sa fiche. La recherche n'apparaît qu'au-delà de quelques
 // emplacements : en dessous, elle ne ferait qu'ajouter un champ à un choix déjà lisible.
@@ -10,7 +11,7 @@ export default function RangerSheet({ lieux, actuel, recent, onChoisir, onFermer
   const [nouveau, setNouveau] = useState('')
   const q = filtre.trim().toLowerCase()
   // Le dernier emplacement utilisé passe en tête : on range souvent plusieurs sets à la suite.
-  const ordonnes = [...lieux].sort((a, b) => (b.nom === recent) - (a.nom === recent))
+  const ordonnes = [...lieux].sort((a, b) => memeEmplacement(b.nom, recent) - memeEmplacement(a.nom, recent))
   const visibles = ordonnes.filter((l) => l.nom.toLowerCase().includes(q))
 
   return (
@@ -21,8 +22,8 @@ export default function RangerSheet({ lieux, actuel, recent, onChoisir, onFermer
       <ul className="rangement">
         {visibles.map((l) => (
           <li key={l.nom}>
-            <button type="button" className="rangement__ligne" aria-pressed={l.nom === actuel} onClick={() => onChoisir(l.nom)}>
-              <span>{l.nom}{l.nom === recent && ' (dernier utilisé)'}</span>
+            <button type="button" className="rangement__ligne" aria-pressed={memeEmplacement(l.nom, actuel)} onClick={() => onChoisir(l.nom)}>
+              <span>{l.nom}{memeEmplacement(l.nom, recent) && ' (dernier utilisé)'}</span>
               <span className="rangement__n">{l.n}</span>
             </button>
           </li>
