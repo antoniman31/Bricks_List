@@ -24,14 +24,14 @@ import { charger, sauver } from './lib/storage.js'
 import { ajouter, ajouterPlusieurs, acheter, compterExemplaires, exemplairesPossedes, modifier, modifierPlusieurs, supprimer, supprimerPlusieurs } from './lib/collection.js'
 import { ETATS, LIBELLES_PRIORITE, PRIORITES } from './lib/model.js'
 import { memeEmplacement } from './lib/emplacements.js'
-import { TRIS, emplacements, filtrer, groupesAnnees, grouperParEmplacement, comptesEmplacements, manquants, triPourOnglet, CHAMPS_A_COMPLETER, rechercherAilleurs, themes, trier } from './lib/recherche.js'
+import { TAILLES, TRIS, emplacements, filtrer, groupesAnnees, grouperParEmplacement, comptesEmplacements, manquants, triPourOnglet, CHAMPS_A_COMPLETER, rechercherAilleurs, themes, trier } from './lib/recherche.js'
 import { calculerStats } from './lib/stats.js'
 import { appeler } from './lib/api.js'
 import { chercherSet, completerResultat, messageErreur, rechercherSets } from './lib/rebrickable.js'
 import { ecrireCle, ecrireThemes, lireCle, lireThemes } from './lib/reglages.js'
 import { COULEUR_BARRE, LIBELLES, ecrireMode, lireMode, modeSuivant, resoudreTheme } from './lib/apparence.js'
 
-const FILTRES_VIDES = { theme: '', etat: '', annee: '', manque: '', emplacement: '', boite: '', notice: '', priorite: '', etiquette: '' }
+const FILTRES_VIDES = { theme: '', etat: '', annee: '', manque: '', emplacement: '', boite: '', notice: '', priorite: '', etiquette: '', taille: '' }
 const AUCUN = new Set()
 const PRESENTE_ABSENTE = [{ valeur: 'oui', libelle: 'Présente' }, { valeur: 'non', libelle: 'Absente' }]
 
@@ -302,6 +302,7 @@ export default function App() {
     { cle: 'theme', libelle: 'Thème', options: themes(duOnglet).map((t) => ({ valeur: t, libelle: t })) },
     { cle: 'annee', libelle: 'Année', options: groupesAnnees(duOnglet) },
   ]
+  if (filtres.taille !== '' || duOnglet.some((x) => x.pieces != null)) groupes.push({ cle: 'taille', libelle: 'Taille', options: TAILLES.map((t) => ({ valeur: t.cle, libelle: t.libelle })) })
   if (aCompleter.length > 0) groupes.unshift({ cle: 'manque', libelle: 'À compléter', options: aCompleter })
   if (statut === 'possédé') {
     groupes.splice(1, 0, {

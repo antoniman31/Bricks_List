@@ -223,3 +223,80 @@ test('résumé : moyenne de pièces sur les sets connus seulement, et nombre de 
   assert.equal(st.resume.themes, 2);
   assert.equal(calculerStats([set({ nom: 'A', pieces: null })]).resume.moyennePieces, null);
 });
+
+// ---------- tailles, étiquettes, records ----------
+import { cleTaille } from './recherche.js';
+
+test('cleTaille : quatre tranches, bornes comprises, et pas de taille sans pièces', () => {
+  assert.equal(cleTaille(0), 'petit');
+  assert.equal(cleTaille(499), 'petit');
+  assert.equal(cleTaille(500), 'moyen');
+  assert.equal(cleTaille(1499), 'moyen');
+  assert.equal(cleTaille(1500), 'grand');
+  assert.equal(cleTaille(2999), 'grand');
+  assert.equal(cleTaille(3000), 'tres-grand');
+  assert.equal(cleTaille(null), null);
+});
+
+const TAILLES_SETS = [set({ nom: 'A', pieces: 100 }), set({ nom: 'B', pieces: 800 }), set({ nom: 'C', pieces: 800 }), set({ nom: 'D', pieces: 4000 }), set({ nom: 'E', pieces: null })];
+
+test('tailles : dans l\'ordre du petit au très gros, chaque barre égale la liste filtrée', () => {
+  const st = calculerStats(TAILLES_SETS);
+  assert.deepEqual(st.tailles.map((b) => [b.cle, b.sets]), [['petit', 1], ['moyen', 2], ['tres-grand', 1], ['', 1]]);
+  for (const b of st.tailles) assert.equal(b.sets, filtrer(TAILLES_SETS, { statut: 'possédé', ...b.filtre }).length, b.libelle);
+});
+
+test('étiquettes : les plus utilisées d\'abord, une écriture par étiquette, bornées à 8', () => {
+  const sets = [
+    set({ nom: 'A', etiquettes: ['Cadeau', 'rare'] }), set({ nom: 'B', etiquettes: ['cadeau'] }), set({ nom: 'C', etiquettes: ['Cadeau'] }), set({ nom: 'D', etiquettes: ['rare'] }),
+    ...Array.from({ length: 9 }, (_, i) => set({ nom: `X${i}`, etiquettes: [`t${i}`] })),
+  ];
+  const e = calculerStats(sets).etiquettes;
+  assert.deepEqual(e.barres.slice(0, 2).map((b) => [b.libelle, b.sets]), [['Cadeau', 3], ['rare', 2]]);
+  assert.equal(e.barres.length, 8);
+  assert.equal(e.total, 11);
+  for (const b of e.barres) assert.equal(b.sets, filtrer(sets, { statut: 'possédé', ...b.filtre }).length, b.libelle);
+  assert.deepEqual(calculerStats([set({ nom: 'A' })]).etiquettes, { barres: [], total: 0 });
+});
+
+test('records : plus gros et plus petit, plus ancien et plus récent, seulement s\'ils diffèrent', () => {
+  const r = calculerStats([
+    set({ nom: 'Petit', pieces: 100, annee: 2005 }), set({ nom: 'Gros', pieces: 9000, annee: 2023 }), set({ nom: 'Milieu', pieces: 500, annee: 2015 }),
+  ]).records;
+  assert.deepEqual(r.plusPetit, { nom: 'Petit', pieces: 100 });
+  assert.deepEqual(r.plusAncien, { nom: 'Petit', annee: 2005 });
+  assert.deepEqual(r.plusRecent, { nom: 'Gros', annee: 2023 });
+  const seul = calculerStats([set({ nom: 'A', pieces: 100, annee: 2020 }), set({ nom: 'B', pieces: 100, annee: 2020 })]).records;
+  assert.equal(seul.plusPetit, null);
+  assert.equal(seul.plusAncien, null);
+  assert.equal(seul.plusRecent, null);
+});
+
+test('records : décennie et thème dominants menant à la bonne liste, emplacement le plus rempli', () => {
+  const sets = [
+    set({ nom: 'A', annee: 2012, theme: 'X', emplacement: 'Salon' }), set({ nom: 'B', annee: 2014, theme: 'X', emplacement: 'salon' }),
+    set({ nom: 'C', annee: 2021, theme: 'Y', emplacement: 'Cave' }),
+  ];
+  const r = calculerStats(sets).records;
+  assert.deepEqual([r.decennie.libelle, r.decennie.sets], ['2010–2019', 2]);
+  assert.equal(filtrer(sets, { statut: 'possédé', ...r.decennie.filtre }).length, 2);
+  assert.deepEqual([r.themeFavori.libelle, r.themeFavori.sets], ['X', 2]);
+  assert.equal(filtrer(sets, { statut: 'possédé', ...r.themeFavori.filtre }).length, 2);
+  assert.deepEqual([r.emplacementPlein.libelle, r.emplacementPlein.sets], ['Salon', 2]);
+  assert.equal(filtrer(sets, { statut: 'possédé', ...r.emplacementPlein.filtre }).length, 2);
+  // un seul thème, une seule décennie, un seul emplacement : rien à comparer
+  const un = calculerStats([set({ nom: 'A', annee: 2012, theme: 'X', emplacement: 'Salon' })]).records;
+  assert.equal(un.decennie, null);
+  assert.equal(un.themeFavori, null);
+  assert.equal(un.emplacementPlein, null);
+});
+
+test('records : doublons comptés par numéro, sets souhaités exclus', () => {
+  const sets = [
+    set({ nom: 'A', numero: '75192-1' }), set({ nom: 'A2', numero: '75192-1' }), set({ nom: 'A3', numero: '75192-1' }),
+    set({ nom: 'B', numero: '10294-1' }), set({ nom: 'B2', numero: '10294-1' }),
+    set({ nom: 'W', numero: '21330-1' }), set({ nom: 'W2', numero: '21330-1', statut: 'souhaité' }),
+  ];
+  assert.deepEqual(calculerStats(sets).records.doublons, { numeros: 2, enTrop: 3 });
+  assert.equal(calculerStats([set({ nom: 'A' })]).records.doublons, null);
+});
