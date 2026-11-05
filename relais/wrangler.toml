@@ -3,7 +3,16 @@
 name = "bricks-relais"
 main = "worker.js"
 compatibility_date = "2026-11-01"
+# Un déploiement ne supprime pas les variables saisies dans le tableau de bord Cloudflare (par défaut, il
+# les réécrit d'après ce fichier). Les secrets, eux, survivent toujours à un déploiement.
+keep_vars = true
 
 [vars]
 # Sites autorisés à lire la réponse depuis un navigateur (séparés par des virgules).
+ORIGINE = "https://antoniman31.github.io"
+
+# Constructions de prévisualisation (commande `wrangler preview` de Cloudflare, utilisée pour les branches et les
+# pull requests) : elle exige ce bloc. Même valeur qu'en production ; la clé Brickset n'y est pas (pas de secret
+# pour un aperçu), donc un aperçu répond « configuration » sans appeler Brickset.
+[previews.vars]
 ORIGINE = "https://antoniman31.github.io"

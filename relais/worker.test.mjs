@@ -66,6 +66,19 @@ test('méthode, chemin et configuration', async () => {
   assert.equal((await appel('/sortie?numero=75192-1', { fetchFn, env: { ORIGINE: ENV.ORIGINE } })).status, 500);
 });
 
+test('configuration : sans clé, le relais cite les noms voisins (jamais les valeurs) pour repérer une faute de frappe', async () => {
+  const fetchFn = async () => reponseJson(SUCCES([FALCON]));
+  const jeton = { headers: { 'X-Jeton': 'secret-jeton-123' } };
+  const sans = await appel('/sortie?numero=75192-1', { fetchFn, env: { ORIGINE: ENV.ORIGINE, JETON: 'secret-jeton-123' }, init: jeton });
+  assert.deepEqual(await sans.json(), { erreur: 'configuration' });
+  const faute = await appel('/sortie?numero=75192-1', { fetchFn, env: { BRICKSET_API_KEY: 'valeur-secrete-xyz', ' BRICKSET_KEY': 'autre-secrete-abc', JETON: 'secret-jeton-123' }, init: jeton });
+  const corps = await faute.json();
+  assert.equal(faute.status, 500);
+  assert.deepEqual(corps.proches, ['BRICKSET_API_KEY', ' BRICKSET_KEY']);
+  const brut = JSON.stringify(corps);
+  assert.ok(!brut.includes('valeur-secrete') && !brut.includes('autre-secrete') && !brut.includes('secret-jeton'), 'aucune valeur ne doit sortir');
+});
+
 test('jeton facultatif : exigé seulement s\'il est défini', async () => {
   const fetchFn = async () => reponseJson(SUCCES([FALCON]));
   const env = { ...ENV, JETON: 'abc' };
