@@ -140,7 +140,7 @@ testé avec sa vraie collection, tout fonctionne.
   au rechargement (`bl_filtres`, hors export, `src/lib/filtresMemo.js`, entrée validée ; l'ancien format à un
   seul jeu est lu). La recherche texte n'est pas retenue et se vide au changement d'onglet. Un raccourci des
   Stats remplace les filtres de la collection.
-- **Qualité** : `npm run lint`, `npm test` (357 tests), `npm run verif:ui` (axe-core, cibles de
+- **Qualité** : `npm run lint`, `npm test` (367 tests, dont ceux du relais), `npm run verif:ui` (axe-core, cibles de
   48 px, débordements, navigation, recherche visible clavier ouvert, et quatre parcours qui vérifient un
   comportement : filtres conservés au rechargement, onglets indépendants, import d'un `.txt`, repli des
   boîtes, photo personnelle (enregistrée, relue, retirée), image de la liste (fiche et règle) ; 44 écrans × 2 thèmes × 4
@@ -187,6 +187,14 @@ ce sont de petits projets de loisir, récents, la plupart sur serveur.
    - **Export des photos personnelles** (version 2, voulu par Antoni) : bouton « Exporter avec les photos »,
      en option, dans un fichier séparé ; limite d'import (5 Mo) à lever pour ce fichier, chaque image validée
      comme entrée non fiable. Les photos ne tiennent ni dans un lien ni dans un QR.
+   - **Dates de sortie, automatiques** (voulues par Antoni, sets pas encore sortis de la wishlist) : seul Brickset a un
+     champ `launchDate` (et `exitDate`), lu dans leur documentation v3, pas encore vu sur un vrai set ; Rebrickable ne
+     donne que l'année, Brickfact n'a pas de date de sortie. Brickset n'envoie aucun CORS (vérifié) : relais Cloudflare
+     Worker dans `relais/` (code, tests, `README.md` avec les étapes), clé en secret chez Cloudflare. **Fait : le
+     relais.** À faire une fois la clé testée par Antoni : champ `dateSortie` dans la fiche (validé, modifiable à la
+     main), « URL du relais » (et jeton facultatif) dans les Réglages, bouton « Mettre à jour les dates » (sets sans
+     date ou pas encore sortis, wishlist et collection), affichage « Sort le … » puis « dans n jours », « date
+     inconnue » si Brickset n'en a pas, tri « Date de sortie » et filtre « À venir ».
    - **Transfert entre téléphone et PC** (Antoni transfère « parfois », collection sous 100 sets) : essayer
      d'abord ce qui existe, **Partager** (Partage rapide Android vers Windows) puis **Importer un fichier**,
      sans code. Si le geste pèse : **lien** (collection compressée dans la partie après le `#`, que GitHub

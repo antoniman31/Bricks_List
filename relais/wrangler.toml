@@ -1,0 +1,9 @@
+# Déploiement : voir relais/README.md. Aucun secret ici : la clé Brickset s'ajoute avec
+# `npx wrangler secret put BRICKSET_KEY`, jamais dans ce fichier.
+name = "bricks-relais"
+main = "worker.js"
+compatibility_date = "2026-11-01"
+
+[vars]
+# Sites autorisés à lire la réponse depuis un navigateur (séparés par des virgules).
+ORIGINE = "https://antoniman31.github.io"
