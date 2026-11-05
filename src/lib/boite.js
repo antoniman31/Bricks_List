@@ -11,7 +11,10 @@ export function urlBoite(numero) {
   return n ? `${BASE}${n}.png` : null;
 }
 
-// Sources d'image d'un set, de la plus souhaitée à la moins : la boîte, puis le rendu Rebrickable.
-export function sourcesImage(numero, rendu) {
-  return [urlBoite(numero), typeof rendu === 'string' && rendu ? rendu : null].filter(Boolean);
+// Sources d'image d'un set, de la plus souhaitée à la moins : la boîte, puis le rendu Rebrickable,
+// ou l'inverse quand `premier` vaut « rendu » (choix de l'image de la liste).
+export function sourcesImage(numero, rendu, premier = 'boite') {
+  const boite = urlBoite(numero);
+  const r = typeof rendu === 'string' && rendu ? rendu : null;
+  return (premier === 'rendu' ? [r, boite] : [boite, r]).filter(Boolean);
 }

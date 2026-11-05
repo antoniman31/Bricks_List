@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useContext, useState } from 'react'
 import PhotoSheet from './PhotoSheet.jsx'
 import Vignette from './Vignette.jsx'
+import Icone from './Icones.jsx'
+import ImagesContext from '../ImagesContext.js'
 import usePhoto from '../usePhoto.js'
 import { ecrirePhoto, messageErreur, supprimerPhoto } from '../lib/photosDB.js'
 
@@ -22,19 +24,24 @@ function ChoixFichier({ libelle, camera, desactive, onChoisi }) {
   )
 }
 
-// L'image en tête de fiche : la boîte (BrickLink, ou le rendu Rebrickable) ou la photo personnelle,
-// au choix. La boîte reste l'affichage par défaut ; les listes ne changent pas.
-export default function PhotoFiche({ set, lectureSeule }) {
+const ONGLETS = [['boite', 'Boîte'], ['rendu', 'Rendu'], ['photo', 'Ma photo']]
+
+// L'image en tête de fiche : la boîte, le rendu Rebrickable ou la photo personnelle, au choix. Un
+// bouton sous l'image fait de celle qu'on regarde l'image du set dans la liste (une étoile marque
+// l'onglet choisi) ; sans choix, la règle des Réglages décide. La boîte est affichée d'abord.
+export default function PhotoFiche({ set, lectureSeule, onChanger }) {
   const [vue, setVue] = useState('boite')
   const [fichier, setFichier] = useState(null)
   const [retrait, setRetrait] = useState(false)
   const [probleme, setProbleme] = useState('')
   const photo = usePhoto(set.id)
+  const { rafraichir } = useContext(ImagesContext)
 
   async function enregistrer(blob) {
     try {
       await ecrirePhoto(set.id, blob)
       photo.recharger()
+      rafraichir()
       setVue('photo')
       return { ok: true }
     } catch (e) {
@@ -46,21 +53,39 @@ export default function PhotoFiche({ set, lectureSeule }) {
     try {
       await supprimerPhoto(set.id)
       photo.recharger()
+      rafraichir()
       setRetrait(false)
+      // Plus de photo à montrer : le choix « photo » n'a plus d'objet, le set repasse en automatique.
+      if (set.imageListe === 'photo') onChanger?.({ imageListe: null })
       setProbleme('')
     } catch {
       setProbleme('La photo n\'a pas pu être retirée.')
     }
   }
 
+  function basculerListe() {
+    const ok = onChanger?.({ imageListe: set.imageListe === vue ? null : vue })
+    setProbleme(ok === false ? 'Modification refusée.' : '')
+  }
+
+  const onglets = ONGLETS.filter(([cle]) => cle !== 'rendu' || set.image)
+  const choisie = set.imageListe === vue
+  const peutChoisir = vue !== 'photo' || Boolean(photo.url)
+
   return (
     <div className="photo-fiche">
       <div className="groupe__options" role="group" aria-label="Image du set">
-        <button type="button" className="puce" aria-pressed={vue === 'boite'} onClick={() => setVue('boite')}>Boîte</button>
-        <button type="button" className="puce" aria-pressed={vue === 'photo'} onClick={() => setVue('photo')}>Ma photo</button>
+        {onglets.map(([cle, libelle]) => (
+          <button key={cle} type="button" className="puce puce--etoile" aria-pressed={vue === cle} onClick={() => setVue(cle)}>
+            {set.imageListe === cle && <span className="puce__etoile"><Icone nom="etoile" /></span>}
+            {libelle}
+            {set.imageListe === cle && <span className="visuellement-cache"> (image de la liste)</span>}
+          </button>
+        ))}
       </div>
 
       {vue === 'boite' && <Vignette image={set.image} numero={set.numero} variante="fiche" />}
+      {vue === 'rendu' && <Vignette image={set.image} numero={set.numero} variante="fiche" premier="rendu" />}
 
       {vue === 'photo' && (
         <>
@@ -69,27 +94,33 @@ export default function PhotoFiche({ set, lectureSeule }) {
           {!photo.chargement && !photo.url && (
             <div className="photo-vide">{photo.erreur ? 'La photo n\'a pas pu être lue.' : 'Pas encore de photo pour ce set.'}</div>
           )}
-
-          {!photo.chargement && !retrait && (
-            <div className="photo-actions">
-              <ChoixFichier libelle={photo.url ? 'Reprendre' : 'Prendre une photo'} camera desactive={lectureSeule} onChoisi={setFichier} />
-              <ChoixFichier libelle={photo.url ? 'Galerie' : 'Choisir dans la galerie'} desactive={lectureSeule} onChoisi={setFichier} />
-              {photo.url && <button type="button" className="bouton bouton--danger" disabled={lectureSeule} onClick={() => setRetrait(true)}>Retirer</button>}
-            </div>
-          )}
-
-          {retrait && (
-            <div className="avis avis--erreur" role="alertdialog" aria-label="Confirmer le retrait de la photo">
-              <p>Retirer ta photo ? Elle n'est pas dans l'export : elle serait perdue.</p>
-              <div className="sheet__pied">
-                <button type="button" className="bouton" onClick={() => setRetrait(false)}>Annuler</button>
-                <button type="button" className="bouton bouton--danger" onClick={retirer}>Retirer</button>
-              </div>
-            </div>
-          )}
-          {probleme && <p className="avis avis--erreur" role="alert">{probleme}</p>}
         </>
       )}
+
+      {peutChoisir && !photo.chargement && (
+        <button type="button" className={`bouton${choisie ? ' bouton--plein' : ''}`} aria-pressed={choisie} disabled={lectureSeule} onClick={basculerListe}>
+          <Icone nom="etoile" /> {choisie ? 'Image de la liste' : 'Utiliser dans la liste'}
+        </button>
+      )}
+
+      {vue === 'photo' && !photo.chargement && !retrait && (
+        <div className="photo-actions">
+          <ChoixFichier libelle={photo.url ? 'Reprendre' : 'Prendre une photo'} camera desactive={lectureSeule} onChoisi={setFichier} />
+          <ChoixFichier libelle={photo.url ? 'Galerie' : 'Choisir dans la galerie'} desactive={lectureSeule} onChoisi={setFichier} />
+          {photo.url && <button type="button" className="bouton bouton--danger" disabled={lectureSeule} onClick={() => setRetrait(true)}>Retirer</button>}
+        </div>
+      )}
+
+      {retrait && (
+        <div className="avis avis--erreur" role="alertdialog" aria-label="Confirmer le retrait de la photo">
+          <p>Retirer ta photo ? Elle n'est pas dans l'export : elle serait perdue.</p>
+          <div className="sheet__pied">
+            <button type="button" className="bouton" onClick={() => setRetrait(false)}>Annuler</button>
+            <button type="button" className="bouton bouton--danger" onClick={retirer}>Retirer</button>
+          </div>
+        </div>
+      )}
+      {probleme && <p className="avis avis--erreur" role="alert">{probleme}</p>}
 
       {fichier && <PhotoSheet fichier={fichier} onFermer={() => setFichier(null)} onEnregistrer={enregistrer} />}
     </div>

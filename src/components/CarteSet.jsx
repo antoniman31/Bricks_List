@@ -1,5 +1,5 @@
 // Toute la carte est un vrai <button> (clavier, lecteur d'écran) et ouvre la fiche.
-import Vignette from './Vignette.jsx'
+import ImageSet from './ImageSet.jsx'
 import { LIBELLES_PRIORITE } from '../lib/model.js'
 
 export default function CarteSet({ set, onOuvrir, selection, onBasculer, vue = 'liste', courante = false, exemplaires }) {
@@ -37,7 +37,7 @@ export default function CarteSet({ set, onOuvrir, selection, onBasculer, vue = '
       <li>
         <button type="button" className="carte carte--tuile" {...interaction}>
           <div className="tuile__image">
-            <Vignette image={set.image} numero={set.numero} variante="tuile" />
+            <ImageSet set={set} variante="tuile" />
             {coche}
           </div>
           <div className="carte__texte">
@@ -57,7 +57,7 @@ export default function CarteSet({ set, onOuvrir, selection, onBasculer, vue = '
     <li>
       <button type="button" className="carte" {...interaction}>
         {coche}
-        <Vignette image={set.image} numero={set.numero} />
+        <ImageSet set={set} />
         <div className="carte__texte">
           <p className="carte__nom">{set.nom}{badge}</p>
           <p className="carte__details">{set.numero}{details.length > 0 && ` · ${details.join(' · ')}`}</p>

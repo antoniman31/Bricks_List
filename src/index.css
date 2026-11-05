@@ -852,3 +852,9 @@ div.anneau__ligne { padding: 6px 0; }
 .recadrage__image { width: 100%; aspect-ratio: 4 / 3; border-radius: 8px; border: 1px solid var(--bordure); background: var(--vignette); touch-action: none; cursor: grab; }
 .curseur { display: grid; gap: 2px; color: var(--texte-doux); font-size: 0.875rem; }
 .curseur input { width: 100%; min-height: var(--cible-min); accent-color: var(--remplissage); }
+
+/* Onglet d'image portant l'étoile « image de la liste ». */
+.puce--etoile { display: inline-flex; align-items: center; gap: 4px; }
+.puce__etoile svg { width: 16px; height: 16px; display: block; }
+.photo-fiche > .bouton { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.photo-fiche > .bouton svg { width: 18px; height: 18px; }

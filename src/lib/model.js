@@ -16,6 +16,8 @@ export const OUI_NON = ['oui', 'non'];
 // Envie d'acheter un set souhaité, du plus pressé au moins pressé. Les clés sont ce
 // qui est stocké ; l'ordre du tableau est l'ordre de tri.
 export const PRIORITES = ['forte', 'un-jour', 'pas-presse'];
+// Image qui représente un set dans la liste : null = automatique (la règle des Réglages).
+export const IMAGES_LISTE = ['boite', 'rendu', 'photo'];
 export const LIBELLES_PRIORITE = { forte: 'Envie forte', 'un-jour': 'Un jour', 'pas-presse': 'Pas pressé' };
 
 function nouvelId() {
@@ -83,6 +85,10 @@ export function normaliserSet(brut, { anneeMax = new Date().getFullYear() + 2, m
   // Acheter un set la fait donc disparaître d'elle-même, sans code dédié.
   const prioriteValide = brut.priorite == null || PRIORITES.includes(brut.priorite);
   const priorite = !possede && PRIORITES.includes(brut.priorite) ? brut.priorite : null;
+  // Le choix de l'image de la liste vaut pour les deux statuts. « photo » est gardé même si la photo
+  // manque (elle vit hors de la collection) : la liste retombe alors sur la boîte.
+  const imageListeValide = brut.imageListe == null || IMAGES_LISTE.includes(brut.imageListe);
+  const imageListe = IMAGES_LISTE.includes(brut.imageListe) ? brut.imageListe : null;
 
   return {
     set: {
@@ -101,6 +107,7 @@ export function normaliserSet(brut, { anneeMax = new Date().getFullYear() + 2, m
       boite: corriger(boiteValide, boite),
       notice: corriger(noticeValide, notice),
       priorite: corriger(prioriteValide, priorite),
+      imageListe: corriger(imageListeValide, imageListe),
       etiquettes: corriger(!etiquettes.corrige, etiquettes.liste),
       dateAchat: corriger(brut.dateAchat == null || !possede || dateAchat !== null, dateAchat),
       dateMontage: corriger(brut.dateMontage == null || !possede || dateMontage !== null, dateMontage),

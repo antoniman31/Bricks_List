@@ -93,7 +93,7 @@ export function FicheContenu({ set, lectureSeule, lieux = [], lieuRecent = '', e
 
   return (
     <>
-      <PhotoFiche key={set.id} set={set} lectureSeule={lectureSeule} />
+      <PhotoFiche key={set.id} set={set} lectureSeule={lectureSeule} onChanger={changer} />
 
       <div className="chiffres">
         <div><b>{set.pieces != null ? set.pieces.toLocaleString('fr-FR') : '—'}</b><small>pièces</small></div>
