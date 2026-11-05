@@ -4,7 +4,8 @@ Collection personnelle de sets LEGO (React 19 + Vite, PWA sur GitHub Pages).
 Cibles : Chrome sur Android (Galaxy S26 Ultra) et sur Windows. Pas d'APK, pas de
 minifigs, pas de pièces détachées, pas de prix (décisions de cadrage).
 
-Où on en est et ce qui reste à faire : `docs/SUITE.md`.
+Où on en est et ce qui reste à faire : `docs/SUITE.md` (état complet) et `docs/TODO.md` (reprise de session : par quoi
+commencer).
 
 ## Commandes
 
