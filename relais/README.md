@@ -51,6 +51,8 @@ Tu dois voir un JSON avec `"trouve": true` et `"lancement": "2017-10-01"` pour l
 un set de ta wishlist pas encore sorti, par exemple `72051-1` (Donkey Kong Arcade). **Ce JSON ne contient aucun
 secret** : tu peux me le coller pour que je vérifie le résultat.
 
+Si tu vois `{"erreur":"configuration","proches":["…"]}`, ces noms sont ceux de réglages qui ressemblent à la clé attendue : l'un d'eux est probablement mal nommé (le secret doit s'appeler exactement `BRICKSET_KEY`).
+
 Erreurs possibles : `{"erreur":"cle"}` (clé refusée ou mal collée), `{"erreur":"limite"}` (limite quotidienne de
 Brickset atteinte), `{"erreur":"configuration"}` (le secret `BRICKSET_KEY` n'est pas défini), `{"erreur":"jeton"}`
 (le jeton est exigé et absent).

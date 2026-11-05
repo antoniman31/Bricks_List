@@ -80,7 +80,12 @@ export async function traiter(request, env, { fetchFn = fetch } = {}) {
 
   const numero = url.searchParams.get('numero') ?? '';
   if (!NUMERO.test(numero)) return rep(400, { erreur: 'numero' });
-  if (!env.BRICKSET_KEY) return rep(500, { erreur: 'configuration' });
+  if (!env.BRICKSET_KEY) {
+    // Aide au diagnostic : les NOMS (jamais les valeurs) de réglages qui ressemblent à la clé attendue, pour
+    // repérer une faute de frappe (« BRICKSET_API_KEY », une espace en trop). JETON et ORIGINE n'y figurent pas.
+    const proches = Object.keys(env).filter((k) => /brick|key|cle/i.test(k)).slice(0, 5);
+    return rep(500, proches.length > 0 ? { erreur: 'configuration', proches } : { erreur: 'configuration' });
+  }
 
   let donnees;
   try {
