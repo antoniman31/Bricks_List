@@ -7,9 +7,10 @@ import { ecrirePartageTexte, etatSauvegarde, libelleDelai, lirePartageTexte } fr
 import { cleValide } from '../lib/reglages.js'
 import { LIBELLES, MODES } from '../lib/apparence.js'
 import { REGLES } from '../lib/imageListe.js'
+import { jetonValide, urlRelaisValide } from '../lib/relais.js'
 import { verifierMiseAJour } from '../lib/miseAJour.js'
 
-export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, regleImage, onRegleImage, cle, onCleChange, onTesterCle, onAppliquer, derniereSauvegarde, persistance, onSauvegardeFaite, onFermer }) {
+export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, regleImage, onRegleImage, relais, onRelaisChange, onTesterRelais, majDates, onMajDates, cle, onCleChange, onTesterCle, onAppliquer, derniereSauvegarde, persistance, onSauvegardeFaite, onFermer }) {
   const [apercu, setApercu] = useState(null)
   const [erreur, setErreur] = useState('')
   const [resultat, setResultat] = useState('')
@@ -20,6 +21,30 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
   const [etatCle, setEtatCle] = useState({ type: '', message: '' })
   const [test, setTest] = useState(false)
   const [maj, setMaj] = useState({ etat: '', message: '' })
+  // Dates de sortie : l'adresse du relais et son jeton facultatif, saisis ici et gardés sur l'appareil.
+  const [saisieUrl, setSaisieUrl] = useState(relais.url)
+  const [saisieJeton, setSaisieJeton] = useState(relais.jeton)
+  const [etatRelais, setEtatRelais] = useState({ type: '', message: '' })
+  const [testRelais, setTestRelais] = useState(false)
+  const urlPropre = urlRelaisValide(saisieUrl)
+  const relaisSaisi = Boolean(urlPropre) && jetonValide(saisieJeton)
+  async function testerLeRelais() {
+    setTestRelais(true)
+    setEtatRelais({ type: '', message: '' })
+    const r = await onTesterRelais({ url: urlPropre, jeton: saisieJeton.trim() })
+    setEtatRelais({ type: r.ok ? 'ok' : 'erreur', message: r.message })
+    setTestRelais(false)
+  }
+  function enregistrerLeRelais() {
+    const r = onRelaisChange({ url: urlPropre, jeton: saisieJeton.trim() })
+    setEtatRelais(r.ok ? { type: 'ok', message: 'Relais enregistré.' } : { type: 'erreur', message: r.erreur })
+  }
+  function supprimerLeRelais() {
+    onRelaisChange({ url: '', jeton: '' })
+    setSaisieUrl('')
+    setSaisieJeton('')
+    setEtatRelais({ type: 'ok', message: 'Relais supprimé.' })
+  }
 
   // Un appui : on regarde si le serveur a une autre version que celle affichée. Si oui, on recharge tout
   // de suite (la page d'accueil passe par le réseau d'abord, le rechargement apporte donc la dernière
@@ -173,6 +198,53 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
         {cle && <button type="button" className="bouton bouton--danger" onClick={supprimerCle}>Supprimer la clé</button>}
         {etatCle.message && (
           <p className={`avis${etatCle.type === 'erreur' ? ' avis--erreur' : ''}`} role={etatCle.type === 'erreur' ? 'alert' : 'status'}>{etatCle.message}</p>
+        )}
+      </details>
+
+      <details className="reglage">
+        <summary>Dates de sortie</summary>
+        <p className="reglage__aide">
+          Les dates viennent de Brickset, par un relais à toi (dossier <code>relais</code> du dépôt). L'adresse reste sur cet appareil, jamais exportée.
+        </p>
+        <label className="formulaire__champ">
+          Adresse du relais
+          <input
+            className="champ"
+            type="url"
+            inputMode="url"
+            autoComplete="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            placeholder="https://bricks-relais.….workers.dev"
+            value={saisieUrl}
+            onChange={(e) => { setSaisieUrl(e.target.value); setEtatRelais({ type: '', message: '' }) }}
+          />
+        </label>
+        {saisieUrl !== '' && !urlPropre && <p className="reglage__aide reglage__aide--erreur">Adresse invalide (https, sans identifiants ni paramètres).</p>}
+        <label className="formulaire__champ">
+          Jeton (facultatif)
+          <input
+            className="champ"
+            type="password"
+            autoComplete="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            value={saisieJeton}
+            onChange={(e) => { setSaisieJeton(e.target.value); setEtatRelais({ type: '', message: '' }) }}
+          />
+        </label>
+        {saisieJeton !== '' && !jetonValide(saisieJeton) && <p className="reglage__aide reglage__aide--erreur">Jeton invalide (8 caractères au moins, ni espace ni accent).</p>}
+        <div className="sheet__pied">
+          <button type="button" className="bouton" disabled={testRelais || !relaisSaisi} onClick={testerLeRelais}>{testRelais ? 'Test…' : 'Tester'}</button>
+          <button type="button" className="bouton bouton--plein" disabled={!relaisSaisi} onClick={enregistrerLeRelais}>Enregistrer</button>
+        </div>
+        {relais.url && <button type="button" className="bouton bouton--danger" onClick={supprimerLeRelais}>Supprimer le relais</button>}
+        {etatRelais.message && (
+          <p className={`avis${etatRelais.type === 'erreur' ? ' avis--erreur' : ''}`} role={etatRelais.type === 'erreur' ? 'alert' : 'status'}>{etatRelais.message}</p>
+        )}
+        <button type="button" className="bouton" disabled={lectureSeule || !relais.url || majDates.etat === 'charge'} onClick={onMajDates}>Mettre à jour les dates</button>
+        {majDates.message && (
+          <p className={`avis${majDates.etat === 'erreur' ? ' avis--erreur' : ''}`} role={majDates.etat === 'erreur' ? 'alert' : 'status'}>{majDates.message}</p>
         )}
       </details>
 

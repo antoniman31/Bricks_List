@@ -125,6 +125,23 @@ testé avec sa vraie collection, tout fonctionne.
   la collection est illisible. Tous les sets peuvent avoir une photo, wishlist comprise. *Limite* : si le
   navigateur vide ses données, les photos sont perdues (le set garde sa boîte BrickLink) ; un identifiant de
   set réattribué à l'import orpheline sa photo.
+- **Dates de sortie** (novembre 2026) : champ `dateSortie` (AAAA-MM-JJ, l'avenir est permis jusqu'à dix ans) et
+  `sortieSource` (`manuelle` ou `brickset`) dans la fiche, donc dans l'export. Saisie à la main sur la fiche (ligne
+  « Sortie », « Inconnue » sans date) : une date manuelle n'est **jamais écrasée** par une mise à jour ; l'effacer
+  rend la main à Brickset. La carte d'un set pas encore sorti dit « Sort le 1 janv. 2027 · dans 57 jours » (« Sort
+  dans 57 jours » en grille). Tri « Date de sortie » (prochaine sortie, puis déjà sortis du plus récent, puis sans
+  date) et filtre « Sortie » (à venir, déjà sorti, date inconnue). `src/lib/sortie.js` et `relais.js`, testés.
+  **Mise à jour automatique** : bouton « Mettre à jour les dates » (barre de la wishlist et Réglages > Dates de
+  sortie) qui interroge, un set après l'autre, ceux sans date ou pas encore sortis, wishlist et collection, par le
+  relais Brickset ; arrêt à la première panne (clé refusée, limite quotidienne, relais injoignable) ; une seule
+  écriture à la fin ; « n dates enregistrées, n inconnues chez Brickset ». L'adresse du relais et son jeton
+  facultatif sont dans Réglages (`bl_relais`, hors export). Le relais est dans `relais/` (Cloudflare Worker, clé
+  Brickset en secret, CORS limité au site, voir `relais/README.md`).
+  **État au 5 novembre 2026 : Antoni a reçu sa clé Brickset ; le relais n'est pas encore déployé et la vraie réponse
+  de Brickset n'a jamais été vue** (format exact des dates, limite quotidienne, gratuité de la clé à confirmer). À
+  faire : déployer le Worker (étapes dans `relais/README.md`), tester `/sortie?numero=72051-1`, saisir l'adresse dans
+  Réglages, appuyer sur « Mettre à jour les dates » ; si la réponse diffère de ce qui est attendu, ajuster
+  `lireBrickset` dans `relais/worker.js`. Tout le reste est vérifié avec un relais simulé (`verif:ui`).
 - **Image de la liste** (novembre 2026) : trois images possibles par set (boîte BrickLink, rendu Rebrickable,
   ma photo) et un choix de celle qui le représente dans la liste et la grille. Sur la fiche, trois onglets
   (Rendu seulement si le set en a un) et un bouton « Utiliser dans la liste » sous l'image affichée ; une étoile
@@ -140,10 +157,10 @@ testé avec sa vraie collection, tout fonctionne.
   au rechargement (`bl_filtres`, hors export, `src/lib/filtresMemo.js`, entrée validée ; l'ancien format à un
   seul jeu est lu). La recherche texte n'est pas retenue et se vide au changement d'onglet. Un raccourci des
   Stats remplace les filtres de la collection.
-- **Qualité** : `npm run lint`, `npm test` (367 tests, dont ceux du relais), `npm run verif:ui` (axe-core, cibles de
+- **Qualité** : `npm run lint`, `npm test` (383 tests, dont ceux du relais), `npm run verif:ui` (axe-core, cibles de
   48 px, débordements, navigation, recherche visible clavier ouvert, et quatre parcours qui vérifient un
   comportement : filtres conservés au rechargement, onglets indépendants, import d'un `.txt`, repli des
-  boîtes, photo personnelle (enregistrée, relue, retirée), image de la liste (fiche et règle) ; 44 écrans × 2 thèmes × 4
+  boîtes, photo personnelle (enregistrée, relue, retirée), image de la liste (fiche et règle), dates de sortie (affichage, filtre, saisie, relais) ; 50 écrans × 2 thèmes × 4
   largeurs : 360, 412, 900, 1280). Les trois tournent dans le CI avant le déploiement.
 
 ## Décisions de cadrage (ne pas rouvrir sans raison)
@@ -187,14 +204,6 @@ ce sont de petits projets de loisir, récents, la plupart sur serveur.
    - **Export des photos personnelles** (version 2, voulu par Antoni) : bouton « Exporter avec les photos »,
      en option, dans un fichier séparé ; limite d'import (5 Mo) à lever pour ce fichier, chaque image validée
      comme entrée non fiable. Les photos ne tiennent ni dans un lien ni dans un QR.
-   - **Dates de sortie, automatiques** (voulues par Antoni, sets pas encore sortis de la wishlist) : seul Brickset a un
-     champ `launchDate` (et `exitDate`), lu dans leur documentation v3, pas encore vu sur un vrai set ; Rebrickable ne
-     donne que l'année, Brickfact n'a pas de date de sortie. Brickset n'envoie aucun CORS (vérifié) : relais Cloudflare
-     Worker dans `relais/` (code, tests, `README.md` avec les étapes), clé en secret chez Cloudflare. **Fait : le
-     relais.** À faire une fois la clé testée par Antoni : champ `dateSortie` dans la fiche (validé, modifiable à la
-     main), « URL du relais » (et jeton facultatif) dans les Réglages, bouton « Mettre à jour les dates » (sets sans
-     date ou pas encore sortis, wishlist et collection), affichage « Sort le … » puis « dans n jours », « date
-     inconnue » si Brickset n'en a pas, tri « Date de sortie » et filtre « À venir ».
    - **Transfert entre téléphone et PC** (Antoni transfère « parfois », collection sous 100 sets) : essayer
      d'abord ce qui existe, **Partager** (Partage rapide Android vers Windows) puis **Importer un fichier**,
      sans code. Si le geste pèse : **lien** (collection compressée dans la partie après le `#`, que GitHub

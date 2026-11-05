@@ -4,7 +4,8 @@ import PhotoFiche from './PhotoFiche.jsx'
 import RangerSheet from './RangerSheet.jsx'
 import { ETATS, LIBELLES_PRIORITE, PRIORITES } from '../lib/model.js'
 import { aEtiquette, ajouterEtiquettes, basculerEtiquette } from '../lib/etiquettes.js'
-import { aujourdhuiISO, dateValide, formaterDate } from '../lib/dates.js'
+import { aujourdhuiISO, dateSortieValide, dateValide, finSortiePossible, formaterDate } from '../lib/dates.js'
+import { etatSortie, relatif } from '../lib/sortie.js'
 
 function Ligne({ libelle, valeur }) {
   if (valeur == null || valeur === '') return null
@@ -44,10 +45,10 @@ function LigneOuiNon({ libelle, champ, set, ouvert, desactive, onBasculer, onCho
 }
 
 // Une date s'édite avec le sélecteur du système ; « Effacer » la retire.
-function LigneDate({ libelle, valeur, ouvert, desactive, onBasculer, onChoisir }) {
+function LigneDate({ libelle, valeur, ouvert, desactive, onBasculer, onChoisir, vide = 'Ajouter', complement = '', max = aujourdhuiISO() }) {
   return (
-    <LigneEditable libelle={libelle} valeur={valeur ? formaterDate(valeur) : 'Ajouter'} ouvert={ouvert} desactive={desactive} onBasculer={onBasculer}>
-      <input className="champ" type="date" aria-label={libelle} min="1949-01-01" max={aujourdhuiISO()} value={valeur ?? ''} onChange={(e) => onChoisir(e.target.value)} />
+    <LigneEditable libelle={libelle} valeur={valeur ? `${formaterDate(valeur)}${complement}` : vide} ouvert={ouvert} desactive={desactive} onBasculer={onBasculer}>
+      <input className="champ" type="date" aria-label={libelle} min="1949-01-01" max={max} value={valeur ?? ''} onChange={(e) => onChoisir(e.target.value)} />
       {valeur && <button type="button" className="bouton" onClick={() => onChoisir(null)}>Effacer</button>}
     </LigneEditable>
   )
@@ -82,6 +83,15 @@ export function FicheContenu({ set, lectureSeule, lieux = [], lieuRecent = '', e
     if (v === '') return
     if (dateValide(v) === null) return setProbleme('Date invalide (pas dans le futur).')
     if (changer({ [champ]: v })) setEdition('')
+  }
+  // La date de sortie, elle, peut être dans le futur (un set annoncé). Saisie à la main, elle n'est plus
+  // écrasée par une mise à jour automatique (`sortieSource`) ; l'effacer rend la main à Brickset.
+  const sortie = etatSortie(set)
+  function changerSortie(v) {
+    if (v === null) { if (changer({ dateSortie: null, sortieSource: null })) setEdition(''); return }
+    if (v === '') return
+    if (dateSortieValide(v) === null) return setProbleme('Date invalide.')
+    if (changer({ dateSortie: v, sortieSource: 'manuelle' })) setEdition('')
   }
   const etiquettes = set.etiquettes ?? []
   const choixEtiquettes = [...etiquettes, ...etiquettesConnues.filter((c) => !aEtiquette(set, c))]
@@ -123,6 +133,17 @@ export function FicheContenu({ set, lectureSeule, lieux = [], lieuRecent = '', e
       )}
 
       <dl className="fiche">
+        <LigneDate
+          libelle="Sortie"
+          valeur={set.dateSortie}
+          vide="Inconnue"
+          complement={sortie ? ` (${sortie.aVenir || sortie.jours === 0 ? relatif(sortie.jours) : set.dateSortie.slice(0, 4)})` : ''}
+          max={finSortiePossible()}
+          ouvert={edition === 'dateSortie'}
+          desactive={lectureSeule}
+          onBasculer={() => basculer('dateSortie')}
+          onChoisir={changerSortie}
+        />
         {possede ? (
           <>
             <LigneDate libelle="Acheté le" valeur={set.dateAchat} ouvert={edition === 'dateAchat'} desactive={lectureSeule} onBasculer={() => basculer('dateAchat')} onChoisir={(v) => changerDate('dateAchat', v)} />

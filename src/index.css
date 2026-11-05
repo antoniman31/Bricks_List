@@ -858,3 +858,6 @@ div.anneau__ligne { padding: 6px 0; }
 .puce__etoile svg { width: 16px; height: 16px; display: block; }
 .photo-fiche > .bouton { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 .photo-fiche > .bouton svg { width: 18px; height: 18px; }
+
+/* Date de sortie d'un set pas encore sorti, sous ses détails dans la grille. */
+.carte--tuile .carte__sortie { color: var(--accent); font-weight: 600; }
