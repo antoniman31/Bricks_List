@@ -1,7 +1,8 @@
 # Bricks-List : où on en est, et la suite
 
 État au 4 novembre 2026. Site : https://antoniman31.github.io/Bricks_List/ (la version se lit en bas des Réglages).
-Ce fichier sert à reprendre le travail sans relire la conversation qui l'a produit.
+Ce fichier sert à reprendre le travail sans relire la conversation qui l'a produit. Pour savoir **par quoi
+commencer**, lire d'abord `docs/TODO.md`.
 
 ## Ce qui est fait et en ligne
 
