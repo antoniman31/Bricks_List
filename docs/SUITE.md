@@ -113,14 +113,26 @@ testé avec sa vraie collection, tout fonctionne.
   adresses peuvent changer. Les images pèsent 400 à 750 Ko : cache hors ligne séparé (`boites-sets`, 150
   entrées) et requête CORS pour que la taille réelle soit comptée. Dans la grille, la pastille d'état est sous
   l'image (le bas de la boîte porte numéro et pièces) et le nom prend deux lignes.
+- **Photo personnelle d'un set** (novembre 2026, version 1) : sur la fiche, un sélecteur « Boîte | Ma photo »
+  (la boîte reste l'affichage par défaut, les listes ne changent pas). « Prendre une photo » ouvre l'appareil
+  photo (champ fichier avec `capture`, sans autorisation caméra), « Choisir dans la galerie » le sélecteur ;
+  puis une feuille de recadrage 4:3 (glissé au doigt, curseurs de zoom et de position pour le clavier).
+  Le JPEG est rendu en 1 024 × 768, qualité 0,8 (~100 Ko ; une photo source de 1,6 Mo donne 113 Ko). Stockage :
+  IndexedDB (`bl_photos`, une entrée par fiche, clé = identifiant du set), hors export : `bl_v1` ne les
+  contient pas. Calcul du recadrage et validation dans `src/lib/photos.js` (testés), canvas dans
+  `photoNavigateur.js`, IndexedDB dans `photosDB.js`. Lecture validée (JPEG, 1 Mo au plus). Photos des sets
+  disparus retirées **au démarrage seulement** (une suppression en masse s'annule juste après), et jamais si
+  la collection est illisible. Tous les sets peuvent avoir une photo, wishlist comprise. *Limite* : si le
+  navigateur vide ses données, les photos sont perdues (le set garde sa boîte BrickLink) ; un identifiant de
+  set réattribué à l'import orpheline sa photo.
 - **Filtres et tri retenus, par onglet** : collection et wishlist ont chacune leurs filtres et leur tri, gardés
   au rechargement (`bl_filtres`, hors export, `src/lib/filtresMemo.js`, entrée validée ; l'ancien format à un
   seul jeu est lu). La recherche texte n'est pas retenue et se vide au changement d'onglet. Un raccourci des
   Stats remplace les filtres de la collection.
-- **Qualité** : `npm run lint`, `npm test` (344 tests), `npm run verif:ui` (axe-core, cibles de
+- **Qualité** : `npm run lint`, `npm test` (351 tests), `npm run verif:ui` (axe-core, cibles de
   48 px, débordements, navigation, recherche visible clavier ouvert, et quatre parcours qui vérifient un
   comportement : filtres conservés au rechargement, onglets indépendants, import d'un `.txt`, repli des
-  boîtes ; 39 écrans × 2 thèmes × 4
+  boîtes, photo personnelle (enregistrée, relue, retirée) ; 42 écrans × 2 thèmes × 4
   largeurs : 360, 412, 900, 1280). Les trois tournent dans le CI avant le déploiement.
 
 ## Décisions de cadrage (ne pas rouvrir sans raison)
@@ -152,8 +164,8 @@ ce sont de petits projets de loisir, récents, la plupart sur serveur.
   100 sets, la recherche par l'API suffit.
 - **Idées reprises** : « je l'ai déjà ? » (lego-collector), recherche par nom (Nupplo, plinthos),
   emplacement de rangement, boîte et notice (plinthos, BrickHoard, lego-collector).
-- **Idées écartées** : photos personnelles de boîtes (stockage sur l'appareil, export JSON
-  difficile ; BrickLink les remplace), synchronisation serveur, valorisation et mode vente.
+- **Idées écartées** : photos personnelles de boîtes comme source des boîtes (BrickLink les
+  fournit ; la photo personnelle sert au set monté, voir plus haut), synchronisation serveur, valorisation et mode vente.
 
 ### Reste à décider ou à faire
 
@@ -161,6 +173,9 @@ ce sont de petits projets de loisir, récents, la plupart sur serveur.
    - **Export CSV** en plus du JSON : séparateur point-virgule, BOM UTF-8 pour l'Excel français ; une copie à
      lire, pas ré-importable, sans la clé Rebrickable.
    - **Tirage au sort** « quoi monter ce week-end » parmi scellés, neufs et en cours.
+   - **Export des photos personnelles** (version 2, voulu par Antoni) : bouton « Exporter avec les photos »,
+     en option, dans un fichier séparé ; limite d'import (5 Mo) à lever pour ce fichier, chaque image validée
+     comme entrée non fiable. Les photos ne tiennent ni dans un lien ni dans un QR.
    - **Transfert entre téléphone et PC** (Antoni transfère « parfois », collection sous 100 sets) : essayer
      d'abord ce qui existe, **Partager** (Partage rapide Android vers Windows) puis **Importer un fichier**,
      sans code. Si le geste pèse : **lien** (collection compressée dans la partie après le `#`, que GitHub

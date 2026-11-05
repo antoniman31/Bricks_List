@@ -120,6 +120,24 @@ async function filtrerTheme(p, theme) {
   await p.click(`dialog[open] .groupe:has(.groupe__ligne:has-text("Thème")) .puce:text-is("${theme}")`);
   await p.click('dialog[open] .bouton--plein');
 }
+// Choisit une « photo de téléphone » (1 600 × 1 200, dessinée à la volée) dans le champ galerie de la fiche.
+async function choisirPhoto(p) {
+  await p.evaluate(async () => {
+    const c = document.createElement('canvas'); c.width = 1600; c.height = 1200;
+    const x = c.getContext('2d'); const g = x.createLinearGradient(0, 0, 1600, 1200);
+    g.addColorStop(0, '#c33'); g.addColorStop(1, '#36c'); x.fillStyle = g; x.fillRect(0, 0, 1600, 1200);
+    const blob = await new Promise((r) => c.toBlob(r, 'image/jpeg', 0.9));
+    const dt = new DataTransfer(); dt.items.add(new File([blob], 'photo.jpg', { type: 'image/jpeg' }));
+    const champ = document.querySelector('input[type=file][accept="image/*"]:not([capture])');
+    champ.files = dt.files; champ.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+}
+// Taille (octets) de la première photo en stock, 0 s'il n'y en a aucune, -1 si la base est illisible.
+const tailleEnStock = (p) => p.evaluate(() => new Promise((res) => {
+  const o = indexedDB.open('bl_photos');
+  o.onsuccess = () => { const g = o.result.transaction('photos').objectStore('photos').getAll(); g.onsuccess = () => res(g.result[0] ? g.result[0].size : 0); g.onerror = () => res(-1); };
+  o.onerror = () => res(-1);
+}));
 const nbFiltresActifs = async (p) => Number(((await p.getAttribute(FILTRES, 'aria-label')).match(/(\d+) actif/) ?? [0, 0])[1]);
 
 const ECRANS = {
@@ -177,6 +195,37 @@ const ECRANS = {
       return lues.A === 'boite' && lues.B === 'rendu' && lues.C === 'numero';
     });
     await p.locator('input[type=search]').blur();
+  },
+  // Photo personnelle : l'onglet vide, la feuille de recadrage, puis le parcours complet (enregistrer, relire
+  // après rechargement, retirer). La photo gardée doit être réduite (quelques centaines de Ko au plus).
+  'fiche (ma photo, vide)': async (p) => {
+    await p.locator('.carte').first().click();
+    await p.click('button.puce:text-is("Ma photo")');
+    await p.waitForSelector('.photo-vide');
+  },
+  'photo : recadrage': async (p) => {
+    await p.locator('.carte').first().click();
+    await p.click('button.puce:text-is("Ma photo")');
+    await choisirPhoto(p);
+    await p.waitForSelector('dialog[open] .recadrage__image');
+  },
+  'photo : enregistrée, relue, retirée': async (p) => {
+    await p.locator('.carte').first().click();
+    await p.click('button.puce:text-is("Ma photo")');
+    await choisirPhoto(p);
+    await p.waitForSelector('dialog[open] .recadrage__image');
+    await p.click('dialog[open] button:has-text("Enregistrer")');
+    await p.waitForSelector('img.vignette--fiche[alt^="Ma photo"]');
+    const octets = await tailleEnStock(p);
+    exiger(octets > 0 && octets < 300 * 1024, `photo gardée de ${octets} octets (attendu : réduite, moins de 300 Ko)`);
+    await p.reload(); await p.waitForSelector('.carte');
+    await p.locator('.carte').first().click();
+    await p.click('button.puce:text-is("Ma photo")');
+    await p.waitForSelector('img.vignette--fiche[alt^="Ma photo"]');
+    await p.click('.photo-actions button:has-text("Retirer")');
+    await p.click('[role=alertdialog] button:has-text("Retirer")');
+    await p.waitForSelector('.photo-vide');
+    exiger(await tailleEnStock(p) === 0, 'la photo retirée est encore en stock');
   },
   'liste par emplacement': async (p) => { await trier(p, 'Emplacement'); await p.waitForSelector('.rangee'); },
   'liste par emplacement (sélection)': async (p) => {
@@ -345,6 +394,7 @@ try {
         await page.goto(URL);
         // Chaque écran part d'un état identique : les pages d'un même contexte partagent leur
         // stockage, et une clé laissée par un écran précédent changerait le suivant.
+        await page.evaluate(() => new Promise((fini) => { const q = indexedDB.deleteDatabase('bl_photos'); q.onsuccess = q.onerror = q.onblocked = () => fini(); }));
         await page.evaluate((s) => { localStorage.clear(); localStorage.setItem('bl_v1', JSON.stringify({ version: 1, sets: s })); localStorage.setItem('bl_theme', 'auto'); }, SETS);
         await page.reload();
         await page.waitForSelector('.carte');

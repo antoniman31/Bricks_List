@@ -1,0 +1,45 @@
+// Ce qui touche au navigateur pour une photo : décoder le fichier choisi, puis rendre le JPEG recadré.
+// Couche mince (canvas) : le calcul du recadrage est dans `photos.js`, avec ses tests.
+import { QUALITE_JPEG, SORTIE } from './photos.js';
+
+// Les téléphones prennent des photos de 50 millions de pixels : on les ramène à 3 072 px de côté au
+// plus pour que le recadrage et l'aperçu restent fluides, sans perdre de netteté à la sortie (1 024 px).
+const COTE_MAX = 3072;
+
+// Décode le fichier (l'orientation de la prise de vue est appliquée par le navigateur) et le dessine
+// dans un canvas de travail. Rejette si ce n'est pas une image lisible.
+export async function lireImage(fichier) {
+  const url = URL.createObjectURL(fichier);
+  try {
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    const echelle = Math.min(1, COTE_MAX / Math.max(img.naturalWidth, img.naturalHeight));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(img.naturalWidth * echelle));
+    canvas.height = Math.max(1, Math.round(img.naturalHeight * echelle));
+    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+    return canvas;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+// Dessine le rectangle `rect` de la source dans un canvas de la taille donnée.
+export function dessiner(source, rect, cible) {
+  const ctx = cible.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, cible.width, cible.height);
+  ctx.drawImage(source, rect.sx, rect.sy, rect.sl, rect.sh, 0, 0, cible.width, cible.height);
+}
+
+// Le JPEG final : 1 024 × 768, qualité 0,8.
+export function rendreJpeg(source, rect) {
+  const canvas = document.createElement('canvas');
+  canvas.width = SORTIE.largeur;
+  canvas.height = SORTIE.hauteur;
+  dessiner(source, rect, canvas);
+  return new Promise((resoudre, rejeter) => {
+    canvas.toBlob((blob) => (blob ? resoudre(blob) : rejeter(new Error('rendu'))), 'image/jpeg', QUALITE_JPEG);
+  });
+}

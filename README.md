@@ -14,6 +14,8 @@ dans le navigateur et s'exportent en JSON.
   une liste de numéros d'un coup.
 - **Photos de boîte** : affichées partout, déduites du numéro (BrickLink, rien n'est stocké), avec repli sur
   le rendu Rebrickable puis sur le numéro.
+- **Ma photo** : sur la fiche, un sélecteur « Boîte | Ma photo » ; photo de l'appareil ou de la galerie,
+  recadrée en 4:3 et gardée sur l'appareil (hors export).
 - **Fiche** : bandeau jaune avec le numéro et le nom, puis pièces, année et état en gros. Emplacement,
   boîte, notice, dates d'achat et de montage, étiquettes se modifient sur place, d'un appui.
   Un « ×2 » signale un set possédé en plusieurs exemplaires.
@@ -61,6 +63,7 @@ Tout est dans le `localStorage`. Seule la collection est exportée.
 | Clé | Contenu |
 | --- | --- |
 | `bl_v1` | la collection |
+| base IndexedDB `bl_photos` | les photos personnelles (hors export) |
 | `bl_rebrickable` | la clé Rebrickable (jamais exportée) |
 | `bl_themes`, `bl_derniere_sauvegarde`, `bl_partage_texte`, `bl_theme`, `bl_vue`, `bl_dernier_ajout`, `bl_filtres` | cache de thèmes Rebrickable, date de sauvegarde, repli de partage, thème, liste/grille, dernier rangement, onglet et filtres par onglet |
 
