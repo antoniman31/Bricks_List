@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import CarteSet from './components/CarteSet.jsx'
 import ListeGroupee from './components/ListeGroupee.jsx'
 import { copierTexte } from './lib/fichier.js'
@@ -25,6 +25,8 @@ import { charger, sauver } from './lib/storage.js'
 import { idsPhotos, purgerOrphelines } from './lib/photosDB.js'
 import ImagesContext from './ImagesContext.js'
 import { ecrireRegle, lireRegle } from './lib/imageListe.js'
+import { ecrireRelais, lireRelais, messageRelais, recupererSortie } from './lib/relais.js'
+import { FILTRES_SORTIE, candidats, dateCourte } from './lib/sortie.js'
 import { ajouter, ajouterPlusieurs, acheter, compterExemplaires, exemplairesPossedes, modifier, modifierPlusieurs, supprimer, supprimerPlusieurs } from './lib/collection.js'
 import { ETATS, LIBELLES_PRIORITE, PRIORITES } from './lib/model.js'
 import { memeEmplacement } from './lib/emplacements.js'
@@ -105,6 +107,53 @@ export default function App() {
     nettoyage.then(rafraichirPhotos)
   }, [depart, rafraichirPhotos])
   const images = useMemo(() => ({ photos, regle: regleImage, rafraichir: rafraichirPhotos }), [photos, regleImage, rafraichirPhotos])
+  // Dates de sortie : le relais (adresse et jeton, sur l'appareil seulement) et la mise à jour.
+  const [relais, setRelais] = useState(lireRelais)
+  const [majDates, setMajDates] = useState({ etat: '', message: '' })
+  const setsRef = useRef(sets)
+  useEffect(() => { setsRef.current = sets }, [sets])
+  function changerRelais(r) {
+    const res = ecrireRelais(r)
+    if (res.ok) setRelais(lireRelais())
+    return res
+  }
+  async function testerRelais(r) {
+    const res = await recupererSortie(r, '75192-1')
+    if (!res.ok) return { ok: false, message: messageRelais(res.code) }
+    return { ok: true, message: res.lancement ? `Relais joignable (le Faucon Millenium est sorti le ${dateCourte(res.lancement)}).` : 'Relais joignable, mais Brickset n\'a pas de date pour ce set de test.' }
+  }
+  // Interroge Brickset, par le relais, pour les sets sans date ou pas encore sortis (jamais ceux dont la date a
+  // été saisie à la main). Un set après l'autre, et on s'arrête à la première panne (clé refusée, limite
+  // quotidienne, relais injoignable) : insister ne ferait que gaspiller la limite. Une seule écriture à la fin.
+  async function mettreAJourDates() {
+    if (!relais.url) {
+      setMajDates({ etat: 'erreur', message: 'Ajoute d\'abord l\'adresse du relais dans Réglages.' })
+      setEcran({ type: 'reglages' })
+      return
+    }
+    const aFaire = candidats(setsRef.current)
+    if (aFaire.length === 0) return setMajDates({ etat: 'ok', message: 'Rien à mettre à jour : tous les sets ont une date ou sont déjà sortis.' })
+    const trouvees = new Map()
+    let inconnues = 0
+    let arret = null
+    for (const [i, s] of aFaire.entries()) {
+      setMajDates({ etat: 'charge', message: `Mise à jour… ${i + 1}/${aFaire.length}` })
+      const r = await recupererSortie(relais, s.numero)
+      if (!r.ok) { arret = r.code; break }
+      if (r.lancement) trouvees.set(s.id, r.lancement)
+      else inconnues += 1
+      await new Promise((fin) => setTimeout(fin, 120))
+    }
+    let courant = setsRef.current
+    for (const [id, date] of trouvees) courant = modifier(courant, id, { dateSortie: date, sortieSource: 'brickset' })
+    if (trouvees.size > 0) appliquer(courant)
+    const n = trouvees.size
+    const resume = `${n} date${n > 1 ? 's' : ''} enregistrée${n > 1 ? 's' : ''}${inconnues > 0 ? `, ${inconnues} inconnue${inconnues > 1 ? 's' : ''} chez Brickset` : ''}.`
+    setMajDates(arret
+      ? { etat: 'erreur', message: `${messageRelais(arret)}${n > 0 ? ` ${resume}` : ''}` }
+      : { etat: 'ok', message: resume })
+  }
+
   function changerRegleImage(r) {
     setRegleImage(r)
     ecrireRegle(r)
@@ -333,6 +382,7 @@ export default function App() {
     { cle: 'theme', libelle: 'Thème', options: themes(duOnglet).map((t) => ({ valeur: t, libelle: t })) },
     { cle: 'annee', libelle: 'Année', options: groupesAnnees(duOnglet) },
   ]
+  if (filtres.sortie !== '' || duOnglet.some((x) => x.dateSortie)) groupes.push({ cle: 'sortie', libelle: 'Sortie', options: FILTRES_SORTIE })
   if (filtres.taille !== '' || duOnglet.some((x) => x.pieces != null)) groupes.push({ cle: 'taille', libelle: 'Taille', options: TAILLES.map((t) => ({ valeur: t.cle, libelle: t.libelle })) })
   if (aCompleter.length > 0) groupes.unshift({ cle: 'manque', libelle: 'À compléter', options: aCompleter })
   if (statut === 'possédé') {
@@ -530,8 +580,12 @@ export default function App() {
         <>
       {!selection && statut === 'souhaité' && visibles.length > 0 && (
         <div className="outils">
+          <button type="button" className="bouton" disabled={lectureSeule || majDates.etat === 'charge'} onClick={mettreAJourDates}>Mettre à jour les dates</button>
           <button type="button" className="bouton" onClick={copierWishlist}>Copier la liste</button>
         </div>
+      )}
+      {!selection && statut === 'souhaité' && majDates.message && (
+        <p className={`avis${majDates.etat === 'erreur' ? ' avis--erreur' : ''}`} role={majDates.etat === 'erreur' ? 'alert' : 'status'}>{majDates.message}</p>
       )}
 
       {selection && (
@@ -748,6 +802,11 @@ export default function App() {
           onModeChange={changerMode}
           regleImage={regleImage}
           onRegleImage={changerRegleImage}
+          relais={relais}
+          onRelaisChange={changerRelais}
+          onTesterRelais={testerRelais}
+          majDates={majDates}
+          onMajDates={mettreAJourDates}
           onCleChange={changerCle}
           onTesterCle={tester}
           onAppliquer={appliquer}

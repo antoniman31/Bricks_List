@@ -1,5 +1,5 @@
 import { normaliserNumero } from './numero.js';
-import { dateValide } from './dates.js';
+import { dateSortieValide, dateValide } from './dates.js';
 import { normaliserEtiquettes } from './etiquettes.js';
 
 export const STATUTS = ['possédé', 'souhaité'];
@@ -17,6 +17,8 @@ export const OUI_NON = ['oui', 'non'];
 // qui est stocké ; l'ordre du tableau est l'ordre de tri.
 export const PRIORITES = ['forte', 'un-jour', 'pas-presse'];
 // Image qui représente un set dans la liste : null = automatique (la règle des Réglages).
+// D'où vient la date de sortie : saisie à la main (jamais écrasée par une mise à jour) ou donnée par Brickset.
+export const SOURCES_SORTIE = ['manuelle', 'brickset'];
 export const IMAGES_LISTE = ['boite', 'rendu', 'photo'];
 export const LIBELLES_PRIORITE = { forte: 'Envie forte', 'un-jour': 'Un jour', 'pas-presse': 'Pas pressé' };
 
@@ -87,6 +89,12 @@ export function normaliserSet(brut, { anneeMax = new Date().getFullYear() + 2, m
   const priorite = !possede && PRIORITES.includes(brut.priorite) ? brut.priorite : null;
   // Le choix de l'image de la liste vaut pour les deux statuts. « photo » est gardé même si la photo
   // manque (elle vit hors de la collection) : la liste retombe alors sur la boîte.
+  // Date de sortie : pour les deux statuts. Sans date, pas de source ; une date sans source connue est
+  // réputée saisie à la main, la plus prudente (une mise à jour automatique ne l'écrase pas).
+  const dateSortie = dateSortieValide(brut.dateSortie);
+  const sortieValide = brut.dateSortie == null || dateSortie !== null;
+  const sourceValide = brut.sortieSource == null || SOURCES_SORTIE.includes(brut.sortieSource);
+  const sortieSource = dateSortie === null ? null : SOURCES_SORTIE.includes(brut.sortieSource) ? brut.sortieSource : 'manuelle';
   const imageListeValide = brut.imageListe == null || IMAGES_LISTE.includes(brut.imageListe);
   const imageListe = IMAGES_LISTE.includes(brut.imageListe) ? brut.imageListe : null;
 
@@ -108,6 +116,8 @@ export function normaliserSet(brut, { anneeMax = new Date().getFullYear() + 2, m
       notice: corriger(noticeValide, notice),
       priorite: corriger(prioriteValide, priorite),
       imageListe: corriger(imageListeValide, imageListe),
+      dateSortie: corriger(sortieValide, dateSortie),
+      sortieSource: corriger(sourceValide, sortieSource),
       etiquettes: corriger(!etiquettes.corrige, etiquettes.liste),
       dateAchat: corriger(brut.dateAchat == null || !possede || dateAchat !== null, dateAchat),
       dateMontage: corriger(brut.dateMontage == null || !possede || dateMontage !== null, dateMontage),

@@ -36,7 +36,7 @@ for (let i = 0; i < 16; i += 1) {
   });
 }
 for (let k = 0; k < 3; k += 1) {
-  SETS.push({ id: `w${k}`, numero: `${20000 + k}-1`, nom: `Souhait ${k}`, theme: 'Icons', annee: 2024, pieces: 1500 * (k + 1), statut: 'souhaité', priorite: ['forte', 'un-jour', 'pas-presse', null][k % 4], etat: null, notes: '', image: null, dateAjout: '2026-10-10T00:00:00.000Z' });
+  SETS.push({ id: `w${k}`, numero: `${20000 + k}-1`, nom: `Souhait ${k}`, theme: 'Icons', annee: 2024, pieces: 1500 * (k + 1), statut: 'souhaité', priorite: ['forte', 'un-jour', 'pas-presse', null][k % 4], etat: null, notes: '', image: null, dateSortie: [`${new Date().getFullYear() + 1}-03-01`, '2020-05-05', null][k], sortieSource: ['manuelle', 'brickset', null][k], dateAjout: '2026-10-10T00:00:00.000Z' });
 }
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
 
@@ -208,6 +208,60 @@ const ECRANS = {
     await p.click('button.puce:text-is("Ma photo")');
     await choisirPhoto(p);
     await p.waitForSelector('dialog[open] .recadrage__image');
+  },
+  // Dates de sortie : affichage, filtre, saisie à la main, puis mise à jour par le relais (simulé plus bas).
+  'wishlist (dates de sortie)': async (p) => {
+    await p.click('.nav__item:has-text("Wishlist")');
+    await p.waitForSelector('.carte:has-text("Sort ")');
+    exiger(await p.locator('button:has-text("Mettre à jour les dates")').count() === 1, 'le bouton « Mettre à jour les dates » manque');
+  },
+  'wishlist grille (dates de sortie)': async (p) => {
+    await p.click(GRILLE);
+    await p.click('.nav__item:has-text("Wishlist")');
+    await p.waitForSelector('.carte--tuile .carte__sortie');
+  },
+  'filtres (sortie)': async (p) => {
+    await p.click('.nav__item:has-text("Wishlist")');
+    await p.click(FILTRES);
+    await p.click('dialog[open] .groupe__ligne:has-text("Sortie")');
+    await p.waitForSelector('dialog[open] .puce:text-is("À venir")');
+  },
+  'dates de sortie : filtre et tri': async (p) => {
+    await p.click('.nav__item:has-text("Wishlist")');
+    const total = await p.locator('.carte').count();
+    await p.click(FILTRES);
+    await p.click('dialog[open] .groupe:has(.groupe__ligne:has-text("Sortie")) .groupe__ligne');
+    await p.click('dialog[open] .groupe:has(.groupe__ligne:has-text("Sortie")) .puce:text-is("À venir")');
+    await p.click('dialog[open] .bouton--plein');
+    exiger(await p.locator('.carte').count() === 1 && total > 1, 'le filtre « À venir » doit garder exactement le set annoncé');
+    await p.click(FILTRES);
+    await p.click('dialog[open] .groupe:has(.groupe__ligne:has-text("Sortie")) .puce:text-is("Déjà sorti")');
+    await p.click('dialog[open] .bouton--plein');
+    exiger(await p.locator('.carte').count() === 1, 'le filtre « Déjà sorti » doit garder exactement le set sorti');
+  },
+  'fiche : date de sortie saisie à la main': async (p) => {
+    await p.click('.nav__item:has-text("Wishlist")');
+    await p.locator('.carte:has-text("Souhait 2")').click();
+    await p.click('.fiche__ligne--edit:has(dt:text-is("Sortie")) .fiche__valeur');
+    const dans = new Date(); dans.setDate(dans.getDate() + 40);
+    const iso = `${dans.getFullYear()}-${String(dans.getMonth() + 1).padStart(2, '0')}-${String(dans.getDate()).padStart(2, '0')}`;
+    await p.fill('input[type=date][aria-label="Sortie"]', iso);
+    await p.waitForSelector('.fiche__ligne--edit:has(dt:text-is("Sortie")) .fiche__valeur:has-text("dans 40 jours")');
+    const stocke = await p.evaluate(() => JSON.parse(localStorage.getItem('bl_v1')).sets.find((x) => x.nom === 'Souhait 2'));
+    exiger(stocke.dateSortie === iso && stocke.sortieSource === 'manuelle', 'la date saisie n\'est pas enregistrée comme manuelle');
+  },
+  'dates de sortie : mise à jour par le relais': async (p) => {
+    await p.evaluate(() => localStorage.setItem('bl_relais', JSON.stringify({ url: 'https://relais.test', jeton: '' })));
+    await p.reload(); await p.waitForSelector('.carte');
+    await p.click('.nav__item:has-text("Wishlist")');
+    await p.click('button:has-text("Mettre à jour les dates")');
+    await p.waitForSelector('.avis:has-text("enregistrée")', { timeout: 20000 });
+    const sets = await p.evaluate(() => JSON.parse(localStorage.getItem('bl_v1')).sets);
+    const brickset = sets.filter((x) => x.sortieSource === 'brickset');
+    exiger(brickset.length > 1, 'aucune date n\'a été enregistrée depuis le relais');
+    exiger(brickset.every((x) => /^\d{4}-\d{2}-\d{2}$/.test(x.dateSortie)), 'une date du relais est mal formée');
+    const manuel = sets.find((x) => x.nom === 'Souhait 0');
+    exiger(manuel.sortieSource === 'manuelle' && manuel.dateSortie.endsWith('-03-01'), 'une date saisie à la main a été écrasée');
   },
   // Image de la liste : choisie sur la fiche (étoile), puis par la règle des Réglages. La carte montre
   // la photo (une image « blob: », lue dans IndexedDB) seulement dans ces cas.
@@ -412,6 +466,14 @@ try {
       await ctx.route('https://img.bricklink.com/**', (r) => (parseInt(r.request().url().split('/').pop(), 10) % 2
         ? r.fulfill({ status: 200, contentType: 'image/png', headers: { 'access-control-allow-origin': '*' }, body: PNG })
         : r.fulfill({ status: 404, contentType: 'text/html', body: '' })));
+      // Un relais Brickset de test : les numéros divisibles par 3 n'ont pas de date, les autres sortent en juin.
+      await ctx.route('https://relais.test/**', (r) => {
+        const entetes = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'X-Jeton', 'content-type': 'application/json' };
+        if (r.request().method() === 'OPTIONS') return r.fulfill({ status: 204, headers: entetes });
+        const numero = new globalThis.URL(r.request().url()).searchParams.get('numero');
+        const lancement = parseInt(numero, 10) % 3 === 0 ? null : `${new Date().getFullYear() + 1}-06-01`;
+        return r.fulfill({ status: 200, headers: entetes, body: JSON.stringify({ numero, trouve: true, lancement, retrait: null, disponibilite: null }) });
+      });
       // Un Rebrickable de test : une recherche par nom paginée, et un thème.
       await ctx.route('https://rebrickable.com/api/v3/lego/**', (r) => {
         const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'authorization, accept, content-type', 'access-control-allow-methods': 'GET, OPTIONS' };

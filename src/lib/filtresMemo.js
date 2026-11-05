@@ -7,7 +7,7 @@
 // fiable : on ne garde que les champs connus, de type texte.
 import { TRIS } from './recherche.js';
 
-export const FILTRES_VIDES = { theme: '', etat: '', annee: '', manque: '', emplacement: '', boite: '', notice: '', priorite: '', etiquette: '', taille: '' };
+export const FILTRES_VIDES = { theme: '', etat: '', annee: '', manque: '', emplacement: '', boite: '', notice: '', priorite: '', etiquette: '', taille: '', sortie: '' };
 const CLE = 'bl_filtres';
 export const STATUTS = ['possédé', 'souhaité'];
 const LONGUEUR_MAX = 200;
