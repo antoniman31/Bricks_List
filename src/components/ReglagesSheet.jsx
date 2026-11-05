@@ -6,9 +6,10 @@ import { partageDisponible, partager, telecharger } from '../lib/fichier.js'
 import { ecrirePartageTexte, etatSauvegarde, libelleDelai, lirePartageTexte } from '../lib/sauvegarde.js'
 import { cleValide } from '../lib/reglages.js'
 import { LIBELLES, MODES } from '../lib/apparence.js'
+import { REGLES } from '../lib/imageListe.js'
 import { verifierMiseAJour } from '../lib/miseAJour.js'
 
-export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, cle, onCleChange, onTesterCle, onAppliquer, derniereSauvegarde, persistance, onSauvegardeFaite, onFermer }) {
+export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, regleImage, onRegleImage, cle, onCleChange, onTesterCle, onAppliquer, derniereSauvegarde, persistance, onSauvegardeFaite, onFermer }) {
   const [apercu, setApercu] = useState(null)
   const [erreur, setErreur] = useState('')
   const [resultat, setResultat] = useState('')
@@ -129,6 +130,14 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
           {MODES.map((m) => (
             <button key={m} type="button" className="puce" aria-pressed={mode === m} onClick={() => onModeChange(m)}>
               {LIBELLES[m]}
+            </button>
+          ))}
+        </div>
+        <p className="reglage__aide">Image des sets dans la liste, quand tu n'en as pas choisi une sur leur fiche.</p>
+        <div className="stats__puces" role="group" aria-label="Image de la liste">
+          {REGLES.map((r) => (
+            <button key={r.cle} type="button" className="puce" aria-pressed={regleImage === r.cle} onClick={() => onRegleImage(r.cle)}>
+              {r.libelle}
             </button>
           ))}
         </div>

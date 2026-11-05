@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import CarteSet from './components/CarteSet.jsx'
 import ListeGroupee from './components/ListeGroupee.jsx'
 import { copierTexte } from './lib/fichier.js'
@@ -22,7 +22,9 @@ import BarreActionsMasse from './components/BarreActionsMasse.jsx'
 import MasseSheet from './components/MasseSheet.jsx'
 import StatsView from './components/StatsView.jsx'
 import { charger, sauver } from './lib/storage.js'
-import { purgerOrphelines } from './lib/photosDB.js'
+import { idsPhotos, purgerOrphelines } from './lib/photosDB.js'
+import ImagesContext from './ImagesContext.js'
+import { ecrireRegle, lireRegle } from './lib/imageListe.js'
 import { ajouter, ajouterPlusieurs, acheter, compterExemplaires, exemplairesPossedes, modifier, modifierPlusieurs, supprimer, supprimerPlusieurs } from './lib/collection.js'
 import { ETATS, LIBELLES_PRIORITE, PRIORITES } from './lib/model.js'
 import { memeEmplacement } from './lib/emplacements.js'
@@ -89,10 +91,24 @@ export default function App() {
   // Au démarrage seulement : retire les photos des sets disparus. Pas à chaque suppression, une
   // suppression en masse s'annule juste après et sa photo doit revenir avec elle. Jamais si la
   // collection n'a pas pu être lue : un set « absent » serait alors un set simplement illisible.
+  // Les identifiants des sets qui ont une photo sont lus ensuite, une fois : les cartes décident ainsi
+  // sans ouvrir les images (voir ImagesContext).
+  const [photos, setPhotos] = useState(() => new Set())
+  const [regleImage, setRegleImage] = useState(lireRegle)
+  const rafraichirPhotos = useCallback(() => {
+    idsPhotos().then((cles) => setPhotos(new Set(cles))).catch(() => {})
+  }, [])
   useEffect(() => {
-    if (!depart.info.sets || depart.info.erreur) return
-    purgerOrphelines(new Set(depart.info.sets.map((s) => s.id))).catch(() => {})
-  }, [depart])
+    const nettoyage = !depart.info.sets || depart.info.erreur
+      ? Promise.resolve()
+      : purgerOrphelines(new Set(depart.info.sets.map((s) => s.id))).catch(() => {})
+    nettoyage.then(rafraichirPhotos)
+  }, [depart, rafraichirPhotos])
+  const images = useMemo(() => ({ photos, regle: regleImage, rafraichir: rafraichirPhotos }), [photos, regleImage, rafraichirPhotos])
+  function changerRegleImage(r) {
+    setRegleImage(r)
+    ecrireRegle(r)
+  }
 
   // Toute modification passe par ici : elle est affichée tout de suite, puis
   // enregistrée, et un échec d'écriture se voit au lieu de se perdre.
@@ -381,6 +397,7 @@ export default function App() {
   }
 
   return (
+    <ImagesContext.Provider value={images}>
     <div className={`appli${saisie ? ' appli--saisie' : ''}${panneau ? ' appli--panneau' : ''}`}>
       {/* En-tête permanent : le nom et le contexte restent en haut quand on défile. Le compte
           est annoncé aux lecteurs d'écran à chaque changement (recherche, filtres). */}
@@ -729,6 +746,8 @@ export default function App() {
           cle={cle}
           mode={mode}
           onModeChange={changerMode}
+          regleImage={regleImage}
+          onRegleImage={changerRegleImage}
           onCleChange={changerCle}
           onTesterCle={tester}
           onAppliquer={appliquer}
@@ -739,5 +758,6 @@ export default function App() {
         />
       )}
     </div>
+    </ImagesContext.Provider>
   )
 }

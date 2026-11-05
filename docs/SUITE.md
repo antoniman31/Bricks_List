@@ -125,14 +125,25 @@ testé avec sa vraie collection, tout fonctionne.
   la collection est illisible. Tous les sets peuvent avoir une photo, wishlist comprise. *Limite* : si le
   navigateur vide ses données, les photos sont perdues (le set garde sa boîte BrickLink) ; un identifiant de
   set réattribué à l'import orpheline sa photo.
+- **Image de la liste** (novembre 2026) : trois images possibles par set (boîte BrickLink, rendu Rebrickable,
+  ma photo) et un choix de celle qui le représente dans la liste et la grille. Sur la fiche, trois onglets
+  (Rendu seulement si le set en a un) et un bouton « Utiliser dans la liste » sous l'image affichée ; une étoile
+  marque l'onglet choisi, un second appui revient à « automatique ». Le choix est un champ de la fiche
+  (`imageListe` : `boite`, `rendu`, `photo` ou null), donc dans la collection et dans l'export ; une valeur
+  inconnue devient null et est comptée à la validation. Pour les sets sans choix, une **règle** dans Réglages >
+  Apparence (`bl_image_liste`, hors export) : « Boîte, sinon rendu » (défaut, comportement d'avant), « Ma photo
+  quand elle existe » ou « Rendu Rebrickable ». `src/lib/imageListe.js` décide (`choisirImage`, testé) ; les cartes
+  lisent les identifiants des sets qui ont une photo une seule fois (`idsPhotos`, `ImagesContext`) et ne lisent le
+  JPEG que des sets dont la photo s'affiche. Une photo voulue mais absente retombe sur la boîte ; retirer la photo
+  remet le set en automatique. Écartés pour l'instant : choix en sélection multiple, plusieurs photos par set.
 - **Filtres et tri retenus, par onglet** : collection et wishlist ont chacune leurs filtres et leur tri, gardés
   au rechargement (`bl_filtres`, hors export, `src/lib/filtresMemo.js`, entrée validée ; l'ancien format à un
   seul jeu est lu). La recherche texte n'est pas retenue et se vide au changement d'onglet. Un raccourci des
   Stats remplace les filtres de la collection.
-- **Qualité** : `npm run lint`, `npm test` (351 tests), `npm run verif:ui` (axe-core, cibles de
+- **Qualité** : `npm run lint`, `npm test` (357 tests), `npm run verif:ui` (axe-core, cibles de
   48 px, débordements, navigation, recherche visible clavier ouvert, et quatre parcours qui vérifient un
   comportement : filtres conservés au rechargement, onglets indépendants, import d'un `.txt`, repli des
-  boîtes, photo personnelle (enregistrée, relue, retirée) ; 42 écrans × 2 thèmes × 4
+  boîtes, photo personnelle (enregistrée, relue, retirée), image de la liste (fiche et règle) ; 44 écrans × 2 thèmes × 4
   largeurs : 360, 412, 900, 1280). Les trois tournent dans le CI avant le déploiement.
 
 ## Décisions de cadrage (ne pas rouvrir sans raison)

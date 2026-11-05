@@ -20,13 +20,13 @@ const echouees = new Set()
 // Le chargement différé n'a de sens que pour la liste, qui monte des centaines de
 // cartes dont presque toutes sont hors écran. La fiche et l'aperçu s'affichent
 // tout de suite : différer leur image la laissait vide.
-export default function Vignette({ image, numero, variante = 'carte' }) {
+export default function Vignette({ image, numero, variante = 'carte', premier = 'boite' }) {
   // On retient les URL qui ont échoué, pas un simple booléen : si l'image du set
   // change (nouvelle recherche), l'échec précédent ne la concerne plus. Une boîte
   // absente chez BrickLink fait passer à la source suivante, pas au numéro.
   const [, rafraichir] = useState(0)
   const classe = `vignette vignette--${variante}`
-  const src = sourcesImage(numero, image).find((u) => !echouees.has(u))
+  const src = sourcesImage(numero, image, premier).find((u) => !echouees.has(u))
 
   if (!src) {
     return <div className={`${classe} vignette--vide`} aria-hidden="true">{numero}</div>

@@ -209,6 +209,41 @@ const ECRANS = {
     await choisirPhoto(p);
     await p.waitForSelector('dialog[open] .recadrage__image');
   },
+  // Image de la liste : choisie sur la fiche (étoile), puis par la règle des Réglages. La carte montre
+  // la photo (une image « blob: », lue dans IndexedDB) seulement dans ces cas.
+  'photo : choisie pour la liste (fiche)': async (p) => {
+    const cartePhoto = () => p.evaluate(() => document.querySelectorAll('.carte img.vignette[src^="blob:"]').length);
+    await p.locator('.carte').first().click();
+    await p.click('button.puce:has-text("Ma photo")');
+    await choisirPhoto(p);
+    await p.waitForSelector('dialog[open] .recadrage__image');
+    await p.click('dialog[open] button:has-text("Enregistrer")');
+    await p.waitForSelector('img.vignette--fiche[alt^="Ma photo"]');
+    exiger(await cartePhoto() === 0, 'une photo non choisie apparaît déjà dans la liste');
+    await p.click('button:has-text("Utiliser dans la liste")');
+    await p.waitForSelector('.photo-fiche > .bouton[aria-pressed=true]');
+    await p.waitForFunction(() => document.querySelectorAll('.carte img.vignette[src^="blob:"]').length === 1);
+    exiger(await p.evaluate(() => JSON.parse(localStorage.getItem('bl_v1')).sets.filter((x) => x.imageListe === 'photo').length) === 1, 'le choix n\'est pas enregistré dans la fiche');
+    await p.click('.photo-fiche > .bouton[aria-pressed=true]');
+    await p.waitForFunction(() => document.querySelectorAll('.carte img.vignette[src^="blob:"]').length === 0);
+  },
+  'photo : règle des Réglages': async (p) => {
+    await p.locator('.carte').first().click();
+    await p.click('button.puce:has-text("Ma photo")');
+    await choisirPhoto(p);
+    await p.waitForSelector('dialog[open] .recadrage__image');
+    await p.click('dialog[open] button:has-text("Enregistrer")');
+    await p.waitForSelector('img.vignette--fiche[alt^="Ma photo"]');
+    const fermer = p.locator('dialog[open] button[aria-label="Fermer"]');
+    if (await fermer.count()) await fermer.click();
+    await p.click(REGLAGES);
+    await p.click('dialog[open] summary:has-text("Apparence")');
+    await p.click('dialog[open] [aria-label="Image de la liste"] .puce:has-text("Ma photo")');
+    await p.click('dialog[open] button[aria-label="Fermer"]');
+    await p.waitForFunction(() => document.querySelectorAll('.carte img.vignette[src^="blob:"]').length === 1);
+    await p.reload(); await p.waitForSelector('.carte');
+    await p.waitForFunction(() => document.querySelectorAll('.carte img.vignette[src^="blob:"]').length === 1);
+  },
   'photo : enregistrée, relue, retirée': async (p) => {
     await p.locator('.carte').first().click();
     await p.click('button.puce:text-is("Ma photo")');

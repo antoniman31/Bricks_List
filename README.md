@@ -14,8 +14,9 @@ dans le navigateur et s'exportent en JSON.
   une liste de numéros d'un coup.
 - **Photos de boîte** : affichées partout, déduites du numéro (BrickLink, rien n'est stocké), avec repli sur
   le rendu Rebrickable puis sur le numéro.
-- **Ma photo** : sur la fiche, un sélecteur « Boîte | Ma photo » ; photo de l'appareil ou de la galerie,
-  recadrée en 4:3 et gardée sur l'appareil (hors export).
+- **Ma photo** : sur la fiche, un sélecteur « Boîte | Rendu | Ma photo » ; photo de l'appareil ou de la galerie,
+  recadrée en 4:3 et gardée sur l'appareil (hors export). Un bouton choisit l'image du set dans la liste ;
+  une règle dans Réglages décide pour les autres (boîte, ma photo quand elle existe, rendu).
 - **Fiche** : bandeau jaune avec le numéro et le nom, puis pièces, année et état en gros. Emplacement,
   boîte, notice, dates d'achat et de montage, étiquettes se modifient sur place, d'un appui.
   Un « ×2 » signale un set possédé en plusieurs exemplaires.

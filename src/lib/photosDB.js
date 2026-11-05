@@ -47,6 +47,11 @@ export async function lirePhoto(id) {
   return photoValide(blob) ? blob : null;
 }
 
+// Les identifiants des sets qui ont une photo : de quoi décider, sans lire les images, lesquelles afficher.
+export async function idsPhotos() {
+  return (await transaction('readonly', (m) => m.getAllKeys())) ?? [];
+}
+
 export async function ecrirePhoto(id, blob) {
   if (!photoValide(blob)) throw new Error('photo invalide');
   await transaction('readwrite', (m) => m.put(blob, id));
