@@ -22,6 +22,7 @@ import BarreActionsMasse from './components/BarreActionsMasse.jsx'
 import MasseSheet from './components/MasseSheet.jsx'
 import StatsView from './components/StatsView.jsx'
 import { charger, sauver } from './lib/storage.js'
+import { purgerOrphelines } from './lib/photosDB.js'
 import { ajouter, ajouterPlusieurs, acheter, compterExemplaires, exemplairesPossedes, modifier, modifierPlusieurs, supprimer, supprimerPlusieurs } from './lib/collection.js'
 import { ETATS, LIBELLES_PRIORITE, PRIORITES } from './lib/model.js'
 import { memeEmplacement } from './lib/emplacements.js'
@@ -84,6 +85,14 @@ export default function App() {
   // écraserait avec une collection presque vide.
   const lectureSeule = Boolean(depart.info.illisible)
   const rappel = etatSauvegarde({ nbSets: sets.length, derniere: derniereSauvegarde })
+
+  // Au démarrage seulement : retire les photos des sets disparus. Pas à chaque suppression, une
+  // suppression en masse s'annule juste après et sa photo doit revenir avec elle. Jamais si la
+  // collection n'a pas pu être lue : un set « absent » serait alors un set simplement illisible.
+  useEffect(() => {
+    if (!depart.info.sets || depart.info.erreur) return
+    purgerOrphelines(new Set(depart.info.sets.map((s) => s.id))).catch(() => {})
+  }, [depart])
 
   // Toute modification passe par ici : elle est affichée tout de suite, puis
   // enregistrée, et un échec d'écriture se voit au lieu de se perdre.

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import Sheet from './Sheet.jsx'
-import Vignette from './Vignette.jsx'
+import PhotoFiche from './PhotoFiche.jsx'
 import RangerSheet from './RangerSheet.jsx'
 import { ETATS, LIBELLES_PRIORITE, PRIORITES } from '../lib/model.js'
 import { aEtiquette, ajouterEtiquettes, basculerEtiquette } from '../lib/etiquettes.js'
@@ -93,7 +93,7 @@ export function FicheContenu({ set, lectureSeule, lieux = [], lieuRecent = '', e
 
   return (
     <>
-      <Vignette image={set.image} numero={set.numero} variante="fiche" />
+      <PhotoFiche key={set.id} set={set} lectureSeule={lectureSeule} />
 
       <div className="chiffres">
         <div><b>{set.pieces != null ? set.pieces.toLocaleString('fr-FR') : '—'}</b><small>pièces</small></div>
