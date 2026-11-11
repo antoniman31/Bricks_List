@@ -239,6 +239,11 @@ const ECRANS = {
   'boîtes : BrickLink en maintenance, la sauvegarde s\'arrête': async (p) => {
     // Un appareil neuf : sans le cache du service worker, qui garde les images BrickLink déjà vues et répondrait à leur place.
     await p.evaluate(async () => { for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister(); for (const k of await caches.keys()) await caches.delete(k); });
+    // Et sans le cache HTTP de Chromium, qui pourrait resservir une boîte déjà vue : une seule réussite suffit à prouver
+    // que « BrickLink répond », et l'arrêt ne se déclencherait plus (à raison, mais pas ce que ce parcours vérifie).
+    const cdp = await p.context().newCDPSession(p);
+    await cdp.send('Network.enable');
+    await cdp.send('Network.setCacheDisabled', { cacheDisabled: true });
     let appels = 0;
     await p.route('https://img.bricklink.com/**', (r) => { appels += 1; return r.abort(); });
     await p.reload(); await p.waitForSelector('.carte');
