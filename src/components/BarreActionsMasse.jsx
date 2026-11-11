@@ -4,6 +4,7 @@
 const ICONES = {
   modifier: <path d="M4 20h4L18 10l-4-4L4 16v4zM13 7l4 4" />,
   acheter: <path d="M5 12l5 5 9-10" />,
+  wishlist: <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" />,
   supprimer: <path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13" />,
 }
 
@@ -23,12 +24,13 @@ function Action({ icone, libelle, nombre, onClick, danger }) {
   )
 }
 
-export default function BarreActionsMasse({ nombre, statut, onModifier, onSupprimer }) {
+export default function BarreActionsMasse({ nombre, statut, onModifier, onWishlist, onSupprimer }) {
   return (
     <div className="nav" role="toolbar" aria-label="Actions sur la sélection">
       {statut === 'souhaité'
         ? <Action icone="acheter" libelle="Acheté" nombre={nombre} onClick={onModifier} />
         : <Action icone="modifier" libelle="Modifier" nombre={nombre} onClick={onModifier} />}
+      {statut !== 'souhaité' && <Action icone="wishlist" libelle="Wishlist" nombre={nombre} onClick={onWishlist} />}
       <Action icone="supprimer" libelle="Supprimer" nombre={nombre} onClick={onSupprimer} danger />
     </div>
   )

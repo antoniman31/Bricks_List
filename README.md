@@ -29,7 +29,8 @@ dans le navigateur et s'exportent en JSON.
   même après un rechargement.
 - **Modifier plusieurs sets** : sélection, changement en masse (rangement, état, boîte, notice,
   étiquettes à ajouter ou retirer), suppression, avec annulation juste après.
-- **Wishlist** : priorité (forte, un jour, pas pressé), « Acheté » qui bascule le set dans la collection,
+- **Wishlist** : priorité (forte, un jour, pas pressé), « Acheté » qui bascule le set dans la collection (et
+  « Remettre en wishlist » pour l'inverse, avec confirmation, choix de la priorité et annulation),
   copie de la liste en texte.
 - **Statistiques** : chiffres clés, état en anneau, thèmes en blocs, années en courbe, avancement du
   montage et pile à monter, activité sur 12 mois, taille des sets, étiquettes, records, wishlist.
