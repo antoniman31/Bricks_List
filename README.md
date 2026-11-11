@@ -12,8 +12,9 @@ dans le navigateur et s'exportent en JSON.
 - **Ajout rapide** : un champ pour le numéro ou le nom (« 75192 », « falcon »), le rangement et
   l'état repris du dernier ajout. *Plus d'options* ouvre le formulaire complet ; *Plusieurs* ajoute
   une liste de numéros d'un coup.
-- **Photos de boîte** : affichées partout, déduites du numéro (BrickLink, rien n'est stocké), avec repli sur
-  le rendu Rebrickable puis sur le numéro.
+- **Photos de boîte** : affichées partout, déduites du numéro (BrickLink). Chaque boîte vue est gardée sur
+  l'appareil (hors export) : une panne de BrickLink ne la fait plus disparaître. Réglages > Photos de boîte les
+  sauvegarde toutes. Repli sur le rendu Rebrickable puis sur le numéro.
 - **Ma photo** : sur la fiche, un sélecteur « Boîte | Rendu | Ma photo » ; photo de l'appareil ou de la galerie,
   recadrée en 4:3 et gardée sur l'appareil (hors export). Un bouton choisit l'image du set dans la liste ;
   une règle dans Réglages décide pour les autres (boîte, ma photo quand elle existe, rendu).
@@ -68,7 +69,7 @@ Tout est dans le `localStorage`. Seule la collection est exportée.
 | Clé | Contenu |
 | --- | --- |
 | `bl_v1` | la collection |
-| base IndexedDB `bl_photos` | les photos personnelles (hors export) |
+| base IndexedDB `bl_photos` | les photos personnelles et les photos de boîte gardées (hors export) |
 | `bl_rebrickable` | la clé Rebrickable (jamais exportée) |
 | `bl_relais` | adresse du relais Brickset et jeton facultatif (jamais exportés) |
 | `bl_themes`, `bl_derniere_sauvegarde`, `bl_partage_texte`, `bl_theme`, `bl_vue`, `bl_dernier_ajout`, `bl_filtres` | cache de thèmes Rebrickable, date de sauvegarde, repli de partage, thème, liste/grille, dernier rangement, onglet et filtres par onglet |

@@ -43,3 +43,40 @@ export function rendreJpeg(source, rect) {
     canvas.toBlob((blob) => (blob ? resoudre(blob) : rejeter(new Error('rendu'))), 'image/jpeg', QUALITE_JPEG);
   });
 }
+
+// ---- Photos de boîte ----------------------------------------------------------------------------------
+
+const COTE_BOITE = 1024;
+
+// Une photo de boîte déjà affichée (`<img>` chargée avec `crossOrigin`, sinon le canvas serait « souillé » et
+// illisible) devient un JPEG de 1 024 px au plus : une soixantaine de Ko au lieu de 400 à 750 Ko en PNG.
+export function boiteVersJpeg(img) {
+  const largeur = img.naturalWidth;
+  const hauteur = img.naturalHeight;
+  if (!largeur || !hauteur) return Promise.reject(new Error('image vide'));
+  const echelle = Math.min(1, COTE_BOITE / Math.max(largeur, hauteur));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(largeur * echelle));
+  canvas.height = Math.max(1, Math.round(hauteur * echelle));
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return new Promise((resoudre, rejeter) => {
+    canvas.toBlob((blob) => (blob ? resoudre(blob) : rejeter(new Error('rendu'))), 'image/jpeg', 0.85);
+  });
+}
+
+// Charge la boîte d'une adresse (avec CORS) pour la sauvegarder ; null si l'image n'arrive pas (pas de photo
+// chez BrickLink, ou BrickLink en panne : il répond alors une page web, que le navigateur refuse comme image).
+export function chargerImageBoite(url, delaiMs = 10000) {
+  return new Promise((resoudre) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    const fin = (v) => { clearTimeout(minuteur); img.onload = null; img.onerror = null; resoudre(v); };
+    const minuteur = setTimeout(() => fin(null), delaiMs);
+    img.onload = () => fin(img);
+    img.onerror = () => fin(null);
+    img.src = url;
+  });
+}

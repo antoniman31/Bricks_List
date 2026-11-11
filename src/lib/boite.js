@@ -18,3 +18,21 @@ export function sourcesImage(numero, rendu, premier = 'boite') {
   const r = typeof rendu === 'string' && rendu ? rendu : null;
   return (premier === 'rendu' ? [r, boite] : [boite, r]).filter(Boolean);
 }
+
+// Les numéros (distincts, normalisés) dont la boîte n'est pas encore gardée sur l'appareil : ce que « Sauvegarder
+// toutes les boîtes » doit aller chercher. Les deux statuts comptent : on voit les boîtes de la wishlist aussi.
+export function numerosABoites(sets, deja = new Set()) {
+  const vus = new Set();
+  for (const s of sets) {
+    const n = normaliserNumero(s?.numero);
+    if (n && !deja.has(n)) vus.add(n);
+  }
+  return [...vus];
+}
+
+// BrickLink en panne ou en maintenance : plusieurs échecs de suite sans une seule réussite. On arrête alors la
+// sauvegarde au lieu de demander des dizaines d'images qui n'arriveront pas.
+export const ECHECS_AVANT_ARRET = 3;
+export function brickLinkInjoignable(echecsDeSuite, reussies) {
+  return reussies === 0 && echecsDeSuite >= ECHECS_AVANT_ARRET;
+}

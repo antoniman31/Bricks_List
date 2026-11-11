@@ -22,7 +22,10 @@ import BarreActionsMasse from './components/BarreActionsMasse.jsx'
 import MasseSheet from './components/MasseSheet.jsx'
 import StatsView from './components/StatsView.jsx'
 import { charger, sauver } from './lib/storage.js'
-import { idsPhotos, purgerOrphelines } from './lib/photosDB.js'
+import { ecrireBoite, idsPhotos, numerosBoites, purgerBoitesOrphelines, purgerOrphelines } from './lib/photosDB.js'
+import { boiteVersJpeg, chargerImageBoite } from './lib/photoNavigateur.js'
+import { brickLinkInjoignable, numerosABoites, urlBoite } from './lib/boite.js'
+import { normaliserNumero } from './lib/numero.js'
 import ImagesContext from './ImagesContext.js'
 import { ecrireRegle, lireRegle } from './lib/imageListe.js'
 import { ecrireRelais, lireRelais, messageRelais, recupererSortie } from './lib/relais.js'
@@ -100,13 +103,64 @@ export default function App() {
   const rafraichirPhotos = useCallback(() => {
     idsPhotos().then((cles) => setPhotos(new Set(cles))).catch(() => {})
   }, [])
+  // Les boîtes gardées sur l'appareil, par numéro : lues une fois, puis remises à jour (en différé, pour ne pas
+  // redessiner toute la liste à chaque boîte qui arrive).
+  const [boites, setBoites] = useState(() => new Set())
+  const minuteurBoites = useRef(null)
+  const rafraichirBoites = useCallback(() => {
+    clearTimeout(minuteurBoites.current)
+    minuteurBoites.current = setTimeout(() => { numerosBoites().then((n) => setBoites(new Set(n))).catch(() => {}) }, 400)
+  }, [])
+  const boitesEnCours = useRef(new Set())
+  // Une boîte vue (`<img>` chargée depuis BrickLink) devient un JPEG gardé sur l'appareil. C'est un confort : un échec
+  // (stockage plein, navigateur sans IndexedDB) ne se voit pas, la boîte retombe simplement sur le réseau.
+  const sauverBoite = useCallback(async (numero, img) => {
+    const n = normaliserNumero(numero)
+    if (!n || boitesEnCours.current.has(n)) return
+    boitesEnCours.current.add(n)
+    try {
+      await ecrireBoite(n, await boiteVersJpeg(img))
+      rafraichirBoites()
+    } catch { /* confort seulement */ } finally {
+      boitesEnCours.current.delete(n)
+    }
+  }, [rafraichirBoites])
   useEffect(() => {
-    const nettoyage = !depart.info.sets || depart.info.erreur
+    const lisible = depart.info.sets && !depart.info.erreur
+    const nettoyage = !lisible
       ? Promise.resolve()
-      : purgerOrphelines(new Set(depart.info.sets.map((s) => s.id))).catch(() => {})
-    nettoyage.then(rafraichirPhotos)
-  }, [depart, rafraichirPhotos])
-  const images = useMemo(() => ({ photos, regle: regleImage, rafraichir: rafraichirPhotos }), [photos, regleImage, rafraichirPhotos])
+      : Promise.all([
+        purgerOrphelines(new Set(depart.info.sets.map((s) => s.id))).catch(() => {}),
+        purgerBoitesOrphelines(new Set(depart.info.sets.map((s) => normaliserNumero(s.numero)))).catch(() => {}),
+      ])
+    nettoyage.then(() => { rafraichirPhotos(); rafraichirBoites() })
+  }, [depart, rafraichirPhotos, rafraichirBoites])
+  const images = useMemo(() => ({ photos, regle: regleImage, rafraichir: rafraichirPhotos, boites, sauverBoite }), [photos, regleImage, rafraichirPhotos, boites, sauverBoite])
+  // « Sauvegarder toutes les boîtes » (Réglages) : va chercher, une par une, celles qui manquent sur l'appareil.
+  // S'arrête si BrickLink ne répond pas (maintenance) : insister n'apporterait rien.
+  const [majBoites, setMajBoites] = useState({ etat: '', message: '' })
+  async function sauvegarderToutesLesBoites() {
+    const aFaire = numerosABoites(setsRef.current, boites)
+    if (aFaire.length === 0) return setMajBoites({ etat: 'ok', message: 'Toutes les boîtes sont déjà sur cet appareil.' })
+    let reussies = 0
+    let sansPhoto = 0
+    let echecsDeSuite = 0
+    let injoignable = false
+    for (const [i, n] of aFaire.entries()) {
+      setMajBoites({ etat: 'charge', message: `Sauvegarde… ${i + 1}/${aFaire.length}` })
+      const img = await chargerImageBoite(urlBoite(n))
+      if (img) {
+        try { await ecrireBoite(n, await boiteVersJpeg(img)); reussies += 1; echecsDeSuite = 0 } catch { sansPhoto += 1 }
+      } else {
+        sansPhoto += 1
+        echecsDeSuite += 1
+        if (brickLinkInjoignable(echecsDeSuite, reussies)) { injoignable = true; break }
+      }
+    }
+    rafraichirBoites()
+    if (injoignable) return setMajBoites({ etat: 'erreur', message: 'BrickLink ne répond pas (maintenance ?) : réessaie plus tard.' })
+    setMajBoites({ etat: 'ok', message: `${reussies} boîte${reussies > 1 ? 's' : ''} sauvegardée${reussies > 1 ? 's' : ''}${sansPhoto > 0 ? `, ${sansPhoto} sans photo chez BrickLink` : ''}.` })
+  }
   // Dates de sortie : le relais (adresse et jeton, sur l'appareil seulement) et la mise à jour.
   const [relais, setRelais] = useState(lireRelais)
   const [majDates, setMajDates] = useState({ etat: '', message: '' })
@@ -818,6 +872,9 @@ export default function App() {
           onTesterRelais={testerRelais}
           majDates={majDates}
           onMajDates={mettreAJourDates}
+          nbBoites={boites.size}
+          majBoites={majBoites}
+          onSauvegarderBoites={sauvegarderToutesLesBoites}
           onCleChange={changerCle}
           onTesterCle={tester}
           onAppliquer={appliquer}

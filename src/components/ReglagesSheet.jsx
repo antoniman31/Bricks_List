@@ -10,7 +10,7 @@ import { REGLES } from '../lib/imageListe.js'
 import { jetonValide, urlRelaisValide } from '../lib/relais.js'
 import { verifierMiseAJour } from '../lib/miseAJour.js'
 
-export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, regleImage, onRegleImage, relais, onRelaisChange, onTesterRelais, majDates, onMajDates, cle, onCleChange, onTesterCle, onAppliquer, derniereSauvegarde, persistance, onSauvegardeFaite, onFermer }) {
+export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, regleImage, onRegleImage, relais, onRelaisChange, onTesterRelais, majDates, onMajDates, nbBoites = 0, majBoites = { etat: '', message: '' }, onSauvegarderBoites, cle, onCleChange, onTesterCle, onAppliquer, derniereSauvegarde, persistance, onSauvegardeFaite, onFermer }) {
   const [apercu, setApercu] = useState(null)
   const [erreur, setErreur] = useState('')
   const [resultat, setResultat] = useState('')
@@ -198,6 +198,17 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
         {cle && <button type="button" className="bouton bouton--danger" onClick={supprimerCle}>Supprimer la clé</button>}
         {etatCle.message && (
           <p className={`avis${etatCle.type === 'erreur' ? ' avis--erreur' : ''}`} role={etatCle.type === 'erreur' ? 'alert' : 'status'}>{etatCle.message}</p>
+        )}
+      </details>
+
+      <details className="reglage">
+        <summary>Photos de boîte</summary>
+        <p className="reglage__aide">
+          Chaque boîte affichée est gardée sur cet appareil : si BrickLink est en panne, elle reste visible. {nbBoites} boîte{nbBoites > 1 ? 's' : ''} sauvegardée{nbBoites > 1 ? 's' : ''}, hors export.
+        </p>
+        <button type="button" className="bouton" disabled={majBoites.etat === 'charge'} onClick={onSauvegarderBoites}>Sauvegarder toutes les boîtes</button>
+        {majBoites.message && (
+          <p className={`avis${majBoites.etat === 'erreur' ? ' avis--erreur' : ''}`} role={majBoites.etat === 'erreur' ? 'alert' : 'status'}>{majBoites.message}</p>
         )}
       </details>
 

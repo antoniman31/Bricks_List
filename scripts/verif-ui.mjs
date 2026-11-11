@@ -133,6 +133,16 @@ async function choisirPhoto(p) {
   });
 }
 // Taille (octets) de la première photo en stock, 0 s'il n'y en a aucune, -1 si la base est illisible.
+// Nombre de boîtes gardées sur l'appareil (magasin « boites » d'IndexedDB), -1 si la base est illisible.
+const nbBoitesStock = (p) => p.evaluate(() => new Promise((res) => {
+  const o = indexedDB.open('bl_photos');
+  o.onsuccess = () => {
+    if (!o.result.objectStoreNames.contains('boites')) return res(0);
+    const g = o.result.transaction('boites').objectStore('boites').count();
+    g.onsuccess = () => res(g.result); g.onerror = () => res(-1);
+  };
+  o.onerror = () => res(-1);
+}));
 const tailleEnStock = (p) => p.evaluate(() => new Promise((res) => {
   const o = indexedDB.open('bl_photos');
   o.onsuccess = () => { const g = o.result.transaction('photos').objectStore('photos').getAll(); g.onsuccess = () => res(g.result[0] ? g.result[0].size : 0); g.onerror = () => res(-1); };
@@ -208,6 +218,34 @@ const ECRANS = {
     await p.click('button.puce:text-is("Ma photo")');
     await choisirPhoto(p);
     await p.waitForSelector('dialog[open] .recadrage__image');
+  },
+  // Boîtes gardées sur l'appareil : chaque boîte affichée depuis BrickLink est enregistrée, puis servie en premier
+  // quand BrickLink ne répond plus. Le BrickLink de test donne une photo aux numéros impairs, 404 aux pairs.
+  'boîtes : gardées puis servies sans BrickLink': async (p) => {
+    for (let i = 0; i < 40 && await nbBoitesStock(p) === 0; i += 1) await p.waitForTimeout(150);
+    exiger(await nbBoitesStock(p) > 0, 'aucune boîte affichée n\'a été gardée sur l\'appareil');
+    await p.route('https://img.bricklink.com/**', (r) => r.abort());
+    await p.reload(); await p.waitForSelector('.carte');
+    await p.waitForFunction(() => document.querySelectorAll('.carte img.vignette[src^="blob:"]').length > 0);
+  },
+  'boîtes : sauvegarder toutes (réglages)': async (p) => {
+    await p.click(REGLAGES);
+    await p.click('dialog[open] summary:has-text("Photos de boîte")');
+    await p.click('dialog[open] button:has-text("Sauvegarder toutes les boîtes")');
+    await p.waitForSelector('dialog[open] .avis:has-text("sauvegardée")', { timeout: 20000 });
+    const attendu = await p.evaluate(() => new Set(JSON.parse(localStorage.getItem('bl_v1')).sets.map((x) => x.numero).filter((n) => parseInt(n, 10) % 2 === 1)).size);
+    exiger(attendu > 0 && await nbBoitesStock(p) === attendu, `les boîtes disponibles doivent toutes être gardées (attendu ${attendu}, gardé ${await nbBoitesStock(p)})`);
+  },
+  'boîtes : BrickLink en maintenance, la sauvegarde s\'arrête': async (p) => {
+    let appels = 0;
+    await p.route('https://img.bricklink.com/**', (r) => { appels += 1; return r.abort(); });
+    await p.reload(); await p.waitForSelector('.carte');
+    appels = 0;
+    await p.click(REGLAGES);
+    await p.click('dialog[open] summary:has-text("Photos de boîte")');
+    await p.click('dialog[open] button:has-text("Sauvegarder toutes les boîtes")');
+    await p.waitForSelector('dialog[open] [role=alert]:has-text("BrickLink ne répond pas")', { timeout: 20000 });
+    exiger(appels <= 6, `la sauvegarde doit s'arrêter vite quand BrickLink ne répond pas (${appels} demandes)`);
   },
   // Collection vers wishlist : la confirmation dit ce qui est perdu, la priorité se choisit, et l'annulation
   // juste après remet le set exactement comme avant (état et date d'achat compris).
