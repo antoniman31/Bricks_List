@@ -9,7 +9,8 @@ export default function useBoite(numero, type = 'boite') {
   useEffect(() => {
     let annule = false
     let url = null
-    (type === 'rendu' ? lireRendu : lireBoite)(numero)
+    const lire = type === 'rendu' ? lireRendu : lireBoite
+    lire(numero)
       .then((blob) => {
         if (annule) return
         url = blob ? URL.createObjectURL(blob) : null
