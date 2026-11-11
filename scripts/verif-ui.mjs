@@ -133,16 +133,16 @@ async function choisirPhoto(p) {
   });
 }
 // Taille (octets) de la première photo en stock, 0 s'il n'y en a aucune, -1 si la base est illisible.
-// Nombre de boîtes gardées sur l'appareil (magasin « boites » d'IndexedDB), -1 si la base est illisible.
-const nbBoitesStock = (p) => p.evaluate(() => new Promise((res) => {
+// Nombre d'images gardées sur l'appareil dans un magasin d'IndexedDB (« boites » ou « rendus »), -1 si la base est illisible.
+const nbBoitesStock = (p, magasin = 'boites') => p.evaluate((m) => new Promise((res) => {
   const o = indexedDB.open('bl_photos');
   o.onsuccess = () => {
-    if (!o.result.objectStoreNames.contains('boites')) return res(0);
-    const g = o.result.transaction('boites').objectStore('boites').count();
+    if (!o.result.objectStoreNames.contains(m)) return res(0);
+    const g = o.result.transaction(m).objectStore(m).count();
     g.onsuccess = () => res(g.result); g.onerror = () => res(-1);
   };
   o.onerror = () => res(-1);
-}));
+}), magasin);
 const tailleEnStock = (p) => p.evaluate(() => new Promise((res) => {
   const o = indexedDB.open('bl_photos');
   o.onsuccess = () => { const g = o.result.transaction('photos').objectStore('photos').getAll(); g.onsuccess = () => res(g.result[0] ? g.result[0].size : 0); g.onerror = () => res(-1); };
@@ -230,11 +230,39 @@ const ECRANS = {
   },
   'boîtes : sauvegarder toutes (réglages)': async (p) => {
     await p.click(REGLAGES);
-    await p.click('dialog[open] summary:has-text("Photos de boîte")');
-    await p.click('dialog[open] button:has-text("Sauvegarder toutes les boîtes")');
+    await p.click('dialog[open] summary:has-text("Images sur")');
+    await p.click('dialog[open] button:has-text("Sauvegarder toutes les images")');
     await p.waitForSelector('dialog[open] .avis:has-text("sauvegardée")', { timeout: 20000 });
     const attendu = await p.evaluate(() => new Set(JSON.parse(localStorage.getItem('bl_v1')).sets.map((x) => x.numero).filter((n) => parseInt(n, 10) % 2 === 1)).size);
     exiger(attendu > 0 && await nbBoitesStock(p) === attendu, `les boîtes disponibles doivent toutes être gardées (attendu ${attendu}, gardé ${await nbBoitesStock(p)})`);
+  },
+  // Rendus Rebrickable : leur CDN n'a pas de CORS, la copie passe par le relais (simulé ici). Sans relais configuré,
+  // la sauvegarde le dit ; avec, les rendus sont gardés puis servis quand Rebrickable ne répond plus.
+  'rendus : sans relais, la sauvegarde le dit': async (p) => {
+    await p.evaluate(() => localStorage.removeItem('bl_relais'));
+    await p.reload(); await p.waitForSelector('.carte');
+    await p.click(REGLAGES);
+    await p.click('dialog[open] summary:has-text("Images sur")');
+    await p.click('dialog[open] button:has-text("Sauvegarder toutes les images")');
+    await p.waitForSelector('dialog[open] [role=alert]:has-text("ajoute le relais")', { timeout: 20000 });
+    exiger(await nbBoitesStock(p, 'rendus') === 0, 'sans relais, aucun rendu ne doit être gardé');
+  },
+  'rendus : copiés par le relais puis servis sans Rebrickable': async (p) => {
+    let demandes = 0;
+    await p.route('https://relais-test.example/image**', (r) => { demandes += 1; return r.fulfill({ status: 200, contentType: 'image/png', body: PNG, headers: { 'Access-Control-Allow-Origin': '*' } }); });
+    await p.evaluate(() => localStorage.setItem('bl_relais', JSON.stringify({ url: 'https://relais-test.example', jeton: '' })));
+    await p.reload(); await p.waitForSelector('.carte');
+    await p.click(REGLAGES);
+    await p.click('dialog[open] summary:has-text("Images sur")');
+    await p.click('dialog[open] button:has-text("Sauvegarder toutes les images")');
+    await p.waitForSelector('dialog[open] .avis:has-text("rendu")', { timeout: 20000 });
+    const attendu = await p.evaluate(() => new Set(JSON.parse(localStorage.getItem('bl_v1')).sets.filter((x) => x.image).map((x) => x.numero)).size);
+    exiger(attendu > 0 && await nbBoitesStock(p, 'rendus') === attendu, `tous les rendus doivent être gardés (attendu ${attendu}, gardé ${await nbBoitesStock(p, 'rendus')}, ${demandes} demandes au relais)`);
+    // Rebrickable coupé, rendu demandé en premier : l'image vient de l'appareil.
+    await p.route('https://cdn.rebrickable.com/**', (r) => r.abort());
+    await p.evaluate(() => localStorage.setItem('bl_image_liste', 'rendu'));
+    await p.reload(); await p.waitForSelector('.carte');
+    await p.waitForFunction(() => document.querySelectorAll('.carte img.vignette[data-origine="rendu"]').length > 0);
   },
   // Dans un contexte de navigateur NEUF (aucun cache, aucun service worker, aucune boîte gardée) : un appareil qui n'a
   // jamais vu BrickLink. Les contextes du parcours partagent leurs caches, qui resservaient des images malgré la coupure.
@@ -252,8 +280,8 @@ const ECRANS = {
       await q.reload(); await q.waitForSelector('.carte');
       appels = 0;
       await q.click(REGLAGES);
-      await q.click('dialog[open] summary:has-text("Photos de boîte")');
-      await q.click('dialog[open] button:has-text("Sauvegarder toutes les boîtes")');
+      await q.click('dialog[open] summary:has-text("Images sur")');
+      await q.click('dialog[open] button:has-text("Sauvegarder toutes les images")');
       try {
         await q.waitForSelector('dialog[open] [role=alert]:has-text("BrickLink ne répond pas")', { timeout: 20000 });
       } catch {

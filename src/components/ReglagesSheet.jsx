@@ -10,7 +10,7 @@ import { REGLES } from '../lib/imageListe.js'
 import { jetonValide, urlRelaisValide } from '../lib/relais.js'
 import { verifierMiseAJour } from '../lib/miseAJour.js'
 
-export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, regleImage, onRegleImage, relais, onRelaisChange, onTesterRelais, majDates, onMajDates, nbBoites = 0, majBoites = { etat: '', message: '' }, onSauvegarderBoites, cle, onCleChange, onTesterCle, onAppliquer, derniereSauvegarde, persistance, onSauvegardeFaite, onFermer }) {
+export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, regleImage, onRegleImage, relais, onRelaisChange, onTesterRelais, majDates, onMajDates, nbBoites = 0, nbRendus = 0, majBoites = { etat: '', message: '' }, onSauvegarderBoites, cle, onCleChange, onTesterCle, onAppliquer, derniereSauvegarde, persistance, onSauvegardeFaite, onFermer }) {
   const [apercu, setApercu] = useState(null)
   const [erreur, setErreur] = useState('')
   const [resultat, setResultat] = useState('')
@@ -202,11 +202,11 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
       </details>
 
       <details className="reglage">
-        <summary>Photos de boîte</summary>
+        <summary>Images sur l'appareil</summary>
         <p className="reglage__aide">
-          Chaque boîte affichée est gardée sur cet appareil : si BrickLink est en panne, elle reste visible. {nbBoites} boîte{nbBoites > 1 ? 's' : ''} sauvegardée{nbBoites > 1 ? 's' : ''}, hors export.
+          Chaque boîte affichée est gardée sur cet appareil : si BrickLink est en panne, elle reste visible. Les rendus Rebrickable se copient par le relais. {nbBoites} boîte{nbBoites > 1 ? 's' : ''} et {nbRendus} rendu{nbRendus > 1 ? 's' : ''} sauvegardé{nbBoites + nbRendus > 1 ? 's' : ''}, hors export.
         </p>
-        <button type="button" className="bouton" disabled={majBoites.etat === 'charge'} onClick={onSauvegarderBoites}>Sauvegarder toutes les boîtes</button>
+        <button type="button" className="bouton" disabled={majBoites.etat === 'charge'} onClick={onSauvegarderBoites}>Sauvegarder toutes les images</button>
         {majBoites.message && (
           <p className={`avis${majBoites.etat === 'erreur' ? ' avis--erreur' : ''}`} role={majBoites.etat === 'erreur' ? 'alert' : 'status'}>{majBoites.message}</p>
         )}

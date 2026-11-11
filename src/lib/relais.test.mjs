@@ -75,3 +75,24 @@ test('recupererSortie : les pannes deviennent des codes, jamais une exception', 
   assert.equal(await code(async () => { throw Object.assign(new Error('t'), { name: 'TimeoutError' }); }), 'delai');
   for (const c of ['cle', 'limite', 'jeton', 'reseau', 'delai', 'brickset', 'reponse', 'inconnu']) assert.ok(messageRelais(c).length > 10);
 });
+
+test('recupererImage : renvoie l\'image, ou un code sans jamais lever', async () => {
+  const { recupererImage } = await import('./relais.js');
+  const rel = { url: 'https://r.example', jeton: 'abcdefgh1' };
+  const u = 'https://cdn.rebrickable.com/media/sets/75192-1.jpg';
+  let vu;
+  const ok = async (adr, init) => { vu = { adr, init }; return new Response(new Blob([new Uint8Array(5)], { type: 'image/jpeg' }), { status: 200, headers: { 'Content-Type': 'image/jpeg' } }); };
+  const r = await recupererImage(rel, u, ok);
+  assert.equal(r.ok, true);
+  assert.equal(vu.adr, `https://r.example/image?url=${encodeURIComponent(u)}`);
+  assert.equal(vu.init.headers['X-Jeton'], 'abcdefgh1');
+  const code = async (f, adr = u, relais = rel) => (await recupererImage(relais, adr, f)).code;
+  assert.equal(await code(ok, 'https://evil.test/a.jpg'), 'url');
+  assert.equal(await code(ok, u, { url: '', jeton: '' }), 'url');
+  assert.equal(await code(async () => { throw new Error('x'); }), 'reseau');
+  assert.equal(await code(async () => new Response(JSON.stringify({ erreur: 'absente' }), { status: 404 })), 'absente');
+  assert.equal(await code(async () => new Response('pas du json', { status: 500 })), 'reponse');
+  assert.equal(await code(async () => new Response(new Blob(['<html>'], { type: 'text/html' }), { status: 200 })), 'type');
+  assert.equal(await code(async () => new Response(new Blob([], { type: 'image/jpeg' }), { status: 200 })), 'taille');
+  assert.equal(await code(async () => new Response(new Blob([new Uint8Array(2 * 1024 * 1024 + 1)], { type: 'image/png' }), { status: 200 })), 'taille');
+});

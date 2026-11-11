@@ -22,13 +22,13 @@ import BarreActionsMasse from './components/BarreActionsMasse.jsx'
 import MasseSheet from './components/MasseSheet.jsx'
 import StatsView from './components/StatsView.jsx'
 import { charger, sauver } from './lib/storage.js'
-import { ecrireBoite, idsPhotos, numerosBoites, purgerBoitesOrphelines, purgerOrphelines } from './lib/photosDB.js'
-import { boiteVersJpeg, chargerImageBoite } from './lib/photoNavigateur.js'
-import { brickLinkInjoignable, numerosABoites, urlBoite } from './lib/boite.js'
+import { ecrireBoite, ecrireRendu, idsPhotos, numerosBoites, numerosRendus, purgerBoitesOrphelines, purgerOrphelines, purgerRendusOrphelins } from './lib/photosDB.js'
+import { boiteVersJpeg, chargerImageBoite, rendreRendu } from './lib/photoNavigateur.js'
+import { brickLinkInjoignable, numerosABoites, rendusACopier, urlBoite } from './lib/boite.js'
 import { normaliserNumero } from './lib/numero.js'
 import ImagesContext from './ImagesContext.js'
 import { ecrireRegle, lireRegle } from './lib/imageListe.js'
-import { ecrireRelais, lireRelais, messageRelais, recupererSortie } from './lib/relais.js'
+import { ecrireRelais, lireRelais, messageRelais, recupererImage, recupererSortie } from './lib/relais.js'
 import { FILTRES_SORTIE, candidats, dateCourte } from './lib/sortie.js'
 import { ajouter, ajouterPlusieurs, acheter, compterExemplaires, exemplairesPossedes, modifier, modifierPlusieurs, remettreEnWishlist, supprimer, supprimerPlusieurs } from './lib/collection.js'
 import { ETATS, LIBELLES_PRIORITE, PRIORITES } from './lib/model.js'
@@ -111,6 +111,11 @@ export default function App() {
     clearTimeout(minuteurBoites.current)
     minuteurBoites.current = setTimeout(() => { numerosBoites().then((n) => setBoites(new Set(n))).catch(() => {}) }, 400)
   }, [])
+  // Les rendus Rebrickable copiés sur l'appareil (par le relais), même principe.
+  const [rendus, setRendus] = useState(() => new Set())
+  const rafraichirRendus = useCallback(() => {
+    numerosRendus().then((n) => setRendus(new Set(n))).catch(() => {})
+  }, [])
   const boitesEnCours = useRef(new Set())
   // Une boîte vue (`<img>` chargée depuis BrickLink) devient un JPEG gardé sur l'appareil. C'est un confort : un échec
   // (stockage plein, navigateur sans IndexedDB) ne se voit pas, la boîte retombe simplement sur le réseau.
@@ -132,22 +137,30 @@ export default function App() {
       : Promise.all([
         purgerOrphelines(new Set(depart.info.sets.map((s) => s.id))).catch(() => {}),
         purgerBoitesOrphelines(new Set(depart.info.sets.map((s) => normaliserNumero(s.numero)))).catch(() => {}),
+        purgerRendusOrphelins(new Set(depart.info.sets.map((s) => normaliserNumero(s.numero)))).catch(() => {}),
       ])
-    nettoyage.then(() => { rafraichirPhotos(); rafraichirBoites() })
-  }, [depart, rafraichirPhotos, rafraichirBoites])
-  const images = useMemo(() => ({ photos, regle: regleImage, rafraichir: rafraichirPhotos, boites, sauverBoite }), [photos, regleImage, rafraichirPhotos, boites, sauverBoite])
-  // « Sauvegarder toutes les boîtes » (Réglages) : va chercher, une par une, celles qui manquent sur l'appareil.
-  // S'arrête si BrickLink ne répond pas (maintenance) : insister n'apporterait rien.
+    nettoyage.then(() => { rafraichirPhotos(); rafraichirBoites(); rafraichirRendus() })
+  }, [depart, rafraichirPhotos, rafraichirBoites, rafraichirRendus])
+  const images = useMemo(() => ({ photos, regle: regleImage, rafraichir: rafraichirPhotos, boites, sauverBoite, rendus }), [photos, regleImage, rafraichirPhotos, boites, sauverBoite, rendus])
+  // « Sauvegarder toutes les images » (Réglages) : va chercher, une par une, ce qui manque sur l'appareil. D'abord les
+  // boîtes (BrickLink ; on s'arrête s'il ne répond pas : insister n'apporterait rien), puis les rendus Rebrickable
+  // par le relais (leur CDN n'a pas de CORS) ; sans relais configuré, les rendus sont laissés de côté, et on le dit.
   const [majBoites, setMajBoites] = useState({ etat: '', message: '' })
   async function sauvegarderToutesLesBoites() {
-    const aFaire = numerosABoites(setsRef.current, boites)
-    if (aFaire.length === 0) return setMajBoites({ etat: 'ok', message: 'Toutes les boîtes sont déjà sur cet appareil.' })
+    const boitesAFaire = numerosABoites(setsRef.current, boites)
+    const rendusAFaire = rendusACopier(setsRef.current, rendus)
+    if (boitesAFaire.length === 0 && rendusAFaire.length === 0) return setMajBoites({ etat: 'ok', message: 'Toutes les images sont déjà sur cet appareil.' })
+    const total = boitesAFaire.length + (relais.url ? rendusAFaire.length : 0)
+    let fait = 0
+    const bilan = []
+    let probleme = false
+
     let reussies = 0
     let sansPhoto = 0
     let echecsDeSuite = 0
     let injoignable = false
-    for (const [i, n] of aFaire.entries()) {
-      setMajBoites({ etat: 'charge', message: `Sauvegarde… ${i + 1}/${aFaire.length}` })
+    for (const n of boitesAFaire) {
+      setMajBoites({ etat: 'charge', message: `Sauvegarde… ${++fait}/${total}` })
       const img = await chargerImageBoite(urlBoite(n))
       if (img) {
         try { await ecrireBoite(n, await boiteVersJpeg(img)); reussies += 1; echecsDeSuite = 0 } catch { sansPhoto += 1 }
@@ -158,8 +171,35 @@ export default function App() {
       }
     }
     rafraichirBoites()
-    if (injoignable) return setMajBoites({ etat: 'erreur', message: 'BrickLink ne répond pas (maintenance ?) : réessaie plus tard.' })
-    setMajBoites({ etat: 'ok', message: `${reussies} boîte${reussies > 1 ? 's' : ''} sauvegardée${reussies > 1 ? 's' : ''}${sansPhoto > 0 ? `, ${sansPhoto} sans photo chez BrickLink` : ''}.` })
+    if (boitesAFaire.length > 0) {
+      if (injoignable) { probleme = true; bilan.push('BrickLink ne répond pas (maintenance ?) : réessaie plus tard.') }
+      else bilan.push(`${reussies} boîte${reussies > 1 ? 's' : ''} sauvegardée${reussies > 1 ? 's' : ''}${sansPhoto > 0 ? `, ${sansPhoto} sans photo chez BrickLink` : ''}.`)
+    }
+    if (injoignable) fait = boitesAFaire.length
+
+    if (rendusAFaire.length > 0 && !relais.url) {
+      probleme = true
+      bilan.push(`${rendusAFaire.length} rendu${rendusAFaire.length > 1 ? 's' : ''} Rebrickable à copier : ajoute le relais dans Réglages.`)
+    } else if (rendusAFaire.length > 0) {
+      let copies = 0
+      let absents = 0
+      let codeErreur = null
+      for (const { numero, url } of rendusAFaire) {
+        setMajBoites({ etat: 'charge', message: `Sauvegarde… ${++fait}/${total}` })
+        const r = await recupererImage(relais, url)
+        if (r.ok) {
+          try { await ecrireRendu(numero, await rendreRendu(r.blob)); copies += 1; continue } catch { absents += 1; continue }
+        }
+        if (r.code === 'absente') { absents += 1; continue }
+        // Relais injoignable, jeton refusé, etc. : inutile d'insister pour les suivants.
+        codeErreur = r.code
+        break
+      }
+      rafraichirRendus()
+      if (codeErreur) { probleme = true; bilan.push(messageRelais(codeErreur)) }
+      else bilan.push(`${copies} rendu${copies > 1 ? 's' : ''} copié${copies > 1 ? 's' : ''}${absents > 0 ? `, ${absents} sans image` : ''}.`)
+    }
+    setMajBoites({ etat: probleme ? 'erreur' : 'ok', message: bilan.join(' ') })
   }
   // Dates de sortie : le relais (adresse et jeton, sur l'appareil seulement) et la mise à jour.
   const [relais, setRelais] = useState(lireRelais)
@@ -873,6 +913,7 @@ export default function App() {
           majDates={majDates}
           onMajDates={mettreAJourDates}
           nbBoites={boites.size}
+          nbRendus={rendus.size}
           majBoites={majBoites}
           onSauvegarderBoites={sauvegarderToutesLesBoites}
           onCleChange={changerCle}

@@ -36,3 +36,16 @@ export const ECHECS_AVANT_ARRET = 3;
 export function brickLinkInjoignable(echecsDeSuite, reussies) {
   return reussies === 0 && echecsDeSuite >= ECHECS_AVANT_ARRET;
 }
+
+// Les rendus Rebrickable à copier : un par numéro (distinct, normalisé), sans ceux déjà gardés. Seules les adresses
+// que le relais accepte comptent (voir `urlRenduValide`) : une autre serait refusée, autant ne pas la demander.
+const RENDU = /^https:\/\/cdn\.rebrickable\.com\/media\/sets\/[A-Za-z0-9_\-./]+\.(?:jpe?g|png|webp)$/i;
+export const urlRenduValide = (u) => typeof u === 'string' && RENDU.test(u) && !u.includes('..') && !u.slice(8).includes('//');
+export function rendusACopier(sets, deja = new Set()) {
+  const vus = new Map();
+  for (const s of sets) {
+    const n = normaliserNumero(s?.numero);
+    if (n && !deja.has(n) && !vus.has(n) && urlRenduValide(s?.image)) vus.set(n, s.image);
+  }
+  return [...vus].map(([numero, url]) => ({ numero, url }));
+}

@@ -2,6 +2,7 @@
 // jeton facultatif vivent dans le stockage de l'appareil, jamais dans la collection ni dans l'export, comme
 // la clé Rebrickable. La réponse du relais est une entrée non fiable : la date est revalidée ici.
 import { dateSortieValide } from './dates.js';
+import { urlRenduValide } from './boite.js';
 import { normaliserNumero } from './numero.js';
 
 const CLE = 'bl_relais';
@@ -61,6 +62,11 @@ const MESSAGES = {
   reseau: 'Relais injoignable : vérifie l\'adresse et la connexion.',
   brickset: 'Brickset ne répond pas correctement.',
   reponse: 'Réponse du relais illisible.',
+  absente: 'Pas de rendu chez Rebrickable pour ce set.',
+  url: 'Adresse de rendu refusée par le relais.',
+  rebrickable: 'Rebrickable ne répond pas correctement.',
+  type: 'Le relais n\'a pas renvoyé une image.',
+  taille: 'Image trop grosse pour le relais.',
 };
 export const messageRelais = (code) => MESSAGES[code] ?? MESSAGES.reponse;
 
@@ -84,4 +90,34 @@ export async function recupererSortie(relais, numero, fetchFn = globalThis.fetch
   if (!reponse.ok) return { ok: false, code: typeof corps?.erreur === 'string' && corps.erreur in MESSAGES ? corps.erreur : 'reponse' };
   if (!corps || typeof corps !== 'object' || typeof corps.trouve !== 'boolean') return { ok: false, code: 'reponse' };
   return { ok: true, trouve: corps.trouve, lancement: dateSortieValide(corps.lancement) };
+}
+
+const TAILLE_IMAGE_MAX = 2 * 1024 * 1024;
+const DELAI_IMAGE_MS = 15_000;
+
+// Demande au relais le rendu Rebrickable d'un set (le CDN n'a pas de CORS). Renvoie { ok: true, blob } ou
+// { ok: false, code }. Ne lève jamais. Le contenu est une entrée non fiable : type et taille revérifiés ici,
+// puis le décodage par le navigateur (`rendreRendu`) a le dernier mot.
+export async function recupererImage(relais, urlRendu, fetchFn = globalThis.fetch) {
+  const base = urlRelaisValide(relais?.url);
+  if (!base || !urlRenduValide(urlRendu)) return { ok: false, code: 'url' };
+  let reponse;
+  try {
+    reponse = await fetchFn(`${base}/image?url=${encodeURIComponent(urlRendu)}`, {
+      headers: relais.jeton ? { 'X-Jeton': relais.jeton } : {},
+      signal: AbortSignal.timeout(DELAI_IMAGE_MS),
+    });
+  } catch (e) {
+    return { ok: false, code: e?.name === 'TimeoutError' ? 'delai' : 'reseau' };
+  }
+  if (!reponse.ok) {
+    let corps = null;
+    try { corps = await reponse.json(); } catch { /* corps illisible */ }
+    return { ok: false, code: typeof corps?.erreur === 'string' && corps.erreur in MESSAGES ? corps.erreur : 'reponse' };
+  }
+  let blob;
+  try { blob = await reponse.blob(); } catch { return { ok: false, code: 'reseau' }; }
+  if (!/^image\/(jpeg|png|webp)$/.test(blob.type)) return { ok: false, code: 'type' };
+  if (blob.size === 0 || blob.size > TAILLE_IMAGE_MAX) return { ok: false, code: 'taille' };
+  return { ok: true, blob };
 }

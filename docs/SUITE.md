@@ -130,11 +130,18 @@ testé avec sa vraie collection, tout fonctionne.
   boîtes) : chaque photo de boîte affichée depuis BrickLink est recadrée en JPEG de 1 024 px au plus (une soixantaine
   de Ko) et enregistrée dans IndexedDB (base `bl_photos`, magasin `boites`, clé = numéro du set, version 2 de la base,
   la mise à jour garde les photos personnelles). L'affichage la prend **en premier** (`Vignette`, `useBoite`, contexte
-  `ImagesContext`), puis BrickLink, puis le rendu Rebrickable, puis le numéro. Réglages > Photos de boîte : le nombre de
-  boîtes gardées et « Sauvegarder toutes les boîtes » (une par une, wishlist comprise ; s'arrête après trois échecs de suite
+  `ImagesContext`), puis BrickLink, puis le rendu Rebrickable, puis le numéro. Réglages > Images sur l'appareil : le nombre de
+  boîtes et de rendus gardés et « Sauvegarder toutes les images » (boîtes d'abord, une par une, wishlist comprise ; s'arrête après trois échecs de suite
   sans réussite : BrickLink en maintenance). Hors export. Les boîtes dont le numéro n'est plus dans la collection sont
   retirées au démarrage. Ne marche que pour les boîtes **déjà vues ou sauvegardées** : si BrickLink est en panne
   avant la première fois, il n'y a rien à garder. Ce n'est pas lié à l'export des photos personnelles (version 2).
+- **Rendus Rebrickable gardés aussi** (novembre 2026) : le CDN de Rebrickable n'envoie pas d'en-tête CORS, un canvas ne
+  peut donc pas les copier. La copie passe par le relais : `GET /image?url=<rendu>` (`relais/worker.js`), route volontairement
+  étroite (hôte `cdn.rebrickable.com`, chemin `/media/sets/…`, jpg/png/webp, pas de redirection, 2 Mo au plus, type
+  `image/*` vérifié, même jeton, CORS limité à l'origine ; elle marche sans `BRICKSET_KEY`). Côté appli : magasin `rendus`
+  d'IndexedDB (base `bl_photos` en version 3, clé = numéro), servi avant le rendu réseau ; « Sauvegarder toutes les
+  images » les copie après les boîtes, et **exige l'adresse du relais dans Réglages** (sinon le message le dit). Aucune
+  copie automatique à l'affichage : seulement par ce bouton. Hors export, purgés au démarrage comme les boîtes.
 - **Collection vers wishlist** (novembre 2026) : le sens inverse de « Acheté ». Sur la fiche d'un set possédé, un
   bouton « Remettre en wishlist » (sa propre ligne) ouvre une confirmation qui dit ce qui sera perdu pour ce set
   (« état « monté », emplacement « Salon », date d'achat… ») et laisse choisir la priorité (aucune par défaut) ; en

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { datePropre, lireBrickset, traiter } from './worker.js';
+import { datePropre, lireBrickset, traiter, urlImageValide } from './worker.js';
 
 const ENV = { BRICKSET_KEY: 'cle-secrete-de-test', ORIGINE: 'https://antoniman31.github.io' };
 const SUCCES = (sets) => ({ status: 'success', matches: sets.length, sets });
@@ -112,4 +112,71 @@ test('pannes de Brickset : codes courts, pas de plantage', async () => {
   assert.equal((await appel(q, { fetchFn: async () => { throw new TypeError('réseau'); } })).status, 502);
   const delai = await appel(q, { fetchFn: async () => { throw Object.assign(new Error('t'), { name: 'TimeoutError' }); } });
   assert.deepEqual([delai.status, (await delai.json()).erreur], [504, 'delai']);
+});
+
+// --- /image : proxy étroit pour les rendus Rebrickable ---
+const BONNE = 'https://cdn.rebrickable.com/media/sets/75192-1.jpg';
+const imageRep = (octets = new Uint8Array([1, 2, 3]), type = 'image/jpeg', extra = {}) => new Response(octets, { status: 200, headers: { 'Content-Type': type, ...extra } });
+const appelImage = (url, opts = {}) => appel(`/image?url=${encodeURIComponent(url)}`, opts);
+
+test('urlImageValide : seulement les rendus de sets du CDN Rebrickable, en https', () => {
+  assert.equal(urlImageValide(BONNE), BONNE);
+  assert.equal(urlImageValide('https://cdn.rebrickable.com/media/sets/75192-1/12345.jpg'), 'https://cdn.rebrickable.com/media/sets/75192-1/12345.jpg');
+  for (const v of [
+    'http://cdn.rebrickable.com/media/sets/75192-1.jpg',
+    'https://rebrickable.com/media/sets/75192-1.jpg',
+    'https://cdn.rebrickable.com.evil.test/media/sets/75192-1.jpg',
+    'https://cdn.rebrickable.com@evil.test/media/sets/75192-1.jpg',
+    'https://user@cdn.rebrickable.com/media/sets/75192-1.jpg',
+    'https://cdn.rebrickable.com:8443/media/sets/75192-1.jpg',
+    'https://cdn.rebrickable.com/media/parts/3001.jpg',
+    'https://cdn.rebrickable.com/media/sets/../parts/3001.jpg',
+    'https://cdn.rebrickable.com/media/sets/75192-1.jpg?x=1',
+    'https://cdn.rebrickable.com/media/sets/75192-1.svg',
+    'https://cdn.rebrickable.com/media/sets//75192-1.jpg',
+    '', 'pas une url', null, undefined,
+  ]) assert.equal(urlImageValide(v), null, String(v));
+});
+
+test('/image : renvoie les octets avec le type image et l\'autorisation CORS du site', async () => {
+  let vu;
+  const fetchFn = async (url, init) => { vu = { url, init }; return imageRep(new Uint8Array([9, 8, 7])); };
+  const r = await appelImage(BONNE, { fetchFn, init: { headers: { Origin: 'https://antoniman31.github.io' } } });
+  assert.equal(r.status, 200);
+  assert.equal(r.headers.get('Content-Type'), 'image/jpeg');
+  assert.equal(r.headers.get('Access-Control-Allow-Origin'), 'https://antoniman31.github.io');
+  assert.deepEqual([...new Uint8Array(await r.arrayBuffer())], [9, 8, 7]);
+  assert.equal(vu.url, BONNE);
+  assert.equal(vu.init.redirect, 'manual');
+});
+
+test('/image : une adresse hors liste blanche ne déclenche aucun appel sortant', async () => {
+  let appels = 0;
+  const fetchFn = async () => { appels += 1; return imageRep(); };
+  for (const u of ['https://evil.test/a.jpg', 'http://cdn.rebrickable.com/media/sets/1-1.jpg', 'http://169.254.169.254/media/sets/1-1.jpg']) {
+    const r = await appelImage(u, { fetchFn });
+    assert.equal(r.status, 400);
+    assert.deepEqual(await r.json(), { erreur: 'url' });
+  }
+  assert.equal((await appel('/image', { fetchFn })).status, 400);
+  assert.equal(appels, 0);
+});
+
+test('/image : refuse un type qui n\'est pas une image, une redirection, une image trop grosse', async () => {
+  const code = async (fetchFn) => { const r = await appelImage(BONNE, { fetchFn }); return [r.status, (await r.json()).erreur]; };
+  assert.deepEqual(await code(async () => imageRep(new Uint8Array(3), 'text/html')), [502, 'type']);
+  assert.deepEqual(await code(async () => imageRep(new Uint8Array(3), 'image/svg+xml')), [502, 'type']);
+  assert.deepEqual(await code(async () => new Response(null, { status: 302, headers: { Location: 'https://evil.test/x.jpg' } })), [502, 'rebrickable']);
+  assert.deepEqual(await code(async () => new Response('', { status: 404 })), [404, 'absente']);
+  assert.deepEqual(await code(async () => imageRep(new Uint8Array(3), 'image/jpeg', { 'Content-Length': String(3 * 1024 * 1024) })), [502, 'taille']);
+  // Sans Content-Length fiable : le plafond s'applique à la lecture.
+  assert.deepEqual(await code(async () => imageRep(new Uint8Array(2 * 1024 * 1024 + 1))), [502, 'taille']);
+  assert.deepEqual(await code(async () => { throw new Error('réseau'); }), [502, 'rebrickable']);
+});
+
+test('/image : le jeton s\'applique aussi, et /image fonctionne sans clé Brickset', async () => {
+  const fetchFn = async () => imageRep();
+  const env = { ORIGINE: ENV.ORIGINE, JETON: 'secret' };
+  assert.equal((await appelImage(BONNE, { env, fetchFn })).status, 401);
+  assert.equal((await appelImage(BONNE, { env, fetchFn, init: { headers: { 'X-Jeton': 'secret' } } })).status, 200);
 });

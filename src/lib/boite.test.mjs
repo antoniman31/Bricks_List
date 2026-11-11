@@ -39,3 +39,19 @@ test('BrickLink injoignable : seulement après plusieurs échecs de suite et auc
   assert.equal(brickLinkInjoignable(ECHECS_AVANT_ARRET + 5, 1), false, 'une boîte déjà récupérée prouve que BrickLink répond');
   assert.equal(brickLinkInjoignable(0, 0), false);
 });
+
+test('urlRenduValide / rendusACopier : seuls les rendus que le relais accepte, un par numéro, sans ceux déjà gardés', async () => {
+  const { rendusACopier, urlRenduValide } = await import('./boite.js');
+  const ok = 'https://cdn.rebrickable.com/media/sets/75192-1.jpg';
+  assert.equal(urlRenduValide(ok), true);
+  for (const v of [null, '', 'http://cdn.rebrickable.com/media/sets/1-1.jpg', 'https://evil.test/media/sets/1-1.jpg', 'https://cdn.rebrickable.com/media/parts/1.jpg', 'https://cdn.rebrickable.com/media/sets/../x.jpg']) assert.equal(urlRenduValide(v), false, String(v));
+  const sets = [
+    { numero: '75192', image: ok },
+    { numero: '75192-1', image: ok },
+    { numero: '10294', image: 'https://cdn.rebrickable.com/media/sets/10294-1.jpg' },
+    { numero: '21357', image: null },
+    { numero: '42100', image: 'https://evil.test/a.jpg' },
+  ];
+  assert.deepEqual(rendusACopier(sets).map((r) => r.numero), ['75192-1', '10294-1']);
+  assert.deepEqual(rendusACopier(sets, new Set(['75192-1'])).map((r) => r.numero), ['10294-1']);
+});
