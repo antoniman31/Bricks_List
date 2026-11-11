@@ -11,7 +11,7 @@ function VignettePhoto({ set, variante }) {
   const photo = usePhoto(set.id)
   if (photo.chargement) return <div className={`vignette vignette--${variante} vignette--vide`} aria-hidden="true" />
   if (!photo.url) return <Vignette image={set.image} numero={set.numero} variante={variante} />
-  return <img className={`vignette vignette--${variante}`} src={photo.url} alt="" decoding="async" />
+  return <img className={`vignette vignette--${variante}`} src={photo.url} alt="" decoding="async" data-origine="photo" />
 }
 
 // L'image d'un set dans la liste ou la grille : celle choisie sur sa fiche, sinon la règle des Réglages.

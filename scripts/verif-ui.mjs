@@ -226,7 +226,7 @@ const ECRANS = {
     exiger(await nbBoitesStock(p) > 0, 'aucune boîte affichée n\'a été gardée sur l\'appareil');
     await p.route('https://img.bricklink.com/**', (r) => r.abort());
     await p.reload(); await p.waitForSelector('.carte');
-    await p.waitForFunction(() => document.querySelectorAll('.carte img.vignette[src^="blob:"]').length > 0);
+    await p.waitForFunction(() => document.querySelectorAll('.carte img.vignette[data-origine="boite"]').length > 0);
   },
   'boîtes : sauvegarder toutes (réglages)': async (p) => {
     await p.click(REGLAGES);
@@ -237,6 +237,8 @@ const ECRANS = {
     exiger(attendu > 0 && await nbBoitesStock(p) === attendu, `les boîtes disponibles doivent toutes être gardées (attendu ${attendu}, gardé ${await nbBoitesStock(p)})`);
   },
   'boîtes : BrickLink en maintenance, la sauvegarde s\'arrête': async (p) => {
+    // Un appareil neuf : sans le cache du service worker, qui garde les images BrickLink déjà vues et répondrait à leur place.
+    await p.evaluate(async () => { for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister(); for (const k of await caches.keys()) await caches.delete(k); });
     let appels = 0;
     await p.route('https://img.bricklink.com/**', (r) => { appels += 1; return r.abort(); });
     await p.reload(); await p.waitForSelector('.carte');
@@ -348,7 +350,7 @@ const ECRANS = {
   // Image de la liste : choisie sur la fiche (étoile), puis par la règle des Réglages. La carte montre
   // la photo (une image « blob: », lue dans IndexedDB) seulement dans ces cas.
   'photo : choisie pour la liste (fiche)': async (p) => {
-    const cartePhoto = () => p.evaluate(() => document.querySelectorAll('.carte img.vignette[src^="blob:"]').length);
+    const cartePhoto = () => p.evaluate(() => document.querySelectorAll('.carte img.vignette[data-origine="photo"]').length);
     await p.locator('.carte').first().click();
     await p.click('button.puce:has-text("Ma photo")');
     await choisirPhoto(p);
@@ -358,10 +360,10 @@ const ECRANS = {
     exiger(await cartePhoto() === 0, 'une photo non choisie apparaît déjà dans la liste');
     await p.click('button:has-text("Utiliser dans la liste")');
     await p.waitForSelector('.photo-fiche > .bouton[aria-pressed=true]');
-    await p.waitForFunction(() => document.querySelectorAll('.carte img.vignette[src^="blob:"]').length === 1);
+    await p.waitForFunction(() => document.querySelectorAll('.carte img.vignette[data-origine="photo"]').length === 1);
     exiger(await p.evaluate(() => JSON.parse(localStorage.getItem('bl_v1')).sets.filter((x) => x.imageListe === 'photo').length) === 1, 'le choix n\'est pas enregistré dans la fiche');
     await p.click('.photo-fiche > .bouton[aria-pressed=true]');
-    await p.waitForFunction(() => document.querySelectorAll('.carte img.vignette[src^="blob:"]').length === 0);
+    await p.waitForFunction(() => document.querySelectorAll('.carte img.vignette[data-origine="photo"]').length === 0);
   },
   'photo : règle des Réglages': async (p) => {
     await p.locator('.carte').first().click();
@@ -376,9 +378,9 @@ const ECRANS = {
     await p.click('dialog[open] summary:has-text("Apparence")');
     await p.click('dialog[open] [aria-label="Image de la liste"] .puce:has-text("Ma photo")');
     await p.click('dialog[open] button[aria-label="Fermer"]');
-    await p.waitForFunction(() => document.querySelectorAll('.carte img.vignette[src^="blob:"]').length === 1);
+    await p.waitForFunction(() => document.querySelectorAll('.carte img.vignette[data-origine="photo"]').length === 1);
     await p.reload(); await p.waitForSelector('.carte');
-    await p.waitForFunction(() => document.querySelectorAll('.carte img.vignette[src^="blob:"]').length === 1);
+    await p.waitForFunction(() => document.querySelectorAll('.carte img.vignette[data-origine="photo"]').length === 1);
   },
   'photo : enregistrée, relue, retirée': async (p) => {
     await p.locator('.carte').first().click();

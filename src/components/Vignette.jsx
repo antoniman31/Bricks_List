@@ -42,7 +42,8 @@ function VignetteLocale({ image, numero, variante = 'carte', premier = 'boite' }
   const { url, chargement } = useBoite(numero)
   if (chargement) return <div className={`vignette vignette--${variante} vignette--vide`} aria-hidden="true" />
   if (!url) return <VignetteReseau image={image} numero={numero} variante={variante} premier={premier} />
-  return <img className={`vignette vignette--${variante}`} src={url} alt="" decoding="async" />
+  // `data-origine` : d'où vient l'image affichée (les tests distinguent ainsi une boîte gardée d'une photo personnelle).
+  return <img className={`vignette vignette--${variante}`} src={url} alt="" decoding="async" data-origine="boite" />
 }
 
 function VignetteReseau({ image, numero, variante = 'carte', premier = 'boite' }) {
