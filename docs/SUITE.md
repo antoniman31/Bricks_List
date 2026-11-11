@@ -126,6 +126,15 @@ testé avec sa vraie collection, tout fonctionne.
   la collection est illisible. Tous les sets peuvent avoir une photo, wishlist comprise. *Limite* : si le
   navigateur vide ses données, les photos sont perdues (le set garde sa boîte BrickLink) ; un identifiant de
   set réattribué à l'import orpheline sa photo.
+- **Boîtes gardées sur l'appareil** (novembre 2026, après une maintenance de BrickLink qui a fait disparaître les
+  boîtes) : chaque photo de boîte affichée depuis BrickLink est recadrée en JPEG de 1 024 px au plus (une soixantaine
+  de Ko) et enregistrée dans IndexedDB (base `bl_photos`, magasin `boites`, clé = numéro du set, version 2 de la base,
+  la mise à jour garde les photos personnelles). L'affichage la prend **en premier** (`Vignette`, `useBoite`, contexte
+  `ImagesContext`), puis BrickLink, puis le rendu Rebrickable, puis le numéro. Réglages > Photos de boîte : le nombre de
+  boîtes gardées et « Sauvegarder toutes les boîtes » (une par une, wishlist comprise ; s'arrête après trois échecs de suite
+  sans réussite : BrickLink en maintenance). Hors export. Les boîtes dont le numéro n'est plus dans la collection sont
+  retirées au démarrage. Ne marche que pour les boîtes **déjà vues ou sauvegardées** : si BrickLink est en panne
+  avant la première fois, il n'y a rien à garder. Ce n'est pas lié à l'export des photos personnelles (version 2).
 - **Collection vers wishlist** (novembre 2026) : le sens inverse de « Acheté ». Sur la fiche d'un set possédé, un
   bouton « Remettre en wishlist » (sa propre ligne) ouvre une confirmation qui dit ce qui sera perdu pour ce set
   (« état « monté », emplacement « Salon », date d'achat… ») et laisse choisir la priorité (aucune par défaut) ; en
@@ -168,10 +177,10 @@ testé avec sa vraie collection, tout fonctionne.
   au rechargement (`bl_filtres`, hors export, `src/lib/filtresMemo.js`, entrée validée ; l'ancien format à un
   seul jeu est lu). La recherche texte n'est pas retenue et se vide au changement d'onglet. Un raccourci des
   Stats remplace les filtres de la collection.
-- **Qualité** : `npm run lint`, `npm test` (391 tests, dont ceux du relais), `npm run verif:ui` (axe-core, cibles de
+- **Qualité** : `npm run lint`, `npm test` (393 tests, dont ceux du relais), `npm run verif:ui` (axe-core, cibles de
   48 px, débordements, navigation, recherche visible clavier ouvert, et quatre parcours qui vérifient un
   comportement : filtres conservés au rechargement, onglets indépendants, import d'un `.txt`, repli des
-  boîtes, photo personnelle (enregistrée, relue, retirée), image de la liste (fiche et règle), dates de sortie (affichage, filtre, saisie, relais), remise en wishlist (fiche et sélection, avec annulation) ; 54 écrans × 2 thèmes × 4
+  boîtes, photo personnelle (enregistrée, relue, retirée), image de la liste (fiche et règle), dates de sortie (affichage, filtre, saisie, relais), remise en wishlist (fiche et sélection, avec annulation), boîtes gardées (sauvegarde, service hors BrickLink, arrêt en maintenance) ; 57 écrans × 2 thèmes × 4
   largeurs : 360, 412, 900, 1280). Les trois tournent dans le CI avant le déploiement.
 
 ## Décisions de cadrage (ne pas rouvrir sans raison)
