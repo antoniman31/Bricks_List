@@ -126,6 +126,16 @@ testé avec sa vraie collection, tout fonctionne.
   la collection est illisible. Tous les sets peuvent avoir une photo, wishlist comprise. *Limite* : si le
   navigateur vide ses données, les photos sont perdues (le set garde sa boîte BrickLink) ; un identifiant de
   set réattribué à l'import orpheline sa photo.
+- **Collection vers wishlist** (novembre 2026) : le sens inverse de « Acheté ». Sur la fiche d'un set possédé, un
+  bouton « Remettre en wishlist » (sa propre ligne) ouvre une confirmation qui dit ce qui sera perdu pour ce set
+  (« état « monté », emplacement « Salon », date d'achat… ») et laisse choisir la priorité (aucune par défaut) ; en
+  sélection multiple, l'action « Wishlist » de la barre ouvre un aperçu chiffré (« état (2 sets), emplacement (1 set) »)
+  avec la même priorité pour tous. L'état, l'emplacement, la boîte, la notice et les dates d'achat et de montage sont
+  **effacés** (le modèle les efface déjà pour tout set souhaité) ; les étiquettes, notes, image, choix de l'image de la
+  liste, date de sortie et la photo personnelle sont gardés. Annulation juste après par le bandeau existant (les
+  modifications en masse), qui rend tout, état et dates compris. Un set en deux exemplaires n'en transfère qu'un. Logique
+  dans `src/lib/collection.js` (`champsPerdus`, `remettreEnWishlist`, `apercuRemiseEnWishlist`), testée. Écarté : garder
+  l'état et l'emplacement cachés pour les rendre à l'achat suivant (bien plus de code, risque de données périmées).
 - **Dates de sortie** (novembre 2026) : champ `dateSortie` (AAAA-MM-JJ, l'avenir est permis jusqu'à dix ans) et
   `sortieSource` (`manuelle` ou `brickset`) dans la fiche, donc dans l'export. Saisie à la main sur la fiche (ligne
   « Sortie », « Inconnue » sans date) : une date manuelle n'est **jamais écrasée** par une mise à jour ; l'effacer
@@ -158,10 +168,10 @@ testé avec sa vraie collection, tout fonctionne.
   au rechargement (`bl_filtres`, hors export, `src/lib/filtresMemo.js`, entrée validée ; l'ancien format à un
   seul jeu est lu). La recherche texte n'est pas retenue et se vide au changement d'onglet. Un raccourci des
   Stats remplace les filtres de la collection.
-- **Qualité** : `npm run lint`, `npm test` (383 tests, dont ceux du relais), `npm run verif:ui` (axe-core, cibles de
+- **Qualité** : `npm run lint`, `npm test` (391 tests, dont ceux du relais), `npm run verif:ui` (axe-core, cibles de
   48 px, débordements, navigation, recherche visible clavier ouvert, et quatre parcours qui vérifient un
   comportement : filtres conservés au rechargement, onglets indépendants, import d'un `.txt`, repli des
-  boîtes, photo personnelle (enregistrée, relue, retirée), image de la liste (fiche et règle), dates de sortie (affichage, filtre, saisie, relais) ; 50 écrans × 2 thèmes × 4
+  boîtes, photo personnelle (enregistrée, relue, retirée), image de la liste (fiche et règle), dates de sortie (affichage, filtre, saisie, relais), remise en wishlist (fiche et sélection, avec annulation) ; 54 écrans × 2 thèmes × 4
   largeurs : 360, 412, 900, 1280). Les trois tournent dans le CI avant le déploiement.
 
 ## Décisions de cadrage (ne pas rouvrir sans raison)
