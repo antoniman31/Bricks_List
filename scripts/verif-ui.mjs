@@ -236,23 +236,34 @@ const ECRANS = {
     const attendu = await p.evaluate(() => new Set(JSON.parse(localStorage.getItem('bl_v1')).sets.map((x) => x.numero).filter((n) => parseInt(n, 10) % 2 === 1)).size);
     exiger(attendu > 0 && await nbBoitesStock(p) === attendu, `les boîtes disponibles doivent toutes être gardées (attendu ${attendu}, gardé ${await nbBoitesStock(p)})`);
   },
+  // Dans un contexte de navigateur NEUF (aucun cache, aucun service worker, aucune boîte gardée) : un appareil qui n'a
+  // jamais vu BrickLink. Les contextes du parcours partagent leurs caches, qui resservaient des images malgré la coupure.
   'boîtes : BrickLink en maintenance, la sauvegarde s\'arrête': async (p) => {
-    // Un appareil neuf : sans le cache du service worker, qui garde les images BrickLink déjà vues et répondrait à leur place.
-    await p.evaluate(async () => { for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister(); for (const k of await caches.keys()) await caches.delete(k); });
-    // Et sans le cache HTTP de Chromium, qui pourrait resservir une boîte déjà vue : une seule réussite suffit à prouver
-    // que « BrickLink répond », et l'arrêt ne se déclencherait plus (à raison, mais pas ce que ce parcours vérifie).
-    const cdp = await p.context().newCDPSession(p);
-    await cdp.send('Network.enable');
-    await cdp.send('Network.setCacheDisabled', { cacheDisabled: true });
-    let appels = 0;
-    await p.route('https://img.bricklink.com/**', (r) => { appels += 1; return r.abort(); });
-    await p.reload(); await p.waitForSelector('.carte');
-    appels = 0;
-    await p.click(REGLAGES);
-    await p.click('dialog[open] summary:has-text("Photos de boîte")');
-    await p.click('dialog[open] button:has-text("Sauvegarder toutes les boîtes")');
-    await p.waitForSelector('dialog[open] [role=alert]:has-text("BrickLink ne répond pas")', { timeout: 20000 });
-    exiger(appels <= 6, `la sauvegarde doit s'arrêter vite quand BrickLink ne répond pas (${appels} demandes)`);
+    const donnees = await p.evaluate(() => localStorage.getItem('bl_v1'));
+    const neuf = await p.context().browser().newContext({ viewport: p.viewportSize() });
+    try {
+      let appels = 0;
+      await neuf.route('https://img.bricklink.com/**', (r) => { appels += 1; return r.abort(); });
+      await neuf.route('https://cdn.rebrickable.com/**', (r) => r.fulfill({ status: 200, contentType: 'image/png', body: PNG }));
+      const q = await neuf.newPage();
+      q.setDefaultTimeout(4000);
+      await q.goto(URL);
+      await q.evaluate((d) => { localStorage.clear(); localStorage.setItem('bl_v1', d); }, donnees);
+      await q.reload(); await q.waitForSelector('.carte');
+      appels = 0;
+      await q.click(REGLAGES);
+      await q.click('dialog[open] summary:has-text("Photos de boîte")');
+      await q.click('dialog[open] button:has-text("Sauvegarder toutes les boîtes")');
+      try {
+        await q.waitForSelector('dialog[open] [role=alert]:has-text("BrickLink ne répond pas")', { timeout: 20000 });
+      } catch {
+        const vu = (await q.locator('dialog[open] .avis').allInnerTexts()).join(' | ');
+        throw new Error(`pas d'arrêt de la sauvegarde (${appels} demandes à BrickLink) ; la feuille dit : « ${vu} »`);
+      }
+      exiger(appels <= 6, `la sauvegarde doit s'arrêter vite quand BrickLink ne répond pas (${appels} demandes)`);
+    } finally {
+      await neuf.close();
+    }
   },
   // Collection vers wishlist : la confirmation dit ce qui est perdu, la priorité se choisit, et l'annulation
   // juste après remet le set exactement comme avant (état et date d'achat compris).
@@ -572,11 +583,15 @@ try {
         if (u.pathname.startsWith('/api/v3/lego/themes/')) return json({ id: 158, parent_id: null, name: 'Star Wars' });
         return json({ count: 25, next: 'https://rebrickable.com/api/v3/lego/sets/?page=2', previous: null, results: [75192, 10179, 7965].map((n, i) => ({ set_num: `${n}-1`, name: `Millennium Falcon version ${i + 1} avec un nom assez long pour passer à la ligne`, year: 2017 - i, theme_id: 158, num_parts: 7541 - i * 1000, set_img_url: 'https://cdn.rebrickable.com/media/sets/x.png' })) });
       });
+      // VERIF_FILTRE=texte : ne rejoue que les parcours dont le nom contient ce texte (pour comprendre un échec). VERIF_TRACE=1 :
+      // affiche ce que la page écrit dans sa console.
       for (const [nom, aller] of Object.entries(ECRANS)) {
+        if (process.env.VERIF_FILTRE && !nom.includes(process.env.VERIF_FILTRE)) continue;
         const page = await ctx.newPage();
         page.setDefaultTimeout(4000);
         const erreursPage = [];
         page.on('pageerror', (e) => erreursPage.push(String(e)));
+        if (process.env.VERIF_TRACE) page.on('console', (m) => console.log(`[${theme} ${largeur}px · ${nom}] console ${m.type()}: ${m.text().slice(0, 160)}`));
         await page.goto(URL);
         // Chaque écran part d'un état identique : les pages d'un même contexte partagent leur
         // stockage, et une clé laissée par un écran précédent changerait le suivant.
