@@ -36,28 +36,31 @@ export default function Vignette(props) {
   return <VignetteReseau {...props} />
 }
 
-// La boîte gardée sur l'appareil. Pendant la lecture, un cadre vide de même format (la liste ne saute pas) ;
+// L'image gardée sur l'appareil : la boîte, ou (`type` « rendu ») le rendu Rebrickable copié par le relais. Pendant la lecture, un cadre vide de même format (la liste ne saute pas) ;
 // si la lecture échoue ou ne donne rien, on retombe sur le réseau.
-function VignetteLocale({ image, numero, variante = 'carte', premier = 'boite' }) {
-  const { url, chargement } = useBoite(numero)
+function VignetteLocale({ image, numero, variante = 'carte', premier = 'boite', type = 'boite' }) {
+  const { url, chargement } = useBoite(numero, type)
   if (chargement) return <div className={`vignette vignette--${variante} vignette--vide`} aria-hidden="true" />
-  if (!url) return <VignetteReseau image={image} numero={numero} variante={variante} premier={premier} />
+  if (!url) return <VignetteReseau image={image} numero={numero} variante={variante} premier={premier} sansRenduLocal />
   // `data-origine` : d'où vient l'image affichée (les tests distinguent ainsi une boîte gardée d'une photo personnelle).
-  return <img className={`vignette vignette--${variante}`} src={url} alt="" decoding="async" data-origine="boite" />
+  return <img className={`vignette vignette--${variante}`} src={url} alt="" decoding="async" data-origine={type} />
 }
 
-function VignetteReseau({ image, numero, variante = 'carte', premier = 'boite' }) {
+function VignetteReseau({ image, numero, variante = 'carte', premier = 'boite', sansRenduLocal = false }) {
   // On retient les URL qui ont échoué, pas un simple booléen : si l'image du set
   // change (nouvelle recherche), l'échec précédent ne la concerne plus. Une boîte
   // absente chez BrickLink fait passer à la source suivante, pas au numéro.
   const [, rafraichir] = useState(0)
-  const { boites, sauverBoite } = useContext(ImagesContext)
+  const { boites, sauverBoite, rendus } = useContext(ImagesContext)
   const classe = `vignette vignette--${variante}`
   const src = sourcesImage(numero, image, premier).find((u) => !echouees.has(u))
 
   if (!src) {
     return <div className={`${classe} vignette--vide`} aria-hidden="true">{numero}</div>
   }
+  // Le rendu Rebrickable copié sur l'appareil passe avant le réseau (il reste quand Rebrickable ou la connexion tombe).
+  const n = normaliserNumero(numero)
+  if (!sansRenduLocal && n && src === image && rendus.has(n)) return <VignetteLocale image={image} numero={n} variante={variante} premier={premier} type="rendu" />
   const estBoite = src.startsWith(BRICKLINK)
   return (
     <img
@@ -68,8 +71,8 @@ function VignetteReseau({ image, numero, variante = 'carte', premier = 'boite' }
       loading={variante === 'carte' ? 'lazy' : 'eager'}
       decoding="async"
       // Une boîte qui vient d'arriver de BrickLink est gardée sur l'appareil, une seule fois.
-      onLoad={(e) => { const n = normaliserNumero(numero); if (estBoite && n && !boites.has(n)) sauverBoite(n, e.currentTarget) }}
-      onError={() => { echouees.add(src); rafraichir((n) => n + 1) }}
+      onLoad={(e) => { if (estBoite && n && !boites.has(n)) sauverBoite(n, e.currentTarget) }}
+      onError={() => { echouees.add(src); rafraichir((k) => k + 1) }}
     />
   )
 }

@@ -12,6 +12,15 @@ GET /sortie?numero=75192-1
 
 `lancement` vaut `null` quand Brickset n'a pas de date : l'application affichera alors « date inconnue ».
 
+Deuxième route, sans lien avec Brickset (elle marche même sans `BRICKSET_KEY`) :
+
+```
+GET /image?url=https://cdn.rebrickable.com/media/sets/75192-1.jpg   ->  l'image (jpeg, png ou webp, 2 Mo au plus)
+```
+
+Elle sert à copier les rendus Rebrickable sur l'appareil, dont le CDN n'a pas de CORS. Elle n'accepte que cet hôte et
+le dossier `/media/sets/` : ce n'est pas un proxy ouvert.
+
 ## Ce qu'il te faut
 
 1. **Une clé Brickset.** Compte sur brickset.com, puis le formulaire de demande de clé :

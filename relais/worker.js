@@ -6,6 +6,9 @@
 // (jamais dans l'application, jamais dans le dépôt), et ne renvoie que ce dont l'app a besoin.
 //
 //   GET /sortie?numero=75192-1  ->  { numero, trouve, lancement, retrait, disponibilite }
+//   GET /image?url=https://cdn.rebrickable.com/media/sets/75192-1.jpg  ->  l'image elle-même, avec CORS
+//     (le CDN de Rebrickable n'en envoie pas : sans relais, l'app ne peut pas copier le rendu sur l'appareil).
+//     Route volontairement étroite : un seul hôte, un seul dossier, des images, une taille maximale.
 //
 // Secrets et variables (voir relais/README.md) :
 //   BRICKSET_KEY  (secret, obligatoire)  la clé de l'API Brickset
@@ -16,6 +19,19 @@ const BRICKSET = 'https://brickset.com/api/v3.asmx/getSets';
 const NUMERO = /^\d{3,7}-\d{1,2}$/;
 const ORIGINE_PAR_DEFAUT = 'https://antoniman31.github.io';
 const DELAI_MS = 8000;
+const HOTE_IMAGES = 'cdn.rebrickable.com';
+const CHEMIN_IMAGE = /^\/media\/sets\/[A-Za-z0-9_\-./]+\.(?:jpe?g|png|webp)$/i;
+const TAILLE_IMAGE_MAX = 2 * 1024 * 1024;
+
+// L'adresse d'image demandée, ou null si elle sort du cadre. Sans cette liste blanche le relais serait
+// un proxy ouvert (SSRF, bande passante offerte à n'importe qui) : on n'accepte que les rendus de sets.
+export function urlImageValide(brut) {
+  let u;
+  try { u = new URL(brut); } catch { return null; }
+  if (u.protocol !== 'https:' || u.hostname !== HOTE_IMAGES || u.port !== '' || u.username || u.password) return null;
+  if (u.search || u.hash || u.pathname.includes('..') || u.pathname.includes('//')) return null;
+  return CHEMIN_IMAGE.test(u.pathname) ? u.href : null;
+}
 
 // Une date de Brickset (« 2017-10-01T00:00:00Z ») devient « 2017-10-01 », ou null si elle n'a pas
 // de sens : une valeur absente, un texte inattendu ou une date hors bornes ne doivent rien afficher.
@@ -68,6 +84,47 @@ function entetes(request, env) {
   return h;
 }
 
+// Lit le corps par morceaux et s'arrête dès que la taille maximale est dépassée : on ne se fie pas à
+// Content-Length, qu'un serveur peut omettre ou mentir sur.
+async function lireBorne(reponse, max) {
+  const lecteur = reponse.body?.getReader();
+  if (!lecteur) return null;
+  const morceaux = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await lecteur.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > max) { await lecteur.cancel(); return null; }
+    morceaux.push(value);
+  }
+  const out = new Uint8Array(total);
+  let pos = 0;
+  for (const m of morceaux) { out.set(m, pos); pos += m.byteLength; }
+  return out;
+}
+
+async function traiterImage(url, h, rep, fetchFn) {
+  const cible = urlImageValide(url.searchParams.get('url') ?? '');
+  if (!cible) return rep(400, { erreur: 'url' });
+  try {
+    // redirect: 'manual' : une redirection pourrait mener hors de la liste blanche.
+    const reponse = await fetchFn(cible, { redirect: 'manual', signal: AbortSignal.timeout(DELAI_MS) });
+    if (reponse.status === 404) return rep(404, { erreur: 'absente' });
+    if (!reponse.ok) return rep(502, { erreur: 'rebrickable' });
+    const type = (reponse.headers.get('Content-Type') ?? '').split(';')[0].trim().toLowerCase();
+    if (!/^image\/(jpeg|png|webp)$/.test(type)) return rep(502, { erreur: 'type' });
+    const annonce = Number(reponse.headers.get('Content-Length'));
+    if (annonce > TAILLE_IMAGE_MAX) return rep(502, { erreur: 'taille' });
+    const octets = await lireBorne(reponse, TAILLE_IMAGE_MAX);
+    if (!octets) return rep(502, { erreur: 'taille' });
+    const entetesImage = { ...h, 'Content-Type': type, 'Cache-Control': 'public, max-age=86400', 'X-Content-Type-Options': 'nosniff' };
+    return new Response(octets, { status: 200, headers: entetesImage });
+  } catch (e) {
+    return rep(e?.name === 'TimeoutError' ? 504 : 502, { erreur: e?.name === 'TimeoutError' ? 'delai' : 'rebrickable' });
+  }
+}
+
 export async function traiter(request, env, { fetchFn = fetch } = {}) {
   const h = entetes(request, env);
   const rep = (statut, corps) => new Response(corps === null ? null : JSON.stringify(corps), { status: statut, headers: h });
@@ -75,8 +132,9 @@ export async function traiter(request, env, { fetchFn = fetch } = {}) {
   if (request.method === 'OPTIONS') return rep(204, null);
   if (request.method !== 'GET') return rep(405, { erreur: 'methode' });
   const url = new URL(request.url);
-  if (url.pathname !== '/sortie') return rep(404, { erreur: 'introuvable' });
+  if (url.pathname !== '/sortie' && url.pathname !== '/image') return rep(404, { erreur: 'introuvable' });
   if (env.JETON && request.headers.get('X-Jeton') !== env.JETON) return rep(401, { erreur: 'jeton' });
+  if (url.pathname === '/image') return traiterImage(url, h, rep, fetchFn);
 
   const numero = url.searchParams.get('numero') ?? '';
   if (!NUMERO.test(numero)) return rep(400, { erreur: 'numero' });

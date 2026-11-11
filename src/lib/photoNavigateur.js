@@ -80,3 +80,17 @@ export function chargerImageBoite(url, delaiMs = 10000) {
     img.src = url;
   });
 }
+
+// Le rendu reçu du relais (un blob image) devient le même JPEG que les boîtes. Rejette si le navigateur ne sait
+// pas le décoder : un fichier corrompu ou déguisé n'entre pas dans le stockage.
+export async function rendreRendu(blob) {
+  const url = URL.createObjectURL(blob);
+  try {
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    return await boiteVersJpeg(img);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
