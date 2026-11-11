@@ -209,6 +209,50 @@ const ECRANS = {
     await choisirPhoto(p);
     await p.waitForSelector('dialog[open] .recadrage__image');
   },
+  // Collection vers wishlist : la confirmation dit ce qui est perdu, la priorité se choisit, et l'annulation
+  // juste après remet le set exactement comme avant (état et date d'achat compris).
+  'fiche (remettre en wishlist)': async (p) => {
+    await p.locator('.carte').first().click();
+    await p.click('button.fiche__remise');
+    await p.waitForSelector('[role=alertdialog]:has-text("Perdus")');
+  },
+  'remettre en wishlist : fiche, avec annulation': async (p) => {
+    const lire = () => p.evaluate(() => JSON.parse(localStorage.getItem('bl_v1')).sets);
+    const avant = await lire();
+    await p.locator('.carte').first().click();
+    await p.click('button.fiche__remise');
+    await p.click('[role=alertdialog] .puce:text-is("Un jour")');
+    await p.click('[role=alertdialog] button:has-text("Remettre en wishlist")');
+    await p.waitForSelector('.avis:has-text("remis en wishlist")');
+    const apres = await lire();
+    const bouge = apres.filter((x) => x.statut === 'souhaité' && avant.find((y) => y.id === x.id)?.statut === 'possédé');
+    exiger(bouge.length === 1, 'un seul set doit passer de la collection à la wishlist');
+    exiger(bouge[0].priorite === 'un-jour' && bouge[0].etat === null && bouge[0].dateAchat === null && bouge[0].emplacement === '', 'la priorité doit être posée et les champs de collection effacés');
+    exiger(bouge[0].etiquettes.length === (avant.find((y) => y.id === bouge[0].id).etiquettes ?? []).length, 'les étiquettes doivent être gardées');
+    await p.click('.avis button:has-text("Annuler")');
+    const restaure = (await lire()).find((x) => x.id === bouge[0].id);
+    const origine = avant.find((x) => x.id === bouge[0].id);
+    exiger(restaure.statut === 'possédé' && restaure.etat === origine.etat && restaure.dateAchat === origine.dateAchat, 'l\'annulation doit rendre l\'état et la date d\'achat');
+  },
+  'sélection : remettre en wishlist (aperçu)': async (p) => {
+    await p.click(SELECTIONNER);
+    await p.locator('.carte').nth(0).click(); await p.locator('.carte').nth(1).click();
+    await p.click('.nav__item:has-text("Wishlist")');
+    await p.waitForSelector('dialog[open] [role=alert]:has-text("Perdus")');
+  },
+  'remettre en wishlist : sélection': async (p) => {
+    const nbSouhaites = () => p.evaluate(() => JSON.parse(localStorage.getItem('bl_v1')).sets.filter((x) => x.statut === 'souhaité').length);
+    const avant = await nbSouhaites();
+    await p.click(SELECTIONNER);
+    await p.locator('.carte').nth(0).click(); await p.locator('.carte').nth(1).click();
+    await p.click('.nav__item:has-text("Wishlist")');
+    await p.click('dialog[open] .puce:text-is("Envie forte")');
+    await p.click('dialog[open] button:has-text("Remettre 2 sets")');
+    await p.waitForSelector('.avis:has-text("2 sets remis en wishlist")');
+    exiger(await nbSouhaites() === avant + 2, 'deux sets doivent arriver en wishlist');
+    await p.click('.avis button:has-text("Annuler")');
+    exiger(await nbSouhaites() === avant, 'l\'annulation doit remettre les deux sets en collection');
+  },
   // Dates de sortie : affichage, filtre, saisie à la main, puis mise à jour par le relais (simulé plus bas).
   'wishlist (dates de sortie)': async (p) => {
     await p.click('.nav__item:has-text("Wishlist")');

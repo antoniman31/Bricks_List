@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ajouter, ajouterPlusieurs, modifier, supprimer, acheter, fusionner, compterExemplaires, exemplairesPossedes, modifierPlusieurs, supprimerPlusieurs, apercuModification } from './collection.js';
+import { ajouter, ajouterPlusieurs, modifier, supprimer, acheter, fusionner, compterExemplaires, exemplairesPossedes, modifierPlusieurs, supprimerPlusieurs, apercuModification, champsPerdus, remettreEnWishlist, apercuRemiseEnWishlist } from './collection.js';
 
 const BASE = { numero: '75192-1', nom: 'Faucon', theme: 'Star Wars', annee: 2017, pieces: 7541, statut: 'possédé', etat: 'scellé' };
 
@@ -284,4 +284,65 @@ test('apercuModification : retirer une étiquette absente ne modifie personne', 
   const a = apercuModification([E('a1', ['x'])], ids('a1'), { etiquettes: { retirer: ['y'] } });
   assert.equal(a.modifies, 0);
   assert.equal(a.inchanges, 1);
+});
+
+// ---- Collection vers wishlist ----
+
+const POSSEDE = {
+  ...BASE, id: 'a', etat: 'monté', emplacement: 'Salon', boite: 'oui', notice: 'non', dateAchat: '2025-03-01', dateMontage: '2025-04-02',
+  etiquettes: ['cadeau'], notes: 'offert', image: 'https://cdn.rebrickable.com/a.jpg', imageListe: 'photo', dateSortie: '2017-10-01', sortieSource: 'brickset',
+};
+const liste = () => [normaliserForTest(POSSEDE), normaliserForTest({ ...BASE, id: 'b', numero: '10294-1', nom: 'Titanic', etat: 'neuf' }), normaliserForTest({ ...BASE, id: 'c', numero: '21357-1', nom: 'Luxo', statut: 'souhaité', priorite: 'forte', etat: null })];
+function normaliserForTest(brut) { return modifier([{ ...brut }], brut.id, {})[0]; }
+
+test('champsPerdus : seulement ce que le set a réellement', () => {
+  const [a, b] = liste();
+  assert.deepEqual(champsPerdus(a), ['état « monté »', 'emplacement « Salon »', 'boîte présente', 'notice absente', 'date d\'achat', 'date de montage']);
+  assert.deepEqual(champsPerdus(b), ['état « neuf »']);
+  assert.deepEqual(champsPerdus({ ...b, etat: null }), []);
+});
+
+test('remettre en wishlist : le set change de statut, ce qui ne vaut que possédé est effacé, le reste est gardé', () => {
+  const apres = remettreEnWishlist(liste(), new Set(['a']), 'un-jour');
+  const a = apres.find((s) => s.id === 'a');
+  assert.equal(a.statut, 'souhaité');
+  assert.equal(a.priorite, 'un-jour');
+  for (const champ of ['etat', 'boite', 'notice', 'dateAchat', 'dateMontage']) assert.equal(a[champ], null, champ);
+  assert.equal(a.emplacement, '');
+  assert.deepEqual([a.etiquettes, a.notes, a.image, a.imageListe, a.dateSortie, a.sortieSource, a.id, a.nom], [['cadeau'], 'offert', 'https://cdn.rebrickable.com/a.jpg', 'photo', '2017-10-01', 'brickset', 'a', 'Faucon']);
+  assert.equal(apres.find((s) => s.id === 'b').statut, 'possédé', 'les autres sets ne bougent pas');
+});
+
+test('remettre en wishlist : sans priorité, ou avec une priorité invalide, le set arrive sans priorité', () => {
+  assert.equal(remettreEnWishlist(liste(), new Set(['a']))[0].priorite, null);
+  assert.equal(remettreEnWishlist(liste(), new Set(['a']), 'urgentissime')[0].priorite, null);
+  assert.equal(remettreEnWishlist(liste(), new Set(['a']), 'forte')[0].priorite, 'forte');
+});
+
+test('remettre en wishlist : un set déjà souhaité garde sa priorité, un id inconnu ne fait rien', () => {
+  const avant = liste();
+  const apres = remettreEnWishlist(avant, new Set(['c', 'inconnu']), 'pas-presse');
+  assert.equal(apres.find((s) => s.id === 'c').priorite, 'forte');
+  assert.deepEqual(apres, avant);
+});
+
+test('remettre en wishlist en masse : plusieurs sets d\'un coup, deux exemplaires séparés', () => {
+  const sets = [...liste(), normaliserForTest({ ...POSSEDE, id: 'a2' })];
+  const apres = remettreEnWishlist(sets, new Set(['a', 'b']), 'forte');
+  assert.deepEqual(apres.map((s) => s.statut), ['souhaité', 'souhaité', 'souhaité', 'possédé']);
+  assert.equal(apres.filter((s) => s.numero === '75192-1' && s.statut === 'possédé').length, 1);
+});
+
+test('aperçu de la remise en wishlist : combien de sets perdent chaque champ, sans compter les souhaités', () => {
+  const sets = liste();
+  const r = apercuRemiseEnWishlist(sets, new Set(['a', 'b', 'c']));
+  assert.deepEqual(r, { total: 2, perdus: { etat: 2, emplacement: 1, boite: 1, notice: 1, dateAchat: 1, dateMontage: 1 } });
+  assert.deepEqual(apercuRemiseEnWishlist(sets, new Set()), { total: 0, perdus: { etat: 0, emplacement: 0, boite: 0, notice: 0, dateAchat: 0, dateMontage: 0 } });
+});
+
+test('aller-retour : l\'achat remet un état et la date du jour, sans rendre l\'ancien état', () => {
+  const retour = remettreEnWishlist(liste(), new Set(['a']), 'forte');
+  const rachete = acheter(retour, 'a', 'scellé', new Date(2026, 10, 11));
+  const a = rachete.find((s) => s.id === 'a');
+  assert.deepEqual([a.statut, a.etat, a.dateAchat, a.priorite, a.emplacement], ['possédé', 'scellé', '2026-11-11', null, '']);
 });

@@ -27,7 +27,7 @@ import ImagesContext from './ImagesContext.js'
 import { ecrireRegle, lireRegle } from './lib/imageListe.js'
 import { ecrireRelais, lireRelais, messageRelais, recupererSortie } from './lib/relais.js'
 import { FILTRES_SORTIE, candidats, dateCourte } from './lib/sortie.js'
-import { ajouter, ajouterPlusieurs, acheter, compterExemplaires, exemplairesPossedes, modifier, modifierPlusieurs, supprimer, supprimerPlusieurs } from './lib/collection.js'
+import { ajouter, ajouterPlusieurs, acheter, compterExemplaires, exemplairesPossedes, modifier, modifierPlusieurs, remettreEnWishlist, supprimer, supprimerPlusieurs } from './lib/collection.js'
 import { ETATS, LIBELLES_PRIORITE, PRIORITES } from './lib/model.js'
 import { memeEmplacement } from './lib/emplacements.js'
 import { TAILLES, TRIS, emplacements, filtrer, groupesAnnees, grouperParEmplacement, comptesEmplacements, manquants, triPourOnglet, CHAMPS_A_COMPLETER, rechercherAilleurs, themes, trier } from './lib/recherche.js'
@@ -328,6 +328,13 @@ export default function App() {
     finMasse(sets, modifierPlusieurs(sets, idsActifs, changements), `${n} set${n > 1 ? 's' : ''} ${'statut' in changements ? (n > 1 ? 'achetés' : 'acheté') : (n > 1 ? 'modifiés' : 'modifié')}.`)
   }
 
+  // Collection vers wishlist : ce qui n'a de sens que pour un set possédé est perdu (voir `champsPerdus`), d'où
+  // la confirmation en amont et l'annulation juste après (même bandeau que les modifications en masse).
+  function remettreMasse(ids, priorite) {
+    const n = ids.size
+    finMasse(sets, remettreEnWishlist(sets, ids, priorite), `${n} set${n > 1 ? 's' : ''} remis en wishlist.`)
+  }
+
   function supprimerMasse() {
     const n = idsActifs.size
     finMasse(sets, supprimerPlusieurs(sets, idsActifs), `${n} set${n > 1 ? 's' : ''} ${n > 1 ? 'supprimés' : 'supprimé'}.`)
@@ -527,6 +534,7 @@ export default function App() {
           nombre={idsActifs.size}
           statut={statut}
           onModifier={() => setEcran({ type: 'masse', action: 'modifier' })}
+          onWishlist={() => setEcran({ type: 'masse', action: 'wishlist' })}
           onSupprimer={() => setEcran({ type: 'masse', action: 'supprimer' })}
         />
       ) : (
@@ -678,6 +686,7 @@ export default function App() {
                 onChanger={(ch) => changerSet(detail.id, ch)}
                 onModifier={() => setEcran({ type: 'formulaire', id: detail.id })}
                 onAcheter={(etat) => appliquer(acheter(sets, detail.id, etat))}
+                onRemettre={(priorite) => remettreMasse(new Set([detail.id]), priorite)}
                 onSupprimer={() => appliquer(supprimer(sets, detail.id))}
               />
             </>
@@ -712,6 +721,7 @@ export default function App() {
           onFermer={fermer}
           onModifier={() => setEcran({ type: 'formulaire', id: fiche.id })}
           onAcheter={(etat) => { appliquer(acheter(sets, fiche.id, etat)); fermer() }}
+          onRemettre={(priorite) => remettreMasse(new Set([fiche.id]), priorite)}
           onSupprimer={() => { appliquer(supprimer(sets, fiche.id)); fermer() }}
         />
       )}
@@ -789,6 +799,7 @@ export default function App() {
           etiquettesConnues={etiquettesUtilisees}
           onAppliquer={appliquerMasse}
           onSupprimer={supprimerMasse}
+          onRemettre={(priorite) => remettreMasse(idsActifs, priorite)}
           onFermer={fermer}
         />
       )}

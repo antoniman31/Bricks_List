@@ -4,6 +4,7 @@ import PhotoFiche from './PhotoFiche.jsx'
 import RangerSheet from './RangerSheet.jsx'
 import { ETATS, LIBELLES_PRIORITE, PRIORITES } from '../lib/model.js'
 import { aEtiquette, ajouterEtiquettes, basculerEtiquette } from '../lib/etiquettes.js'
+import { champsPerdus } from '../lib/collection.js'
 import { aujourdhuiISO, dateSortieValide, dateValide, finSortiePossible, formaterDate } from '../lib/dates.js'
 import { etatSortie, relatif } from '../lib/sortie.js'
 
@@ -56,8 +57,11 @@ function LigneDate({ libelle, valeur, ouvert, desactive, onBasculer, onChoisir, 
 
 // Le contenu d'une fiche, sans son contenant : la feuille en dessous de 840 px, le panneau de
 // droite au-dessus. Même contenu, mêmes gestes, un seul endroit à tenir à jour.
-export function FicheContenu({ set, lectureSeule, lieux = [], lieuRecent = '', etiquettesConnues = [], onChanger, onModifier, onAcheter, onSupprimer }) {
+export function FicheContenu({ set, lectureSeule, lieux = [], lieuRecent = '', etiquettesConnues = [], onChanger, onModifier, onAcheter, onRemettre, onSupprimer }) {
   const [confirmer, setConfirmer] = useState(false)
+  // Remise en wishlist (set possédé) : une confirmation qui dit ce qui sera perdu, avec la priorité à donner.
+  const [remise, setRemise] = useState(false)
+  const [prioriteRemise, setPrioriteRemise] = useState('')
   const [rangement, setRangement] = useState(false)
   const [etatAchat, setEtatAchat] = useState('')
   // Une seule ligne s'édite à la fois : « etat », « priorite » ou « etiquettes ».
@@ -224,6 +228,29 @@ export function FicheContenu({ set, lectureSeule, lieux = [], lieuRecent = '', e
         </div>
       )}
 
+      {remise && (
+        <div className="avis avis--erreur" role="alertdialog" aria-label="Confirmer le retour en wishlist">
+          <p>
+            Remettre « {set.nom} » en wishlist ?{' '}
+            {champsPerdus(set).length > 0 ? `Perdus : ${champsPerdus(set).join(', ')}.` : 'Rien n\'est perdu.'} Tu pourras annuler juste après ; pense à exporter.
+          </p>
+          <div className="groupe__options" role="group" aria-label="Priorité">
+            <button type="button" className="puce" aria-pressed={prioriteRemise === ''} onClick={() => setPrioriteRemise('')}>Aucune</button>
+            {PRIORITES.map((p) => (
+              <button key={p} type="button" className="puce" aria-pressed={prioriteRemise === p} onClick={() => setPrioriteRemise(p)}>{LIBELLES_PRIORITE[p]}</button>
+            ))}
+          </div>
+          <div className="sheet__pied">
+            <button type="button" className="bouton" onClick={() => setRemise(false)}>Annuler</button>
+            <button type="button" className="bouton bouton--plein" onClick={() => onRemettre(prioriteRemise === '' ? null : prioriteRemise)}>Remettre en wishlist</button>
+          </div>
+        </div>
+      )}
+
+      {possede && onRemettre && !remise && !confirmer && (
+        <button type="button" className="bouton fiche__remise" disabled={lectureSeule} onClick={() => setRemise(true)}>Remettre en wishlist</button>
+      )}
+
       {confirmer ? (
         <div className="avis avis--erreur" role="alertdialog" aria-label="Confirmer la suppression">
           <p>Supprimer « {set.nom} » ? C'est définitif : pense à exporter.</p>
@@ -257,10 +284,10 @@ export function EnteteFiche({ set }) {
   )
 }
 
-export default function FicheSet({ set, lectureSeule, lieux, lieuRecent, etiquettesConnues, onChanger, onModifier, onAcheter, onSupprimer, onFermer }) {
+export default function FicheSet({ set, lectureSeule, lieux, lieuRecent, etiquettesConnues, onChanger, onModifier, onAcheter, onRemettre, onSupprimer, onFermer }) {
   return (
     <Sheet ouvert onFermer={onFermer} titre={set.nom} bandeau={{ badge: etiquetteDe(set), sous: set.theme }}>
-      <FicheContenu set={set} lectureSeule={lectureSeule} lieux={lieux} lieuRecent={lieuRecent} etiquettesConnues={etiquettesConnues} onChanger={onChanger} onModifier={onModifier} onAcheter={onAcheter} onSupprimer={onSupprimer} />
+      <FicheContenu set={set} lectureSeule={lectureSeule} lieux={lieux} lieuRecent={lieuRecent} etiquettesConnues={etiquettesConnues} onChanger={onChanger} onModifier={onModifier} onAcheter={onAcheter} onRemettre={onRemettre} onSupprimer={onSupprimer} />
     </Sheet>
   )
 }

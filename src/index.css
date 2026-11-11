@@ -861,3 +861,6 @@ div.anneau__ligne { padding: 6px 0; }
 
 /* Date de sortie d'un set pas encore sorti, sous ses détails dans la grille. */
 .carte--tuile .carte__sortie { color: var(--accent); font-weight: 600; }
+
+/* « Remettre en wishlist » : sa propre ligne, sinon trois boutons se serrent et rognent « Supprimer ». */
+.fiche__remise { width: 100%; margin-bottom: 8px; }

@@ -97,6 +97,43 @@ export function supprimerPlusieurs(sets, ids) {
   return sets.filter((s) => !ids.has(s.id));
 }
 
+// ---- De la collection vers la wishlist ----------------------------------------------------
+//
+// Un set souhaité n'a ni état, ni emplacement, ni boîte, ni notice, ni date d'achat ou de montage : le modèle
+// les efface (voir `normaliserSet`), donc les remettre en wishlist les perd. Ce qui vaut pour les deux
+// statuts (étiquettes, notes, image, choix de l'image de la liste, date de sortie) est gardé, et la photo
+// personnelle aussi, qui vit à part. `champsPerdus` dit ce qui disparaîtrait, pour le dire AVANT d'écrire.
+export function champsPerdus(set) {
+  const l = [];
+  if (set.etat) l.push(`état « ${set.etat} »`);
+  if (set.emplacement) l.push(`emplacement « ${set.emplacement} »`);
+  if (set.boite) l.push(set.boite === 'oui' ? 'boîte présente' : 'boîte absente');
+  if (set.notice) l.push(set.notice === 'oui' ? 'notice présente' : 'notice absente');
+  if (set.dateAchat) l.push('date d\'achat');
+  if (set.dateMontage) l.push('date de montage');
+  return l;
+}
+
+// Remet en wishlist les sets possédés de `ids`, avec la priorité donnée (null : sans priorité). Un set déjà
+// souhaité, ou qui ne passerait pas la validation, est laissé tel quel.
+export function remettreEnWishlist(sets, ids, priorite = null) {
+  return sets.map((s) => {
+    if (!ids.has(s.id) || s.statut !== 'possédé') return s;
+    const r = normaliserSet({ ...s, statut: 'souhaité', priorite, id: s.id });
+    return r ? r.set : s;
+  });
+}
+
+// Combien de sets perdraient chaque champ : pour l'aperçu d'une remise en wishlist en masse.
+export function apercuRemiseEnWishlist(sets, ids) {
+  const concernes = sets.filter((s) => ids.has(s.id) && s.statut === 'possédé');
+  const perdus = { etat: 0, emplacement: 0, boite: 0, notice: 0, dateAchat: 0, dateMontage: 0 };
+  for (const s of concernes) {
+    for (const champ of Object.keys(perdus)) if (s[champ]) perdus[champ] += 1;
+  }
+  return { total: concernes.length, perdus };
+}
+
 const CHAMPS_MASSE = ['emplacement', 'etat', 'boite', 'notice', 'statut'];
 const memesEtiquettes = (a = [], b = []) => a.length === b.length && a.every((e, i) => e === b[i]);
 

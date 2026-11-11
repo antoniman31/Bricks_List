@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import Sheet from './Sheet.jsx'
 import ChoixEmplacement from './ChoixEmplacement.jsx'
-import { ETATS } from '../lib/model.js'
+import { ETATS, LIBELLES_PRIORITE, PRIORITES } from '../lib/model.js'
 import { analyserSaisie, basculerDansSaisie, cleEtiquette, preparerSaisie } from '../lib/etiquettes.js'
-import { apercuModification } from '../lib/collection.js'
+import { apercuModification, apercuRemiseEnWishlist } from '../lib/collection.js'
 import { exporter } from '../lib/partage.js'
 import { aujourdhuiISO } from '../lib/dates.js'
 import { telecharger } from '../lib/fichier.js'
@@ -61,11 +61,43 @@ function ListeSets({ sets }) {
 // Modification ou suppression de plusieurs sets : toujours un aperçu avant d'écrire, avec
 // la liste des sets concernés. Une modification de masse se trompe vite, et l'aperçu est
 // l'endroit où l'on s'en aperçoit.
-export default function MasseSheet({ action, sets, tous, statut, emplacementsConnus, etiquettesConnues = [], onAppliquer, onSupprimer, onFermer }) {
+const NOMS_PERTE = { etat: 'état', emplacement: 'emplacement', boite: 'boîte', notice: 'notice', dateAchat: 'date d\'achat', dateMontage: 'date de montage' }
+
+export default function MasseSheet({ action, sets, tous, statut, emplacementsConnus, etiquettesConnues = [], onAppliquer, onSupprimer, onRemettre, onFermer }) {
   const [champs, setChamps] = useState(CHAMPS_VIDES)
+  const [priorite, setPriorite] = useState('')
   const [etape, setEtape] = useState('saisie')
   const n = sets.length
   const pluriel = n > 1 ? 's' : ''
+
+  // Remise en wishlist : l'état, l'emplacement, la boîte, la notice et les dates ne valent que pour un set
+  // possédé, donc ils sont perdus. On le chiffre avant d'écrire, et la priorité se choisit ici.
+  if (action === 'wishlist') {
+    const { total, perdus } = apercuRemiseEnWishlist(sets, new Set(sets.map((s) => s.id)))
+    const lignes = Object.entries(perdus).filter(([, v]) => v > 0).map(([k, v]) => `${NOMS_PERTE[k]} (${v} set${v > 1 ? 's' : ''})`)
+    return (
+      <Sheet ouvert onFermer={onFermer} titre="Remettre en wishlist">
+        <div className="formulaire">
+          <p className="avis avis--erreur" role="alert">
+            Remettre {total} set{total > 1 ? 's' : ''} en wishlist ?{' '}
+            {lignes.length > 0 ? `Perdus : ${lignes.join(', ')}.` : 'Rien n\'est perdu.'} Tu pourras annuler juste après ; pense à exporter.
+          </p>
+          <div className="groupe__options" role="group" aria-label="Priorité">
+            <button type="button" className="puce" aria-pressed={priorite === ''} onClick={() => setPriorite('')}>Aucune</button>
+            {PRIORITES.map((p) => (
+              <button key={p} type="button" className="puce" aria-pressed={priorite === p} onClick={() => setPriorite(p)}>{LIBELLES_PRIORITE[p]}</button>
+            ))}
+          </div>
+          <ListeSets sets={sets} />
+          <div className="sheet__pied sheet__pied--collant">
+            <button type="button" className="bouton" onClick={() => { const { nom, contenu } = exporter(tous); telecharger(nom, contenu) }}>Exporter d'abord</button>
+            <button type="button" className="bouton bouton--plein" disabled={total === 0} onClick={() => onRemettre(priorite === '' ? null : priorite)}>Remettre {total} set{total > 1 ? 's' : ''}</button>
+          </div>
+          <button type="button" className="bouton" onClick={onFermer}>Annuler</button>
+        </div>
+      </Sheet>
+    )
+  }
 
   if (action === 'supprimer') {
     return (
