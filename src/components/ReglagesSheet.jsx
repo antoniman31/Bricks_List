@@ -7,13 +7,32 @@ import { imagesDuStock, restaurerImages } from '../lib/photosDB.js'
 import { imageDecodable } from '../lib/photoNavigateur.js'
 import { partageDisponible, partager, telecharger } from '../lib/fichier.js'
 import { ecrirePartageTexte, etatSauvegarde, libelleDelai, lirePartageTexte } from '../lib/sauvegarde.js'
-import { cleValide } from '../lib/reglages.js'
+import { cleValide, resumeCle, resumeImages, resumeRelais, resumeSauvegarde } from '../lib/reglages.js'
 import { LIBELLES, MODES } from '../lib/apparence.js'
 import { REGLES } from '../lib/imageListe.js'
 import { jetonValide, urlRelaisValide } from '../lib/relais.js'
 import { verifierMiseAJour } from '../lib/miseAJour.js'
 
+// Une section repliable : un titre, son état en une ligne, et son contenu. UNE SEULE s'ouvre à la fois (l'écran reste court
+// sur téléphone) : `details` est piloté depuis la feuille, un appui sur le titre ouvre celle-ci et referme l'autre.
+function Section({ id, titre, etat, ouverte, onBasculer, children }) {
+  return (
+    <details className="reglage" open={ouverte === id}>
+      <summary onClick={(e) => { e.preventDefault(); onBasculer(id) }}>
+        <span className="reglage__entete">
+          <span className="reglage__nom">{titre}</span>
+          {etat && <span className="reglage__etat">{etat}</span>}
+        </span>
+      </summary>
+      {children}
+    </details>
+  )
+}
+
 export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, regleImage, onRegleImage, relais, onRelaisChange, onTesterRelais, majDates, onMajDates, nbBoites = 0, nbRendus = 0, majBoites = { etat: '', message: '' }, onSauvegarderBoites, onImagesImportees, cle, onCleChange, onTesterCle, onAppliquer, derniereSauvegarde, persistance, onSauvegardeFaite, onFermer }) {
+  // Apparence est ouverte au départ : changer de thème ne demande aucun appui de plus.
+  const [ouverte, setOuverte] = useState('apparence')
+  const basculer = (id) => setOuverte((o) => (o === id ? '' : id))
   const [apercu, setApercu] = useState(null)
   // Lecture ou écriture des images en cours (export, import) : quelques secondes avec des dizaines de Mo.
   const [preparation, setPreparation] = useState(false)
@@ -191,8 +210,9 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
 
   return (
     <Sheet ouvert onFermer={onFermer} titre="Réglages">
-      <details className="reglage">
-        <summary>Apparence</summary>
+      <div role="group" aria-labelledby="reglages-affichage">
+        <h3 className="reglages__groupe" id="reglages-affichage">Affichage</h3>
+        <Section id="apparence" titre="Apparence" etat={`${LIBELLES[mode]} · ${REGLES.find((r) => r.cle === regleImage)?.libelle ?? ''}`} ouverte={ouverte} onBasculer={basculer}>
         <div className="stats__puces" role="group" aria-label="Thème">
           {MODES.map((m) => (
             <button key={m} type="button" className="puce" aria-pressed={mode === m} onClick={() => onModeChange(m)}>
@@ -208,10 +228,12 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
             </button>
           ))}
         </div>
-      </details>
+        </Section>
+      </div>
 
-      <details className="reglage">
-        <summary>Rebrickable</summary>
+      <div role="group" aria-labelledby="reglages-connexions">
+        <h3 className="reglages__groupe" id="reglages-connexions">Connexions</h3>
+        <Section id="rebrickable" titre="Rebrickable" etat={resumeCle(cle)} ouverte={ouverte} onBasculer={basculer}>
         <p className="reglage__aide">
           Remplit un set depuis son numéro. Reste sur cet appareil, jamais exportée.
         </p>
@@ -241,23 +263,10 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
         {etatCle.message && (
           <p className={`avis${etatCle.type === 'erreur' ? ' avis--erreur' : ''}`} role={etatCle.type === 'erreur' ? 'alert' : 'status'}>{etatCle.message}</p>
         )}
-      </details>
-
-      <details className="reglage">
-        <summary>Images sur l'appareil</summary>
+        </Section>
+        <Section id="relais" titre="Relais (dates et prix)" etat={resumeRelais(relais.url)} ouverte={ouverte} onBasculer={basculer}>
         <p className="reglage__aide">
-          Chaque boîte affichée est gardée sur cet appareil : si BrickLink est en panne, elle reste visible. Les rendus Rebrickable se copient par le relais. {nbBoites} boîte{nbBoites > 1 ? 's' : ''} et {nbRendus} rendu{nbRendus > 1 ? 's' : ''} sauvegardé{nbBoites + nbRendus > 1 ? 's' : ''}, dans l'export complet.
-        </p>
-        <button type="button" className="bouton" disabled={majBoites.etat === 'charge'} onClick={onSauvegarderBoites}>Sauvegarder toutes les images</button>
-        {majBoites.message && (
-          <p className={`avis${majBoites.etat === 'erreur' ? ' avis--erreur' : ''}`} role={majBoites.etat === 'erreur' ? 'alert' : 'status'}>{majBoites.message}</p>
-        )}
-      </details>
-
-      <details className="reglage">
-        <summary>Dates de sortie</summary>
-        <p className="reglage__aide">
-          Les dates viennent de Brickset, par un relais à toi (dossier <code>relais</code> du dépôt). L'adresse reste sur cet appareil, jamais exportée.
+          Dates, prix et rendus passent par ton relais Brickset (dossier <code>relais</code> du dépôt). Adresse gardée sur cet appareil, jamais exportée.
         </p>
         <label className="formulaire__champ">
           Adresse du relais
@@ -299,10 +308,12 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
         {majDates.message && (
           <p className={`avis${majDates.etat === 'erreur' ? ' avis--erreur' : ''}`} role={majDates.etat === 'erreur' ? 'alert' : 'status'}>{majDates.message}</p>
         )}
-      </details>
+        </Section>
+      </div>
 
-      <details className="reglage">
-        <summary>Sauvegarde</summary>
+      <div role="group" aria-labelledby="reglages-donnees">
+        <h3 className="reglages__groupe" id="reglages-donnees">Données</h3>
+        <Section id="sauvegarde" titre="Sauvegarde" etat={resumeSauvegarde(libelleDelai(etatSauvegarde({ nbSets: sets.length, derniere: derniereSauvegarde }).jours), persistance)} ouverte={ouverte} onBasculer={basculer}>
         <p className="reglage__aide">Données stockées sur cet appareil. Le fichier exporté contient aussi toutes les images (photos, boîtes, rendus) : il peut peser des dizaines de Mo.</p>
         <p className="reglage__aide">
           Dernière sauvegarde : {libelleDelai(etatSauvegarde({ nbSets: sets.length, derniere: derniereSauvegarde }).jours)}.
@@ -320,10 +331,8 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
         </div>
         {preparation && <p className="avis" role="status">Préparation des images…</p>}
         {resultatExport && <p className="avis" role="status">{resultatExport}</p>}
-      </details>
-
-      <details className="reglage">
-        <summary>Importer un fichier</summary>
+        </Section>
+        <Section id="import" titre="Importer un fichier" etat="JSON ou .txt, images comprises" ouverte={ouverte} onBasculer={basculer}>
         <label className="bouton bouton--fichier">
           Choisir un fichier JSON
           <input type="file" accept=".json,.txt,application/json,text/plain" onChange={choisirFichier} className="visuellement-cache" />
@@ -363,19 +372,29 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
         )}
 
         {resultat && <p className="avis" role="status">{resultat}</p>}
-      </details>
+        </Section>
+        <Section id="images" titre="Images sur l'appareil" etat={resumeImages(nbBoites, nbRendus)} ouverte={ouverte} onBasculer={basculer}>
+        <p className="reglage__aide">
+          Les boîtes vues sont gardées ici (elles restent si BrickLink tombe), les rendus Rebrickable passent par le relais. Tout part dans l'export complet.
+        </p>
+        <button type="button" className="bouton" disabled={majBoites.etat === 'charge'} onClick={onSauvegarderBoites}>Sauvegarder toutes les images</button>
+        {majBoites.message && (
+          <p className={`avis${majBoites.etat === 'erreur' ? ' avis--erreur' : ''}`} role={majBoites.etat === 'erreur' ? 'alert' : 'status'}>{majBoites.message}</p>
+        )}
+        </Section>
+      </div>
 
-      <details className="reglage">
-        <summary>Mise à jour</summary>
+      <div role="group" aria-labelledby="reglages-apropos">
+        <h3 className="reglages__groupe" id="reglages-apropos">À propos</h3>
+        <Section id="maj" titre="Mise à jour" etat={`Version ${__COMMIT__}`} ouverte={ouverte} onBasculer={basculer}>
         <button type="button" className="bouton" disabled={maj.etat === 'charge'} onClick={verifierMaj}>
           {maj.etat === 'charge' ? 'Vérification…' : 'Vérifier les mises à jour'}
         </button>
         {maj.message && maj.etat !== 'charge' && (
           <p className={`avis${maj.etat === 'erreur' ? ' avis--erreur' : ''}`} role={maj.etat === 'erreur' ? 'alert' : 'status'}>{maj.message}</p>
         )}
-      </details>
-
-      <p className="reglage__version">Version {__COMMIT__}</p>
+        </Section>
+      </div>
     </Sheet>
   )
 }

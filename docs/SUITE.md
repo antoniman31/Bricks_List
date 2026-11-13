@@ -144,6 +144,13 @@ testé avec sa vraie collection, tout fonctionne.
   refusée (trop grosse, illisible, absente) est comptée et **nommée** dans le message sans arrêter les suivantes ; seules les vraies pannes
   du relais (jeton refusé, relais injoignable, trois délais dépassés de suite) l'arrêtent (`arretRelais`). Aucune
   copie automatique à l'affichage : seulement par ce bouton. Hors export, purgés au démarrage comme les boîtes.
+- **Réglages réorganisés et wishlist allégée** (novembre 2026, demandé par Antoni : « c'est le foutoir »). Les sept sections à plat
+  deviennent quatre groupes : **Affichage** (Apparence), **Connexions** (Rebrickable, Relais « dates et prix »), **Données** (Sauvegarde,
+  Importer un fichier, Images sur l'appareil), **À propos** (Mise à jour, version). Chaque section fermée affiche son état en une ligne
+  (`resumeCle`, `resumeRelais`, `resumeSauvegarde`, `resumeImages` dans `src/lib/reglages.js`, testés) ; **une seule section s'ouvre à la
+  fois** (Apparence est ouverte au départ). Aucune fonction ne change ; « Dates de sortie » devient « Relais (dates et prix) » car il sert
+  aussi aux rendus. Sur la wishlist, les deux gros boutons sont retirés : « Mettre à jour dates et prix » vit dans Réglages > Relais,
+  « Copier la liste » devient un bouton-icône à côté de la ligne « Total ». Parcours `verif:ui` : groupes, états, une seule section ouverte.
 - **Prix officiel** (novembre 2026, demandé par Antoni ; exception au cadrage « pas de prix ») : wishlist seulement, en
   euros. Champs `prix` (0,01 à 10 000, arrondi au centime) et `prixSource` (`manuelle` ou `brickset-de`), validés dans le modèle
   comme la date de sortie (sans prix pas de source, un prix sans source est réputé manuel), pour les deux statuts mais affichés
@@ -184,8 +191,7 @@ testé avec sa vraie collection, tout fonctionne.
   rend la main à Brickset. La carte d'un set pas encore sorti dit « Sort le 1 janv. 2027 · dans 57 jours » (« Sort
   dans 57 jours » en grille). Tri « Date de sortie » (prochaine sortie, puis déjà sortis du plus récent, puis sans
   date) et filtre « Sortie » (à venir, déjà sorti, date inconnue). `src/lib/sortie.js` et `relais.js`, testés.
-  **Mise à jour automatique** : bouton « Mettre à jour les dates » (barre de la wishlist et Réglages > Dates de
-  sortie) qui interroge, un set après l'autre, ceux sans date ou pas encore sortis, wishlist et collection, par le
+  **Mise à jour automatique** : bouton « Mettre à jour dates et prix » (Réglages > Relais ; il n'est plus sur la wishlist) qui interroge, un set après l'autre, ceux sans date ou pas encore sortis, wishlist et collection, par le
   relais Brickset ; arrêt à la première panne (clé refusée, limite quotidienne, relais injoignable) ; une seule
   écriture à la fin ; « n dates enregistrées, n inconnues chez Brickset ». L'adresse du relais et son jeton
   facultatif sont dans Réglages (`bl_relais`, hors export). Le relais est dans `relais/` (Cloudflare Worker, clé
@@ -210,10 +216,10 @@ testé avec sa vraie collection, tout fonctionne.
   au rechargement (`bl_filtres`, hors export, `src/lib/filtresMemo.js`, entrée validée ; l'ancien format à un
   seul jeu est lu). La recherche texte n'est pas retenue et se vide au changement d'onglet. Un raccourci des
   Stats remplace les filtres de la collection.
-- **Qualité** : `npm run lint`, `npm test` (421 tests, dont ceux du relais), `npm run verif:ui` (axe-core, cibles de
+- **Qualité** : `npm run lint`, `npm test` (422 tests, dont ceux du relais), `npm run verif:ui` (axe-core, cibles de
   48 px, débordements, navigation, recherche visible clavier ouvert, et quatre parcours qui vérifient un
   comportement : filtres conservés au rechargement, onglets indépendants, import d'un `.txt`, repli des
-  boîtes, photo personnelle (enregistrée, relue, retirée), image de la liste (fiche et règle), dates de sortie (affichage, filtre, saisie, relais), remise en wishlist (fiche et sélection, avec annulation), boîtes gardées (sauvegarde, service hors BrickLink, arrêt en maintenance), rendus gardés par le relais, sauvegarde complète avec images (export, vidage, restauration) ; 68 écrans × 2 thèmes × 4
+  boîtes, photo personnelle (enregistrée, relue, retirée), image de la liste (fiche et règle), dates de sortie (affichage, filtre, saisie, relais), remise en wishlist (fiche et sélection, avec annulation), boîtes gardées (sauvegarde, service hors BrickLink, arrêt en maintenance), rendus gardés par le relais, sauvegarde complète avec images (export, vidage, restauration) ; 70 écrans × 2 thèmes × 4
   largeurs : 360, 412, 900, 1280). Les trois tournent dans le CI avant le déploiement.
 
 ## Décisions de cadrage (ne pas rouvrir sans raison)

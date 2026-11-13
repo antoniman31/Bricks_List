@@ -51,3 +51,17 @@ test('cache de thèmes : entrées invalides écartées, JSON cassé ignoré', ()
   s.setItem('bl_themes', '{cassé');
   assert.deepEqual(lireThemes(s), {});
 });
+
+test('résumés des Réglages : une ligne d\'état par section', async () => {
+  const { resumeCle, resumeImages, resumeRelais, resumeSauvegarde } = await import('./reglages.js');
+  assert.equal(resumeCle('abcdefgh1234'), 'Clé enregistrée (…1234)');
+  assert.equal(resumeCle(''), 'Pas de clé');
+  assert.equal(resumeRelais('https://r.example'), 'Adresse enregistrée');
+  assert.equal(resumeRelais(''), 'Non configuré');
+  assert.equal(resumeImages(51, 8), '51 boîtes · 8 rendus');
+  assert.equal(resumeImages(1, 1), '1 boîte · 1 rendu');
+  assert.equal(resumeImages(0, 0), 'Aucune image gardée');
+  assert.equal(resumeSauvegarde('hier', 'protege'), 'Dernière : hier · stockage protégé');
+  assert.equal(resumeSauvegarde('jamais', 'non-garanti'), 'Dernière : jamais · stockage non garanti');
+  assert.equal(resumeSauvegarde('hier', 'n\'importe quoi'), 'Dernière : hier · protection inconnue');
+});

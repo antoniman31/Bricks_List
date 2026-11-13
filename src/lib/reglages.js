@@ -49,3 +49,15 @@ export function lireThemes(store) {
 export function ecrireThemes(cache, store) {
   try { stockage(store)?.setItem(CLE_THEMES, JSON.stringify(cache)); } catch { /* optimisation seulement */ }
 }
+
+// Une ligne d'état par section fermée des Réglages : on voit d'un coup d'œil ce qui est en place, sans rien ouvrir.
+// Logique pure (testée) : la feuille ne fait que les afficher.
+export const resumeCle = (cle) => (cle ? `Clé enregistrée (…${cle.slice(-4)})` : 'Pas de clé');
+export const resumeRelais = (url) => (url ? 'Adresse enregistrée' : 'Non configuré');
+export const resumeImages = (nbBoites, nbRendus) => (
+  nbBoites + nbRendus === 0
+    ? 'Aucune image gardée'
+    : `${nbBoites} boîte${nbBoites > 1 ? 's' : ''} · ${nbRendus} rendu${nbRendus > 1 ? 's' : ''}`
+);
+const PROTECTION = { protege: 'stockage protégé', 'non-garanti': 'stockage non garanti', inconnu: 'protection inconnue' };
+export const resumeSauvegarde = (libelleDelai, persistance) => `Dernière : ${libelleDelai} · ${PROTECTION[persistance] ?? PROTECTION.inconnu}`;
