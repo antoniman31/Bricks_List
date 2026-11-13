@@ -2,6 +2,7 @@
 // La date elle-même est une chaîne AAAA-MM-JJ (voir dates.js), saisie à la main ou donnée par Brickset
 // via le relais (voir relais.js).
 import { joursJusque } from './dates.js';
+import { aPreRemplir } from './prix.js';
 
 // Où en est ce set : null sans date ; sinon { date, jours, aVenir }. « Aujourd'hui » compte comme sorti.
 export function etatSortie(set, maintenant = new Date()) {
@@ -72,4 +73,12 @@ export function candidats(sets, maintenant = new Date()) {
     const e = etatSortie(s, maintenant);
     return e === null || e.aVenir;
   });
+}
+
+// Les sets à interroger au total : ceux dont la date manque ou peut bouger (`candidats`) et ceux de la wishlist
+// dont le prix manque ou vient de Brickset (`aPreRemplir`). Une seule demande au relais renvoie les deux, donc un
+// seul appel par set (la limite quotidienne de Brickset est de 100).
+export function aInterroger(sets, maintenant = new Date()) {
+  const dates = new Set(candidats(sets, maintenant).map((s) => s.id));
+  return sets.filter((s) => dates.has(s.id) || aPreRemplir(s));
 }

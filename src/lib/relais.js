@@ -4,6 +4,7 @@
 import { dateSortieValide } from './dates.js';
 import { urlRenduValide } from './boite.js';
 import { normaliserNumero } from './numero.js';
+import { prixValide } from './prix.js';
 
 const CLE = 'bl_relais';
 const FORME_JETON = /^[\x21-\x7E]{8,100}$/;
@@ -70,8 +71,8 @@ const MESSAGES = {
 };
 export const messageRelais = (code) => MESSAGES[code] ?? MESSAGES.reponse;
 
-// Demande la date de sortie d'un set au relais. Renvoie { ok: true, trouve, lancement } (lancement null si
-// Brickset n'en a pas) ou { ok: false, code }. Ne lève jamais : un échec réseau est un code comme un autre.
+// Demande la date de sortie (et le prix allemand) d'un set au relais. Renvoie { ok: true, trouve, lancement, prixDE }
+// (lancement et prixDE null si Brickset n'en a pas) ou { ok: false, code }. Ne lève jamais : un échec réseau est un code comme un autre.
 export async function recupererSortie(relais, numero, fetchFn = globalThis.fetch) {
   const n = normaliserNumero(numero);
   const base = urlRelaisValide(relais?.url);
@@ -89,7 +90,7 @@ export async function recupererSortie(relais, numero, fetchFn = globalThis.fetch
   try { corps = await reponse.json(); } catch { return { ok: false, code: 'reponse' }; }
   if (!reponse.ok) return { ok: false, code: typeof corps?.erreur === 'string' && corps.erreur in MESSAGES ? corps.erreur : 'reponse' };
   if (!corps || typeof corps !== 'object' || typeof corps.trouve !== 'boolean') return { ok: false, code: 'reponse' };
-  return { ok: true, trouve: corps.trouve, lancement: dateSortieValide(corps.lancement) };
+  return { ok: true, trouve: corps.trouve, lancement: dateSortieValide(corps.lancement), prixDE: prixValide(corps.prixDE) };
 }
 
 const TAILLE_IMAGE_MAX = 2 * 1024 * 1024;

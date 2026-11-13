@@ -2,7 +2,8 @@
 
 Collection personnelle de sets LEGO (React 19 + Vite, PWA sur GitHub Pages).
 Cibles : Chrome sur Android (Galaxy S26 Ultra) et sur Windows. Pas d'APK, pas de
-minifigs, pas de pièces détachées, pas de prix (décisions de cadrage).
+minifigs, pas de pièces détachées, pas de prix du marché ni de prix payé (décisions de cadrage). Seule exception,
+demandée par Antoni en novembre 2026 : le prix officiel (public, en euros) des sets de la wishlist.
 
 Où on en est et ce qui reste à faire : `docs/SUITE.md` (état complet) et `docs/TODO.md` (reprise de session : par quoi
 commencer).

@@ -5,7 +5,7 @@
 // directement. Le relais l'appelle à sa place, avec la clé Brickset gardée en secret côté Cloudflare
 // (jamais dans l'application, jamais dans le dépôt), et ne renvoie que ce dont l'app a besoin.
 //
-//   GET /sortie?numero=75192-1  ->  { numero, trouve, lancement, retrait, disponibilite }
+//   GET /sortie?numero=75192-1  ->  { numero, trouve, lancement, retrait, disponibilite, prixDE }
 //   GET /image?url=https://cdn.rebrickable.com/media/sets/75192-1.jpg  ->  l'image elle-même, avec CORS
 //     (le CDN de Rebrickable n'en envoie pas : sans relais, l'app ne peut pas copier le rendu sur l'appareil).
 //     Route volontairement étroite : un seul hôte, un seul dossier, des images, une taille maximale.
@@ -44,6 +44,13 @@ export function datePropre(v) {
   return `${m[1]}-${m[2]}-${m[3]}`;
 }
 
+// Le prix public allemand (euros) d'après Brickset, ou null : un nombre positif et raisonnable, sinon rien. La France
+// n'a pas de prix chez Brickset ; l'Allemagne est la seule région en euros. Le nom du champ vient de la
+// documentation de l'API (LEGOCom.DE.retailPrice) et n'a jamais été vu dans une vraie réponse.
+export function prixPropre(v) {
+  return typeof v === 'number' && Number.isFinite(v) && v > 0 && v <= 10000 ? Math.round(v * 100) / 100 : null;
+}
+
 // La réponse de Brickset, lue sans lui faire confiance. Renvoie { ok: true, valeur } ou
 // { ok: false, statut, code } : un code court pour l'app, jamais le texte brut de Brickset.
 export function lireBrickset(donnees, numero) {
@@ -51,7 +58,7 @@ export function lireBrickset(donnees, numero) {
   if (donnees.status === 'success') {
     const sets = Array.isArray(donnees.sets) ? donnees.sets : [];
     const set = sets.find((s) => s && `${s.number}-${s.numberVariant}` === numero);
-    if (!set) return { ok: true, valeur: { numero, trouve: false, lancement: null, retrait: null, disponibilite: null } };
+    if (!set) return { ok: true, valeur: { numero, trouve: false, lancement: null, retrait: null, disponibilite: null, prixDE: null } };
     return {
       ok: true,
       valeur: {
@@ -60,6 +67,7 @@ export function lireBrickset(donnees, numero) {
         lancement: datePropre(set.launchDate),
         retrait: datePropre(set.exitDate),
         disponibilite: typeof set.availability === 'string' ? set.availability.slice(0, 60) : null,
+        prixDE: prixPropre(set.LEGOCom?.DE?.retailPrice),
       },
     };
   }

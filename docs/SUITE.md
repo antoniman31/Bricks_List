@@ -142,6 +142,20 @@ testé avec sa vraie collection, tout fonctionne.
   d'IndexedDB (base `bl_photos` en version 3, clé = numéro), servi avant le rendu réseau ; « Sauvegarder toutes les
   images » les copie après les boîtes, et **exige l'adresse du relais dans Réglages** (sinon le message le dit). Aucune
   copie automatique à l'affichage : seulement par ce bouton. Hors export, purgés au démarrage comme les boîtes.
+- **Prix officiel** (novembre 2026, demandé par Antoni ; exception au cadrage « pas de prix ») : wishlist seulement, en
+  euros. Champs `prix` (0,01 à 10 000, arrondi au centime) et `prixSource` (`manuelle` ou `brickset-de`), validés dans le modèle
+  comme la date de sortie (sans prix pas de source, un prix sans source est réputé manuel), pour les deux statuts mais affichés
+  seulement en wishlist (le prix survit à « Acheté » et revient en cas de remise en wishlist). Logique pure et tests dans
+  `src/lib/prix.js`. **Pas de source française** : Rebrickable n'a pas de prix, Brickset donne US, UK, CA et DE (pas FR), LEGO.fr n'a pas
+  d'API publique et BrickLink/Brickfact donnent des prix du marché (non retenus). D'où : saisie à la main (fiche, ligne « Prix »,
+  jamais écrasée) et pré-remplissage du **prix allemand** par le relais (`prixDE` dans la réponse de `/sortie`, lu depuis
+  `LEGOCom.DE.retailPrice` d'après la documentation de Brickset, **jamais vu dans une vraie réponse**), marqué « DE » (pastille
+  sur la carte, « prix DE » sur la fiche). Affichage : carte et tuile, fiche, **total** de la liste affichée (« 308,99 € · 1 sans
+  prix », filtres pris en compte), tri « Prix croissant/décroissant » (sets sans prix en dernier), filtre par tranche (moins de 50 €,
+  50 à 100, 100 à 200, 200 et plus, sans prix). Le bouton devient « Mettre à jour dates et prix » : un seul appel au relais par set,
+  qui remplit les prix vides et rafraîchit les prix DE, **jamais un prix saisi à la main** (l'effacer rend la main à la mise à jour).
+  Parcours `verif:ui` : total, pastille, saisie (valide et invalide), filtre, tri, pré-remplissage ; contrôle de non-vacuité fait
+  (protection du prix manuel cassée exprès : le parcours échoue).
 - **Sauvegarde complète avec les images** (novembre 2026) : « Exporter la collection » et « Partager la sauvegarde »
   mettent dans le même fichier JSON les sets **et toutes les images** (photos personnelles, boîtes gardées, rendus gardés),
   en base64, bloc `images: { photos: {<id du set>: …}, boites: {<numéro>: …}, rendus: {<numéro>: …} }` (`src/lib/imagesExport.js`,
@@ -194,7 +208,7 @@ testé avec sa vraie collection, tout fonctionne.
   au rechargement (`bl_filtres`, hors export, `src/lib/filtresMemo.js`, entrée validée ; l'ancien format à un
   seul jeu est lu). La recherche texte n'est pas retenue et se vide au changement d'onglet. Un raccourci des
   Stats remplace les filtres de la collection.
-- **Qualité** : `npm run lint`, `npm test` (407 tests, dont ceux du relais), `npm run verif:ui` (axe-core, cibles de
+- **Qualité** : `npm run lint`, `npm test` (418 tests, dont ceux du relais), `npm run verif:ui` (axe-core, cibles de
   48 px, débordements, navigation, recherche visible clavier ouvert, et quatre parcours qui vérifient un
   comportement : filtres conservés au rechargement, onglets indépendants, import d'un `.txt`, repli des
   boîtes, photo personnelle (enregistrée, relue, retirée), image de la liste (fiche et règle), dates de sortie (affichage, filtre, saisie, relais), remise en wishlist (fiche et sélection, avec annulation), boîtes gardées (sauvegarde, service hors BrickLink, arrêt en maintenance), rendus gardés par le relais, sauvegarde complète avec images (export, vidage, restauration) ; 60 écrans × 2 thèmes × 4
@@ -202,7 +216,7 @@ testé avec sa vraie collection, tout fonctionne.
 
 ## Décisions de cadrage (ne pas rouvrir sans raison)
 
-Pas de minifigs, de pièces détachées, de prix ni d'APK. Sauvegarde par export manuel (la
+Pas de minifigs, de pièces détachées, de prix du marché ni payé, ni d'APK (seul le prix officiel de la wishlist existe, voir « Prix officiel »). Sauvegarde par export manuel (la
 synchronisation entre appareils est écartée pour l'instant). Moins de 100 sets prévus.
 
 ## La suite

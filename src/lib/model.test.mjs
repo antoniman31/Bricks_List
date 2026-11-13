@@ -208,3 +208,20 @@ test('un ancien état sur un set souhaité n\'est pas compté (l\'état n\'y a p
   const r = validerSets([{ ...OK, statut: 'souhaité', etat: 'démonté' }]);
   assert.equal(r.etatsRetires, 0);
 });
+
+test('prix officiel : arrondi au centime, source par défaut « manuelle », écarté si absurde, sans source sans prix', async () => {
+  const { normaliserSet } = await import('./model.js');
+  const base = { numero: '75192-1', nom: 'Faucon', statut: 'souhaité' };
+  const ok = normaliserSet({ ...base, prix: 849.994 });
+  assert.equal(ok.set.prix, 849.99);
+  assert.equal(ok.set.prixSource, 'manuelle');
+  assert.equal(ok.corrections, 0);
+  assert.equal(normaliserSet({ ...base, prix: 100, prixSource: 'brickset-de' }).set.prixSource, 'brickset-de');
+  const mauvais = normaliserSet({ ...base, prix: -5, prixSource: 'brickset-de' });
+  assert.deepEqual([mauvais.set.prix, mauvais.set.prixSource], [null, null]);
+  assert.ok(mauvais.corrections >= 1);
+  assert.equal(normaliserSet({ ...base, prix: 'cher' }).set.prix, null);
+  assert.equal(normaliserSet({ ...base, prix: 50, prixSource: 'inconnue' }).set.prixSource, 'manuelle');
+  // Le prix survit à l'achat : il n'est lié à aucun statut.
+  assert.equal(normaliserSet({ ...base, statut: 'possédé', prix: 120 }).set.prix, 120);
+});

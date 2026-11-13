@@ -301,3 +301,21 @@ test('Salon et salon : un seul emplacement pour le filtre, la liste et les déco
   assert.deepEqual(ids(filtrer(sets, { emplacement: 'SALÓN' })), ['1', '2', '3']);
   assert.deepEqual(ids(filtrer(sets, { emplacement: 'Cave' })), ['4']);
 });
+
+test('prix : tri croissant et décroissant (sans prix en dernier) et filtre par tranche, wishlist seulement', async () => {
+  const { TRIS, filtrer, trier, triPourOnglet } = await import('./recherche.js');
+  const sets = [
+    { id: 'a', numero: '1', nom: 'A', statut: 'souhaité', prix: 120 },
+    { id: 'b', numero: '2', nom: 'B', statut: 'souhaité' },
+    { id: 'c', numero: '3', nom: 'C', statut: 'souhaité', prix: 29.99 },
+    { id: 'd', numero: '4', nom: 'D', statut: 'possédé', prix: 500 },
+  ];
+  const wish = sets.filter((s) => s.statut === 'souhaité');
+  assert.deepEqual(trier(wish, 'prix').map((s) => s.id), ['c', 'a', 'b']);
+  assert.deepEqual(trier(wish, 'prix-desc').map((s) => s.id), ['a', 'c', 'b']);
+  assert.deepEqual(filtrer(sets, { statut: 'souhaité', prix: '100-200' }).map((s) => s.id), ['a']);
+  assert.deepEqual(filtrer(sets, { statut: 'souhaité', prix: 'sans-prix' }).map((s) => s.id), ['b']);
+  assert.ok(TRIS.filter((t) => t.cle.startsWith('prix')).every((t) => t.statut === 'souhaité'));
+  assert.equal(triPourOnglet('prix', 'possédé'), 'ajout');
+  assert.equal(triPourOnglet('prix', 'souhaité'), 'prix');
+});

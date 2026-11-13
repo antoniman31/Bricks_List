@@ -29,7 +29,8 @@ import { normaliserNumero } from './lib/numero.js'
 import ImagesContext from './ImagesContext.js'
 import { ecrireRegle, lireRegle } from './lib/imageListe.js'
 import { ecrireRelais, lireRelais, messageRelais, recupererImage, recupererSortie } from './lib/relais.js'
-import { FILTRES_SORTIE, candidats, dateCourte } from './lib/sortie.js'
+import { FILTRES_SORTIE, aInterroger, candidats, dateCourte } from './lib/sortie.js'
+import { TRANCHES_PRIX, aPreRemplir, libelleTotal, totalPrix } from './lib/prix.js'
 import { ajouter, ajouterPlusieurs, acheter, compterExemplaires, exemplairesPossedes, modifier, modifierPlusieurs, remettreEnWishlist, supprimer, supprimerPlusieurs } from './lib/collection.js'
 import { ETATS, LIBELLES_PRIORITE, PRIORITES } from './lib/model.js'
 import { memeEmplacement } from './lib/emplacements.js'
@@ -216,36 +217,48 @@ export default function App() {
     if (!res.ok) return { ok: false, message: messageRelais(res.code) }
     return { ok: true, message: res.lancement ? `Relais joignable (le Faucon Millenium est sorti le ${dateCourte(res.lancement)}).` : 'Relais joignable, mais Brickset n\'a pas de date pour ce set de test.' }
   }
-  // Interroge Brickset, par le relais, pour les sets sans date ou pas encore sortis (jamais ceux dont la date a
-  // été saisie à la main). Un set après l'autre, et on s'arrête à la première panne (clé refusée, limite
-  // quotidienne, relais injoignable) : insister ne ferait que gaspiller la limite. Une seule écriture à la fin.
+  // Interroge Brickset, par le relais, pour les dates de sortie (sets sans date ou pas encore sortis, jamais ceux dont la
+  // date a été saisie à la main) ET pour le prix allemand de la wishlist (sets sans prix ou au prix déjà pré-rempli ;
+  // jamais un prix saisi à la main). Un seul appel par set. Un set après l'autre, et on s'arrête à la première panne (clé
+  // refusée, limite quotidienne, relais injoignable) : insister ne ferait que gaspiller la limite. Une seule écriture.
   async function mettreAJourDates() {
     if (!relais.url) {
       setMajDates({ etat: 'erreur', message: 'Ajoute d\'abord l\'adresse du relais dans Réglages.' })
       setEcran({ type: 'reglages' })
       return
     }
-    const aFaire = candidats(setsRef.current)
-    if (aFaire.length === 0) return setMajDates({ etat: 'ok', message: 'Rien à mettre à jour : tous les sets ont une date ou sont déjà sortis.' })
-    const trouvees = new Map()
-    let inconnues = 0
+    const aFaire = aInterroger(setsRef.current)
+    if (aFaire.length === 0) return setMajDates({ etat: 'ok', message: 'Rien à mettre à jour : dates et prix sont à jour ou saisis à la main.' })
+    const pourDate = new Set(candidats(setsRef.current).map((s) => s.id))
+    const dates = new Map()
+    const prix = new Map()
+    let sansDate = 0
     let arret = null
     for (const [i, s] of aFaire.entries()) {
       setMajDates({ etat: 'charge', message: `Mise à jour… ${i + 1}/${aFaire.length}` })
       const r = await recupererSortie(relais, s.numero)
       if (!r.ok) { arret = r.code; break }
-      if (r.lancement) trouvees.set(s.id, r.lancement)
-      else inconnues += 1
+      if (pourDate.has(s.id)) {
+        if (r.lancement) dates.set(s.id, r.lancement)
+        else sansDate += 1
+      }
+      if (aPreRemplir(s) && r.prixDE !== null) prix.set(s.id, r.prixDE)
       await new Promise((fin) => setTimeout(fin, 120))
     }
     let courant = setsRef.current
-    for (const [id, date] of trouvees) courant = modifier(courant, id, { dateSortie: date, sortieSource: 'brickset' })
-    if (trouvees.size > 0) appliquer(courant)
-    const n = trouvees.size
-    const resume = `${n} date${n > 1 ? 's' : ''} enregistrée${n > 1 ? 's' : ''}${inconnues > 0 ? `, ${inconnues} inconnue${inconnues > 1 ? 's' : ''} chez Brickset` : ''}.`
+    for (const [id, date] of dates) courant = modifier(courant, id, { dateSortie: date, sortieSource: 'brickset' })
+    for (const [id, p] of prix) courant = modifier(courant, id, { prix: p, prixSource: 'brickset-de' })
+    if (dates.size > 0 || prix.size > 0) appliquer(courant)
+    const pluriel = (n, mot) => `${n} ${mot}${n > 1 ? 's' : ''}`
+    const morceaux = []
+    if (dates.size > 0) morceaux.push(`${pluriel(dates.size, 'date')} enregistrée${dates.size > 1 ? 's' : ''}`)
+    if (prix.size > 0) morceaux.push(`${pluriel(prix.size, 'prix')} (prix DE) enregistré${prix.size > 1 ? 's' : ''}`)
+    if (morceaux.length === 0) morceaux.push('rien de nouveau')
+    const resume = `${morceaux.join(', ')}${sansDate > 0 ? `, ${sansDate} sans date chez Brickset` : ''}.`
+    const n = dates.size + prix.size
     setMajDates(arret
       ? { etat: 'erreur', message: `${messageRelais(arret)}${n > 0 ? ` ${resume}` : ''}` }
-      : { etat: 'ok', message: resume })
+      : { etat: 'ok', message: resume.charAt(0).toUpperCase() + resume.slice(1) })
   }
 
   function changerRegleImage(r) {
@@ -484,6 +497,7 @@ export default function App() {
     { cle: 'annee', libelle: 'Année', options: groupesAnnees(duOnglet) },
   ]
   if (filtres.sortie !== '' || duOnglet.some((x) => x.dateSortie)) groupes.push({ cle: 'sortie', libelle: 'Sortie', options: FILTRES_SORTIE })
+  if (statut === 'souhaité' && (filtres.prix !== '' || duOnglet.some((x) => x.prix != null))) groupes.push({ cle: 'prix', libelle: 'Prix', options: TRANCHES_PRIX.map((t) => ({ valeur: t.cle, libelle: t.libelle })) })
   if (filtres.taille !== '' || duOnglet.some((x) => x.pieces != null)) groupes.push({ cle: 'taille', libelle: 'Taille', options: TAILLES.map((t) => ({ valeur: t.cle, libelle: t.libelle })) })
   if (aCompleter.length > 0) groupes.unshift({ cle: 'manque', libelle: 'À compléter', options: aCompleter })
   if (statut === 'possédé') {
@@ -682,9 +696,12 @@ export default function App() {
         <>
       {!selection && statut === 'souhaité' && visibles.length > 0 && (
         <div className="outils">
-          <button type="button" className="bouton" disabled={lectureSeule || majDates.etat === 'charge'} onClick={mettreAJourDates}>Mettre à jour les dates</button>
+          <button type="button" className="bouton" disabled={lectureSeule || majDates.etat === 'charge'} onClick={mettreAJourDates}>Mettre à jour dates et prix</button>
           <button type="button" className="bouton" onClick={copierWishlist}>Copier la liste</button>
         </div>
+      )}
+      {!selection && statut === 'souhaité' && libelleTotal(totalPrix(visibles)) && (
+        <p className="total-prix">Total : {libelleTotal(totalPrix(visibles))}</p>
       )}
       {!selection && statut === 'souhaité' && majDates.message && (
         <p className={`avis${majDates.etat === 'erreur' ? ' avis--erreur' : ''}`} role={majDates.etat === 'erreur' ? 'alert' : 'status'}>{majDates.message}</p>

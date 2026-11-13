@@ -862,5 +862,13 @@ div.anneau__ligne { padding: 6px 0; }
 /* Date de sortie d'un set pas encore sorti, sous ses détails dans la grille. */
 .carte--tuile .carte__sortie { color: var(--accent); font-weight: 600; }
 
+/* Prix officiel (wishlist). « DE » : prix allemand pré-rempli, pas le prix en France ; un contour suffit à le
+   distinguer du texte. Contrastes mesurés : texte-doux sur surface 7,8:1 (sombre) et 8,0:1 (clair), contour 4,8:1 et 4,3:1. */
+.carte--tuile .carte__prix { color: var(--texte); font-weight: 600; }
+.pastille-source { margin-left: 6px; padding: 0 6px; border: 1px solid var(--bordure-champ); border-radius: var(--rayon-pilule); font-size: 0.6875rem; font-weight: 600; color: var(--texte-doux); vertical-align: 1px; }
+.total-prix { margin: 8px 0 0; font-size: 0.875rem; color: var(--texte-doux); text-align: right; }
+.fiche__prix { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.fiche__prix .champ { flex: 1 1 8rem; min-width: 0; }
+
 /* « Remettre en wishlist » : sa propre ligne, sinon trois boutons se serrent et rognent « Supprimer ». */
 .fiche__remise { width: 100%; margin-bottom: 8px; }

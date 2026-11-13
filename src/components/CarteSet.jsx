@@ -2,6 +2,7 @@
 import ImageSet from './ImageSet.jsx'
 import { LIBELLES_PRIORITE } from '../lib/model.js'
 import { texteCarte } from '../lib/sortie.js'
+import { formaterPrix } from '../lib/prix.js'
 
 export default function CarteSet({ set, onOuvrir, selection, onBasculer, vue = 'liste', courante = false, exemplaires }) {
   // « ×2 » quand le même numéro existe en plusieurs exemplaires possédés : on les repère d'un coup d'œil.
@@ -12,6 +13,9 @@ export default function CarteSet({ set, onOuvrir, selection, onBasculer, vue = '
   // Un set pas encore sorti dit quand : « Sort le 1 janv. 2027 · dans 57 jours » (version courte en grille).
   const sortieLongue = texteCarte(set)
   const sortieCourte = texteCarte(set, undefined, true)
+  // Le prix officiel ne s'affiche que sur la wishlist ; « DE » signale le prix allemand pré-rempli (pas le prix en France).
+  const prix = set.statut === 'souhaité' && set.prix != null ? formaterPrix(set.prix) : ''
+  const pastilleDE = set.prixSource === 'brickset-de' && <span className="pastille-source" role="img" aria-label="prix allemand">DE</span>
   const details = [
     set.theme || null,
     set.annee,
@@ -51,6 +55,7 @@ export default function CarteSet({ set, onOuvrir, selection, onBasculer, vue = '
               {set.emplacement && ` · ${set.emplacement}`}
             </p>
             {sortieCourte && <p className="carte__details carte__sortie">{sortieCourte}</p>}
+            {prix && <p className="carte__details carte__prix">{prix}{pastilleDE}</p>}
             {repere && <span className="tuile__repere">{repere}</span>}
           </div>
         </button>
@@ -67,6 +72,7 @@ export default function CarteSet({ set, onOuvrir, selection, onBasculer, vue = '
           <p className="carte__nom">{set.nom}{badge}</p>
           <p className="carte__details">{set.numero}{details.length > 0 && ` · ${details.join(' · ')}`}</p>
           {sortieLongue && <p className="carte__etat">{sortieLongue}</p>}
+          {prix && <p className="carte__etat">{prix}{pastilleDE}</p>}
           {set.priorite && <p className="carte__etat">{LIBELLES_PRIORITE[set.priorite]}</p>}
           {set.etiquettes?.length > 0 && <p className="carte__etat">{set.etiquettes.join(' · ')}</p>}
           {(set.etat || set.emplacement) && (
