@@ -133,7 +133,7 @@ testé avec sa vraie collection, tout fonctionne.
   `ImagesContext`), puis BrickLink, puis le rendu Rebrickable, puis le numéro. Réglages > Images sur l'appareil : le nombre de
   boîtes et de rendus gardés et « Sauvegarder toutes les images » (boîtes d'abord, une par une, wishlist comprise ; s'arrête après trois échecs de suite
   sans réussite : BrickLink en maintenance). Hors export. Les boîtes dont le numéro n'est plus dans la collection sont
-  retirées au démarrage. Ne marche que pour les boîtes **déjà vues ou sauvegardées** : si BrickLink est en panne
+  retirées au démarrage. Les sets sans photo chez BrickLink sont **nommés** dans le message (« 2 sans photo chez BrickLink (Titanic (10294-1), …) », cinq au plus). Ne marche que pour les boîtes **déjà vues ou sauvegardées** : si BrickLink est en panne
   avant la première fois, il n'y a rien à garder. Ce n'est pas lié à l'export des photos personnelles (version 2).
 - **Rendus Rebrickable gardés aussi** (novembre 2026) : le CDN de Rebrickable n'envoie pas d'en-tête CORS, un canvas ne
   peut donc pas les copier. La copie passe par le relais : `GET /image?url=<rendu>` (`relais/worker.js`), route volontairement
@@ -216,7 +216,7 @@ testé avec sa vraie collection, tout fonctionne.
   au rechargement (`bl_filtres`, hors export, `src/lib/filtresMemo.js`, entrée validée ; l'ancien format à un
   seul jeu est lu). La recherche texte n'est pas retenue et se vide au changement d'onglet. Un raccourci des
   Stats remplace les filtres de la collection.
-- **Qualité** : `npm run lint`, `npm test` (422 tests, dont ceux du relais), `npm run verif:ui` (axe-core, cibles de
+- **Qualité** : `npm run lint`, `npm test` (423 tests, dont ceux du relais), `npm run verif:ui` (axe-core, cibles de
   48 px, débordements, navigation, recherche visible clavier ouvert, et quatre parcours qui vérifient un
   comportement : filtres conservés au rechargement, onglets indépendants, import d'un `.txt`, repli des
   boîtes, photo personnelle (enregistrée, relue, retirée), image de la liste (fiche et règle), dates de sortie (affichage, filtre, saisie, relais), remise en wishlist (fiche et sélection, avec annulation), boîtes gardées (sauvegarde, service hors BrickLink, arrêt en maintenance), rendus gardés par le relais, sauvegarde complète avec images (export, vidage, restauration) ; 70 écrans × 2 thèmes × 4

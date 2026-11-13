@@ -49,3 +49,12 @@ export function rendusACopier(sets, deja = new Set()) {
   }
   return [...vus].map(([numero, url]) => ({ numero, url }));
 }
+
+// Les sets dont la boîte n'a pas pu être gardée, nommés : « Faucon Millenium (75192-1), Titanic (10294-1) ». Sans leur nom,
+// « 2 sans photo » ne dit pas lesquels. Au plus `max` noms ; le reste est résumé par « … ».
+export function libelleSansPhoto(sets, numeros, max = 5) {
+  const nom = new Map();
+  for (const s of sets) { const n = normaliserNumero(s?.numero); if (n && !nom.has(n)) nom.set(n, String(s.nom ?? '').trim()); }
+  const morceaux = numeros.slice(0, max).map((n) => (nom.get(n) ? `${nom.get(n)} (${n})` : n));
+  return `${morceaux.join(', ')}${numeros.length > max ? '…' : ''}`;
+}

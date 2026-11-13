@@ -24,7 +24,7 @@ import StatsView from './components/StatsView.jsx'
 import { charger, sauver } from './lib/storage.js'
 import { ecrireBoite, ecrireRendu, idsPhotos, numerosBoites, numerosRendus, purgerBoitesOrphelines, purgerOrphelines, purgerRendusOrphelins } from './lib/photosDB.js'
 import { boiteVersJpeg, chargerImageBoite, rendreRendu } from './lib/photoNavigateur.js'
-import { brickLinkInjoignable, numerosABoites, rendusACopier, urlBoite } from './lib/boite.js'
+import { brickLinkInjoignable, libelleSansPhoto, numerosABoites, rendusACopier, urlBoite } from './lib/boite.js'
 import { normaliserNumero } from './lib/numero.js'
 import ImagesContext from './ImagesContext.js'
 import { ecrireRegle, lireRegle } from './lib/imageListe.js'
@@ -158,15 +158,17 @@ export default function App() {
 
     let reussies = 0
     let sansPhoto = 0
+    const numerosSansPhoto = []
     let echecsDeSuite = 0
     let injoignable = false
     for (const n of boitesAFaire) {
       setMajBoites({ etat: 'charge', message: `Sauvegarde… ${++fait}/${total}` })
       const img = await chargerImageBoite(urlBoite(n))
       if (img) {
-        try { await ecrireBoite(n, await boiteVersJpeg(img)); reussies += 1; echecsDeSuite = 0 } catch { sansPhoto += 1 }
+        try { await ecrireBoite(n, await boiteVersJpeg(img)); reussies += 1; echecsDeSuite = 0 } catch { sansPhoto += 1; numerosSansPhoto.push(n) }
       } else {
         sansPhoto += 1
+        numerosSansPhoto.push(n)
         echecsDeSuite += 1
         if (brickLinkInjoignable(echecsDeSuite, reussies)) { injoignable = true; break }
       }
@@ -174,7 +176,7 @@ export default function App() {
     rafraichirBoites()
     if (boitesAFaire.length > 0) {
       if (injoignable) { probleme = true; bilan.push('BrickLink ne répond pas (maintenance ?) : réessaie plus tard.') }
-      else bilan.push(`${reussies} boîte${reussies > 1 ? 's' : ''} sauvegardée${reussies > 1 ? 's' : ''}${sansPhoto > 0 ? `, ${sansPhoto} sans photo chez BrickLink` : ''}.`)
+      else bilan.push(`${reussies} boîte${reussies > 1 ? 's' : ''} sauvegardée${reussies > 1 ? 's' : ''}${sansPhoto > 0 ? `, ${sansPhoto} sans photo chez BrickLink (${libelleSansPhoto(setsRef.current, numerosSansPhoto)})` : ''}.`)
     }
     if (injoignable) fait = boitesAFaire.length
 
