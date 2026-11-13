@@ -28,7 +28,7 @@ import { brickLinkInjoignable, numerosABoites, rendusACopier, urlBoite } from '.
 import { normaliserNumero } from './lib/numero.js'
 import ImagesContext from './ImagesContext.js'
 import { ecrireRegle, lireRegle } from './lib/imageListe.js'
-import { ecrireRelais, lireRelais, messageRelais, recupererImage, recupererSortie } from './lib/relais.js'
+import { arretRelais, ecrireRelais, lireRelais, messageRelais, recupererImage, recupererSortie } from './lib/relais.js'
 import { FILTRES_SORTIE, aInterroger, candidats, dateCourte } from './lib/sortie.js'
 import { TRANCHES_PRIX, aPreRemplir, libelleTotal, totalPrix } from './lib/prix.js'
 import { ajouter, ajouterPlusieurs, acheter, compterExemplaires, exemplairesPossedes, modifier, modifierPlusieurs, remettreEnWishlist, supprimer, supprimerPlusieurs } from './lib/collection.js'
@@ -184,21 +184,29 @@ export default function App() {
     } else if (rendusAFaire.length > 0) {
       let copies = 0
       let absents = 0
+      let delaisDeSuite = 0
       let codeErreur = null
+      // Les rendus refusés (trop gros, illisibles…) sont nommés : sans leur numéro, on ne peut pas voir lesquels posent problème.
+      const refuses = []
       for (const { numero, url } of rendusAFaire) {
         setMajBoites({ etat: 'charge', message: `Sauvegarde… ${++fait}/${total}` })
         const r = await recupererImage(relais, url)
         if (r.ok) {
-          try { await ecrireRendu(numero, await rendreRendu(r.blob)); copies += 1; continue } catch { absents += 1; continue }
+          delaisDeSuite = 0
+          try { await ecrireRendu(numero, await rendreRendu(r.blob)); copies += 1 } catch { refuses.push(numero) }
+          continue
         }
-        if (r.code === 'absente') { absents += 1; continue }
-        // Relais injoignable, jeton refusé, etc. : inutile d'insister pour les suivants.
-        codeErreur = r.code
-        break
+        delaisDeSuite = r.code === 'delai' ? delaisDeSuite + 1 : 0
+        if (arretRelais(r.code, delaisDeSuite)) { codeErreur = r.code; break }
+        if (r.code === 'absente') absents += 1
+        else refuses.push(numero)
       }
       rafraichirRendus()
-      if (codeErreur) { probleme = true; bilan.push(messageRelais(codeErreur)) }
-      else bilan.push(`${copies} rendu${copies > 1 ? 's' : ''} copié${copies > 1 ? 's' : ''}${absents > 0 ? `, ${absents} sans image` : ''}.`)
+      const plusieurs = (n, mot) => `${n} ${mot}${n > 1 ? 's' : ''}`
+      const detail = refuses.length > 0 ? `, ${plusieurs(refuses.length, 'refusé')} (${refuses.slice(0, 5).join(', ')}${refuses.length > 5 ? '…' : ''})` : ''
+      const resume = `${plusieurs(copies, 'rendu')} copié${copies > 1 ? 's' : ''}${absents > 0 ? `, ${absents} sans image` : ''}${detail}.`
+      if (codeErreur) { probleme = true; bilan.push(`${messageRelais(codeErreur)} ${resume}`) }
+      else { if (refuses.length > 0) probleme = true; bilan.push(resume) }
     }
     setMajBoites({ etat: probleme ? 'erreur' : 'ok', message: bilan.join(' ') })
   }

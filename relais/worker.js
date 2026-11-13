@@ -21,7 +21,8 @@ const ORIGINE_PAR_DEFAUT = 'https://antoniman31.github.io';
 const DELAI_MS = 8000;
 const HOTE_IMAGES = 'cdn.rebrickable.com';
 const CHEMIN_IMAGE = /^\/media\/sets\/[A-Za-z0-9_\-./]+\.(?:jpe?g|png|webp)$/i;
-const TAILLE_IMAGE_MAX = 2 * 1024 * 1024;
+// 6 Mo : certains rendus dépassent 2 Mo ; l'appli les réduit à 1 024 px avant de les garder, la taille d'arrivée importe peu.
+const TAILLE_IMAGE_MAX = 6 * 1024 * 1024;
 
 // L'adresse d'image demandée, ou null si elle sort du cadre. Sans cette liste blanche le relais serait
 // un proxy ouvert (SSRF, bande passante offerte à n'importe qui) : on n'accepte que les rendus de sets.

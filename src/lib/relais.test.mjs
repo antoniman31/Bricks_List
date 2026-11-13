@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ecrireRelais, jetonValide, lireRelais, messageRelais, recupererSortie, urlRelaisValide } from './relais.js';
+import { DELAIS_AVANT_ARRET, arretRelais, ecrireRelais, jetonValide, lireRelais, messageRelais, recupererSortie, urlRelaisValide } from './relais.js';
 
 const faux = (init = {}) => {
   const m = new Map(Object.entries(init));
@@ -94,11 +94,18 @@ test('recupererImage : renvoie l\'image, ou un code sans jamais lever', async ()
   assert.equal(await code(async () => new Response('pas du json', { status: 500 })), 'reponse');
   assert.equal(await code(async () => new Response(new Blob(['<html>'], { type: 'text/html' }), { status: 200 })), 'type');
   assert.equal(await code(async () => new Response(new Blob([], { type: 'image/jpeg' }), { status: 200 })), 'taille');
-  assert.equal(await code(async () => new Response(new Blob([new Uint8Array(2 * 1024 * 1024 + 1)], { type: 'image/png' }), { status: 200 })), 'taille');
+  assert.equal(await code(async () => new Response(new Blob([new Uint8Array(6 * 1024 * 1024 + 1)], { type: 'image/png' }), { status: 200 })), 'taille');
 });
 
 test('recupererSortie : le prix allemand est relu (nombre raisonnable), sinon null', async () => {
   const prix = async (v) => (await recupererSortie(RELAIS, '72051-1', async () => json({ trouve: true, lancement: null, prixDE: v }))).prixDE;
   assert.equal(await prix(849.99), 849.99);
   for (const v of [0, -3, 99999, '849', null, undefined, {}]) assert.equal(await prix(v), null, String(v));
+});
+
+test('arretRelais : une image refusée n\'arrête rien, une vraie panne du relais si', () => {
+  for (const code of ['absente', 'taille', 'type', 'url', 'rebrickable', 'reponse']) assert.equal(arretRelais(code), false, code);
+  for (const code of ['jeton', 'reseau', 'configuration']) assert.equal(arretRelais(code), true, code);
+  assert.equal(arretRelais('delai', DELAIS_AVANT_ARRET - 1), false);
+  assert.equal(arretRelais('delai', DELAIS_AVANT_ARRET), true);
 });
