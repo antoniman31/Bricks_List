@@ -12,7 +12,7 @@ de la wishlist (#71), correctif de la copie des rendus (#72).
 
 ## 1. Tout de suite
 
-1. **Réorganiser les Réglages** (demandé par Antoni le 13 novembre : « c'est le foutoir »). Neuf sections à plat (Apparence,
+1. **Réorganiser les Réglages** (demandé par Antoni le 13 novembre : « c'est le foutoir »). Sept sections à plat (Apparence,
    Rebrickable, Images sur l'appareil, Dates de sortie, Sauvegarde, Importer un fichier, Mise à jour…), mélangées : réglages
    d'affichage, connexions à des services, données de l'appareil. **Proposer un plan et attendre l'« ok »** (voir
    `ReglagesSheet.jsx`). Pistes : regrouper par thème (Affichage ; Connexions : Rebrickable et relais ; Données :
