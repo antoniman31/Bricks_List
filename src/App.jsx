@@ -704,15 +704,9 @@ export default function App() {
         <>
       {!selection && statut === 'souhaité' && visibles.length > 0 && (
         <div className="outils">
-          <button type="button" className="bouton" disabled={lectureSeule || majDates.etat === 'charge'} onClick={mettreAJourDates}>Mettre à jour dates et prix</button>
-          <button type="button" className="bouton" onClick={copierWishlist}>Copier la liste</button>
+          <p className="total-prix">{libelleTotal(totalPrix(visibles)) ? `Total : ${libelleTotal(totalPrix(visibles))}` : ''}</p>
+          <button type="button" className="icone-btn icone-btn--plein" aria-label="Copier la liste" onClick={copierWishlist}><Icone nom="copier" /></button>
         </div>
-      )}
-      {!selection && statut === 'souhaité' && libelleTotal(totalPrix(visibles)) && (
-        <p className="total-prix">Total : {libelleTotal(totalPrix(visibles))}</p>
-      )}
-      {!selection && statut === 'souhaité' && majDates.message && (
-        <p className={`avis${majDates.etat === 'erreur' ? ' avis--erreur' : ''}`} role={majDates.etat === 'erreur' ? 'alert' : 'status'}>{majDates.message}</p>
       )}
 
       {selection && (

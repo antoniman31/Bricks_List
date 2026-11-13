@@ -13,7 +13,7 @@ dans le navigateur et s'exportent en JSON.
   l'état repris du dernier ajout. *Plus d'options* ouvre le formulaire complet ; *Plusieurs* ajoute
   une liste de numéros d'un coup.
 - **Photos de boîte** : affichées partout, déduites du numéro (BrickLink). Chaque boîte vue est gardée sur
-  l'appareil : une panne de BrickLink ne la fait plus disparaître. Réglages > Images sur l'appareil les
+  l'appareil : une panne de BrickLink ne la fait plus disparaître. Réglages > Données > Images sur l'appareil les
   sauvegarde toutes (boîtes, et rendus Rebrickable via le relais). Repli sur le rendu Rebrickable puis sur le numéro.
 - **Ma photo** : sur la fiche, un sélecteur « Boîte | Rendu | Ma photo » ; photo de l'appareil ou de la galerie,
   recadrée en 4:3 et gardée sur l'appareil (dans l'export complet, voir Sauvegarde). Un bouton choisit l'image du set dans la liste ;

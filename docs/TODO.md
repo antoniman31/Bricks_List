@@ -3,8 +3,8 @@
 Ce fichier dit **où on s'est arrêtés** et **quoi faire ensuite**, dans l'ordre. Il complète `docs/SUITE.md` (état
 complet du projet, décisions, limites) et `CLAUDE.md` (règles de travail). Lire les trois avant de commencer.
 
-Dernière PR fusionnée : **#72** (rendus : une image refusée n'arrête plus la sauvegarde). Branche de travail unique :
-`ccr-bf63eeba-887je4`. Qualité : lint OK, 421 tests, `verif:ui` 544 écrans.
+Dernière PR fusionnée : **#73** (TODO) ; en cours : Réglages réorganisés et wishlist allégée. Branche de travail unique :
+`ccr-bf63eeba-887je4`. Qualité : lint OK, 422 tests, `verif:ui` 560 écrans.
 
 Depuis la PR #66 : transfert collection ↔ wishlist (#67), boîtes BrickLink gardées sur l'appareil (#68), rendus
 Rebrickable gardés via la route `/image` du relais (#69), sauvegarde complète avec toutes les images (#70), prix officiel
@@ -12,11 +12,8 @@ de la wishlist (#71), correctif de la copie des rendus (#72).
 
 ## 1. Tout de suite
 
-1. **Réorganiser les Réglages** (demandé par Antoni le 13 novembre : « c'est le foutoir »). Sept sections à plat (Apparence,
-   Rebrickable, Images sur l'appareil, Dates de sortie, Sauvegarde, Importer un fichier, Mise à jour…), mélangées : réglages
-   d'affichage, connexions à des services, données de l'appareil. **Proposer un plan et attendre l'« ok »** (voir
-   `ReglagesSheet.jsx`). Pistes : regrouper par thème (Affichage ; Connexions : Rebrickable et relais ; Données :
-   sauvegarde, import, images ; À propos : version, mise à jour), un libellé clair par section, les aides plus courtes.
+1. ~~Réorganiser les Réglages~~ : fait (quatre groupes, états en une ligne, une section ouverte à la fois ; voir `docs/SUITE.md`). La wishlist
+   n'a plus que le total et un bouton-icône « Copier la liste » (la mise à jour dates et prix est dans Réglages > Relais).
 2. **Antoni, sur son S26** : relancer Réglages > Images sur l'appareil > « Sauvegarder toutes les images » (avant #72, la
    copie des rendus s'était arrêtée après 8 images sur un « image trop grosse » ; on ne sait pas quel set) et coller le
    message, qui nomme maintenant les sets refusés. Puis faire un **export complet** (Réglages > Sauvegarde) : il contient
@@ -27,7 +24,7 @@ de la wishlist (#71), correctif de la copie des rendus (#72).
 ## 2. Le relais Cloudflare : en service depuis le 13 novembre
 
 Worker `bricks-relais` (code dans `relais/`), adresse `https://bricks-relais.antoniman31.workers.dev`, saisie dans Réglages >
-Dates de sortie. **Vérifié avec une vraie réponse de Brickset** pour le Faucon (75192-1) : `lancement` 2017-10-01, `retrait`
+Connexions > Relais. **Vérifié avec une vraie réponse de Brickset** pour le Faucon (75192-1) : `lancement` 2017-10-01, `retrait`
 2026-12-31, `disponibilite` « LEGO exclusive », `prixDE` 849.99. Donc `LEGOCom.DE.retailPrice` est le bon champ. Antoni a lancé
 « Mettre à jour dates et prix » : 53 dates et 33 prix DE enregistrés (wishlist de 34 sets, un seul sans prix).
 

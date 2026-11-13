@@ -101,6 +101,12 @@ const AJOUTER = 'button[aria-label="Ajouter un set"]';
 const PLUS_OPTIONS = 'dialog[open] button:has-text("Plus d\'options")';
 const FORMULAIRE = async (p) => { await p.click(AJOUTER); await p.click(PLUS_OPTIONS); await p.waitForSelector('.sheet--plein'); };
 const REGLAGES = 'button[aria-label="Réglages"]';
+// « Mettre à jour dates et prix » vit dans Réglages > Relais (il n'est plus sur la wishlist).
+const mettreAJourParLesReglages = async (p) => {
+  await p.click(REGLAGES);
+  await p.click('dialog[open] summary:has-text("Relais")');
+  await p.click('dialog[open] button:has-text("Mettre à jour dates et prix")');
+};
 const FILTRES = 'button[aria-label^="Filtres"]';
 const GRILLE = 'button[aria-label="Afficher en grille"]';
 const SELECTIONNER = 'button[aria-label="Sélectionner des sets"]';
@@ -415,7 +421,8 @@ const ECRANS = {
   'wishlist (dates de sortie)': async (p) => {
     await p.click('.nav__item:has-text("Wishlist")');
     await p.waitForSelector('.carte:has-text("Sort ")');
-    exiger(await p.locator('button:has-text("Mettre à jour dates et prix")').count() === 1, 'le bouton « Mettre à jour dates et prix » manque');
+    exiger(await p.locator('button:has-text("Mettre à jour dates et prix")').count() === 0, 'le bouton de mise à jour ne doit plus encombrer la wishlist (il est dans Réglages)');
+    exiger(await p.locator('button[aria-label="Copier la liste"]').count() === 1, 'le bouton « Copier la liste » manque');
   },
   'wishlist grille (dates de sortie)': async (p) => {
     await p.click(GRILLE);
@@ -499,9 +506,9 @@ const ECRANS = {
   'prix : pré-remplissage par le relais': async (p) => {
     await p.evaluate(() => localStorage.setItem('bl_relais', JSON.stringify({ url: 'https://relais.test', jeton: '' })));
     await p.reload(); await p.waitForSelector('.carte');
-    await p.click('.nav__item:has-text("Wishlist")');
-    await p.click('button:has-text("Mettre à jour dates et prix")');
-    await p.waitForSelector('.avis:has-text("prix")', { timeout: 20000 });
+    await mettreAJourParLesReglages(p);
+    await p.waitForSelector('dialog[open] .avis:has-text("prix")', { timeout: 20000 });
+    await p.click('dialog[open] button[aria-label="Fermer"]');
     const sets = await p.evaluate(() => JSON.parse(localStorage.getItem('bl_v1')).sets);
     const prix = (nom) => { const s = sets.find((x) => x.nom === nom); return [s.prix, s.prixSource]; };
     exiger(JSON.stringify(prix('Souhait 0')) === '[249,"manuelle"]', 'un prix saisi à la main a été écrasé');
@@ -522,9 +529,9 @@ const ECRANS = {
   'dates de sortie : mise à jour par le relais': async (p) => {
     await p.evaluate(() => localStorage.setItem('bl_relais', JSON.stringify({ url: 'https://relais.test', jeton: '' })));
     await p.reload(); await p.waitForSelector('.carte');
-    await p.click('.nav__item:has-text("Wishlist")');
-    await p.click('button:has-text("Mettre à jour dates et prix")');
-    await p.waitForSelector('.avis:has-text("enregistrée")', { timeout: 20000 });
+    await mettreAJourParLesReglages(p);
+    await p.waitForSelector('dialog[open] .avis:has-text("enregistrée")', { timeout: 20000 });
+    await p.click('dialog[open] button[aria-label="Fermer"]');
     const sets = await p.evaluate(() => JSON.parse(localStorage.getItem('bl_v1')).sets);
     const brickset = sets.filter((x) => x.sortieSource === 'brickset');
     exiger(brickset.length > 1, 'aucune date n\'a été enregistrée depuis le relais');
@@ -560,8 +567,7 @@ const ECRANS = {
     const fermer = p.locator('dialog[open] button[aria-label="Fermer"]');
     if (await fermer.count()) await fermer.click();
     await p.click(REGLAGES);
-    await p.click('dialog[open] summary:has-text("Apparence")');
-    await p.click('dialog[open] [aria-label="Image de la liste"] .puce:has-text("Ma photo")');
+    await p.click('dialog[open] [aria-label="Image de la liste"] .puce:has-text("Ma photo")'); // Apparence est ouverte d'emblée
     await p.click('dialog[open] button[aria-label="Fermer"]');
     await p.waitForFunction(() => document.querySelectorAll('.carte img.vignette[data-origine="photo"]').length === 1);
     await p.reload(); await p.waitForSelector('.carte');
@@ -618,6 +624,26 @@ const ECRANS = {
       navigator.serviceWorker.dispatchEvent(new Event('controllerchange'));
     });
     await p.waitForSelector('.maj');
+  },
+  // Réglages en quatre groupes, une ligne d'état par section, UNE SEULE section ouverte à la fois (Apparence au départ).
+  'réglages (groupes et états)': async (p) => {
+    await p.click(REGLAGES);
+    for (const g of ['Affichage', 'Connexions', 'Données', 'À propos']) {
+      exiger(await p.locator(`dialog[open] .reglages__groupe:text-is("${g}")`).count() === 1, `le groupe « ${g} » manque`);
+    }
+    const ouvertes = () => p.locator('dialog[open] details.reglage[open]').count();
+    exiger(await ouvertes() === 1 && await p.locator('dialog[open] details.reglage[open] .reglage__nom:text-is("Apparence")').count() === 1, 'Apparence doit être la seule section ouverte au départ');
+    await p.click('dialog[open] summary:has-text("Sauvegarde")');
+    exiger(await ouvertes() === 1 && await p.locator('dialog[open] details.reglage[open] .reglage__nom:text-is("Sauvegarde")').count() === 1, 'ouvrir une section doit refermer la précédente');
+    await p.click('dialog[open] summary:has-text("Sauvegarde")');
+    exiger(await ouvertes() === 0, 'un second appui doit refermer la section');
+    const etats = await p.locator('dialog[open] .reglage__etat').allInnerTexts();
+    exiger(etats.some((t) => /^Dernière : .+ · /.test(t)) && etats.some((t) => /^Pas de clé$/.test(t)) && etats.some((t) => /^Non configuré$/.test(t)), `les lignes d'état sont fausses : ${etats.join(' | ')}`);
+  },
+  'réglages (sauvegarde ouverte)': async (p) => {
+    await p.click(REGLAGES);
+    await p.click('dialog[open] summary:has-text("Sauvegarde")');
+    await p.waitForSelector('dialog[open] button:has-text("Exporter la collection")');
   },
   // Le bouton « Vérifier les mises à jour » des Réglages : le serveur de test sert le même build, donc « à jour ».
   'réglages (vérification de version)': async (p) => {
