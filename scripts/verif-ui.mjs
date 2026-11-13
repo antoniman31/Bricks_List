@@ -325,6 +325,7 @@ const ECRANS = {
     const dansFichier = [nb('photos'), nb('boites'), nb('rendus')];
     exiger(dansFichier.every((n, i) => n >= avant[i]), `l'export doit contenir toutes les images (au moins ${avant}, fichier ${dansFichier})`);
     exiger(Object.values(exporte.images.photos).every((v) => v.startsWith('/9j/')), 'les images exportées doivent être des JPEG');
+    exiger(exporte.sets.find((x) => x.nom === 'Souhait 0')?.prix === 249 && exporte.sets.find((x) => x.nom === 'Souhait 2')?.prixSource === 'brickset-de', 'les prix doivent être dans l\'export');
     await p.waitForSelector('dialog[open] [role=status]:has-text("image")');
     // L'appareil perd ses images.
     await p.evaluate(() => new Promise((res, rej) => {
