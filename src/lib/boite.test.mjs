@@ -55,3 +55,12 @@ test('urlRenduValide / rendusACopier : seuls les rendus que le relais accepte, u
   assert.deepEqual(rendusACopier(sets).map((r) => r.numero), ['75192-1', '10294-1']);
   assert.deepEqual(rendusACopier(sets, new Set(['75192-1'])).map((r) => r.numero), ['10294-1']);
 });
+
+test('libelleSansPhoto : les sets sans boîte, nommés, au plus cinq', async () => {
+  const { libelleSansPhoto } = await import('./boite.js');
+  const sets = [{ numero: '75192', nom: 'Faucon Millenium' }, { numero: '10294-1', nom: 'Titanic' }, { numero: '30001-1', nom: '' }];
+  assert.equal(libelleSansPhoto(sets, ['75192-1', '10294-1']), 'Faucon Millenium (75192-1), Titanic (10294-1)');
+  assert.equal(libelleSansPhoto(sets, ['30001-1', '99999-1']), '30001-1, 99999-1');
+  assert.equal(libelleSansPhoto(sets, ['1-1', '2-1', '3-1', '4-1', '5-1', '6-1', '7-1']), '1-1, 2-1, 3-1, 4-1, 5-1…');
+  assert.equal(libelleSansPhoto(sets, []), '');
+});

@@ -241,6 +241,8 @@ const ECRANS = {
     await p.waitForSelector('dialog[open] .avis:has-text("sauvegardée")', { timeout: 20000 });
     const attendu = await p.evaluate(() => new Set(JSON.parse(localStorage.getItem('bl_v1')).sets.map((x) => x.numero).filter((n) => parseInt(n, 10) % 2 === 1)).size);
     exiger(attendu > 0 && await nbBoitesStock(p) === attendu, `les boîtes disponibles doivent toutes être gardées (attendu ${attendu}, gardé ${await nbBoitesStock(p)})`);
+    const dit = await p.locator('dialog[open] .avis').first().innerText();
+    exiger(/sans photo chez BrickLink \(.+\(\d{3,7}-\d\)/.test(dit), `le message doit nommer les sets sans boîte : « ${dit} »`);
   },
   // Rendus Rebrickable : leur CDN n'a pas de CORS, la copie passe par le relais (simulé ici). Sans relais configuré,
   // la sauvegarde le dit ; avec, les rendus sont gardés puis servis quand Rebrickable ne répond plus.
