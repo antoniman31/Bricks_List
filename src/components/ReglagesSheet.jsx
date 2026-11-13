@@ -2,6 +2,9 @@ import { useState } from 'react'
 import Sheet from './Sheet.jsx'
 import { exporter, lireImport } from '../lib/partage.js'
 import { fusionner } from '../lib/collection.js'
+import { nombreImages, resume } from '../lib/imagesExport.js'
+import { imagesDuStock, restaurerImages } from '../lib/photosDB.js'
+import { imageDecodable } from '../lib/photoNavigateur.js'
 import { partageDisponible, partager, telecharger } from '../lib/fichier.js'
 import { ecrirePartageTexte, etatSauvegarde, libelleDelai, lirePartageTexte } from '../lib/sauvegarde.js'
 import { cleValide } from '../lib/reglages.js'
@@ -10,8 +13,10 @@ import { REGLES } from '../lib/imageListe.js'
 import { jetonValide, urlRelaisValide } from '../lib/relais.js'
 import { verifierMiseAJour } from '../lib/miseAJour.js'
 
-export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, regleImage, onRegleImage, relais, onRelaisChange, onTesterRelais, majDates, onMajDates, nbBoites = 0, nbRendus = 0, majBoites = { etat: '', message: '' }, onSauvegarderBoites, cle, onCleChange, onTesterCle, onAppliquer, derniereSauvegarde, persistance, onSauvegardeFaite, onFermer }) {
+export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, regleImage, onRegleImage, relais, onRelaisChange, onTesterRelais, majDates, onMajDates, nbBoites = 0, nbRendus = 0, majBoites = { etat: '', message: '' }, onSauvegarderBoites, onImagesImportees, cle, onCleChange, onTesterCle, onAppliquer, derniereSauvegarde, persistance, onSauvegardeFaite, onFermer }) {
   const [apercu, setApercu] = useState(null)
+  // Lecture ou écriture des images en cours (export, import) : quelques secondes avec des dizaines de Mo.
+  const [preparation, setPreparation] = useState(false)
   const [erreur, setErreur] = useState('')
   const [resultat, setResultat] = useState('')
   // L'export s'affiche dans sa section, le résultat d'un import dans la sienne.
@@ -95,14 +100,32 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
     setResultatExport(r.ok ? message : `${message} La date de sauvegarde n'a pas pu être enregistrée.`)
   }
 
-  function exporterMaintenant() {
-    const { nom, contenu } = exporter(sets)
-    telecharger(nom, contenu)
-    noter(`${sets.length} set${sets.length > 1 ? 's' : ''} exporté${sets.length > 1 ? 's' : ''} dans ${nom}.`)
+  // Toutes les images (photos perso, boîtes, rendus) partent dans le même fichier. Si leur lecture échoue, la
+  // sauvegarde des sets part quand même (c'est l'essentiel) mais le message le dit : jamais « sauvegardé » à tort.
+  async function preparerExport() {
+    setPreparation(true)
+    try {
+      let images = null
+      let sansImages = false
+      try { images = await imagesDuStock() } catch { sansImages = true }
+      return { ...exporter(sets, new Date(), images), images, sansImages }
+    } finally {
+      setPreparation(false)
+    }
+  }
+
+  const decrire = (e) => `${sets.length} set${sets.length > 1 ? 's' : ''}${e.images && nombreImages(e.images) > 0 ? ` et ${nombreImages(e.images)} image${nombreImages(e.images) > 1 ? 's' : ''}` : ''}`
+  const avertir = (e) => (e.sansImages ? ' Les images n\'ont pas pu être lues : elles ne sont pas dans ce fichier.' : '')
+
+  async function exporterMaintenant() {
+    const e = await preparerExport()
+    telecharger(e.nom, e.contenu)
+    noter(`${decrire(e)} exporté${sets.length > 1 ? 's' : ''} dans ${e.nom}.${avertir(e)}`)
   }
 
   async function partagerMaintenant() {
-    const { nom, contenu } = exporter(sets)
+    const e = await preparerExport()
+    const { nom, contenu } = e
     const texte = lirePartageTexte()
     const r = await partager(nom, contenu, undefined, { texte })
     if (r.mode === 'annule') return setResultatExport('Partage annulé : rien n\'a été sauvegardé.')
@@ -115,7 +138,7 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
       }
       return setResultatExport(`Partage refusé (${r.erreur}). Utilise « Exporter la collection ».`)
     }
-    noter(r.mode === 'partage' ? `Sauvegarde partagée (${r.nom}).` : `Partage indisponible : ${nom} téléchargé.`)
+    noter((r.mode === 'partage' ? `Sauvegarde partagée (${r.nom}).` : `Partage indisponible : ${nom} téléchargé.`) + avertir(e))
   }
 
   async function choisirFichier(e) {
@@ -133,18 +156,37 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
     setApercu(r)
   }
 
-  function appliquerFusion() {
-    const r = fusionner(sets, apercu.sets)
-    onAppliquer(r.sets)
-    setResultat(`Fusion faite : ${r.ajoutes} ajouté${r.ajoutes > 1 ? 's' : ''}, ${r.misAJour} mis à jour.`)
-    setApercu(null)
+  // Les images du fichier remplacent celles de l'appareil. La collection est déjà appliquée : une image qui échoue
+  // ne la remet pas en cause, on rend le décompte.
+  async function restaurer(images) {
+    if (!images || nombreImages(images) === 0) return ''
+    setPreparation(true)
+    try {
+      const r = await restaurerImages(images, imageDecodable)
+      onImagesImportees?.()
+      const echec = r.echecs > 0 ? `, ${r.echecs} refusée${r.echecs > 1 ? 's' : ''}${r.stockagePlein ? ' (stockage plein)' : ''}` : ''
+      return ` ${r.restaurees} image${r.restaurees > 1 ? 's' : ''} restaurée${r.restaurees > 1 ? 's' : ''}${echec}.`
+    } catch {
+      return ' Les images n\'ont pas pu être restaurées.'
+    } finally {
+      setPreparation(false)
+    }
   }
 
-  function appliquerRemplacement() {
-    onAppliquer(apercu.sets)
-    setResultat(`Collection remplacée : ${apercu.sets.length} set${apercu.sets.length > 1 ? 's' : ''}.`)
+  async function appliquerFusion() {
+    const r = fusionner(sets, apercu.sets)
+    const images = apercu.images
+    onAppliquer(r.sets)
+    setApercu(null)
+    setResultat(`Fusion faite : ${r.ajoutes} ajouté${r.ajoutes > 1 ? 's' : ''}, ${r.misAJour} mis à jour.${await restaurer(images)}`)
+  }
+
+  async function appliquerRemplacement() {
+    const { sets: nouveaux, images } = apercu
+    onAppliquer(nouveaux)
     setApercu(null)
     setConfirmerRemplacement(false)
+    setResultat(`Collection remplacée : ${nouveaux.length} set${nouveaux.length > 1 ? 's' : ''}.${await restaurer(images)}`)
   }
 
   return (
@@ -261,7 +303,7 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
 
       <details className="reglage">
         <summary>Sauvegarde</summary>
-        <p className="reglage__aide">Données stockées sur cet appareil. Exporte pour les sauvegarder.</p>
+        <p className="reglage__aide">Données stockées sur cet appareil. Le fichier exporté contient aussi toutes les images (photos, boîtes, rendus) : il peut peser des dizaines de Mo.</p>
         <p className="reglage__aide">
           Dernière sauvegarde : {libelleDelai(etatSauvegarde({ nbSets: sets.length, derniere: derniereSauvegarde }).jours)}.
         </p>
@@ -271,11 +313,12 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
           {persistance === 'inconnu' && 'Protection inconnue : sauvegarde régulièrement.'}
         </p>
         <div className="sheet__pied">
-          <button type="button" className="bouton" onClick={exporterMaintenant} disabled={sets.length === 0}>Exporter la collection</button>
+          <button type="button" className="bouton" onClick={exporterMaintenant} disabled={sets.length === 0 || preparation}>Exporter la collection</button>
           {partageDisponible(undefined, { texte: lirePartageTexte() }) && (
-            <button type="button" className="bouton bouton--plein" onClick={partagerMaintenant} disabled={sets.length === 0}>Partager la sauvegarde</button>
+            <button type="button" className="bouton bouton--plein" onClick={partagerMaintenant} disabled={sets.length === 0 || preparation}>Partager la sauvegarde</button>
           )}
         </div>
+        {preparation && <p className="avis" role="status">Préparation des images…</p>}
         {resultatExport && <p className="avis" role="status">{resultatExport}</p>}
       </details>
 
@@ -295,6 +338,12 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
               {apercu.corriges > 0 && `, ${apercu.corriges} corrigé${apercu.corriges > 1 ? 's' : ''}`}
               {apercu.rejetes > 0 && `, ${apercu.rejetes} ignoré${apercu.rejetes > 1 ? 's' : ''}`}.
             </p>
+            {apercu.images && (nombreImages(apercu.images) > 0 || apercu.images.refusees > 0) && (
+              <p>
+                {nombreImages(apercu.images) > 0 ? `Images : ${resume(apercu.images)}, elles remplaceront celles de cet appareil.` : 'Aucune image exploitable.'}
+                {apercu.images.refusees > 0 && ` ${apercu.images.refusees} écartée${apercu.images.refusees > 1 ? 's' : ''}.`}
+              </p>
+            )}
             {confirmerRemplacement ? (
               <>
                 <p>Remplacer tes {sets.length} set{sets.length > 1 ? 's' : ''} par ces {apercu.sets.length} ? Les sets absents du fichier seront perdus.</p>
@@ -306,8 +355,8 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
               </>
             ) : (
               <div className="sheet__pied">
-                <button type="button" className="bouton" disabled={lectureSeule} onClick={() => setConfirmerRemplacement(true)}>Remplacer</button>
-                <button type="button" className="bouton bouton--plein" disabled={lectureSeule} onClick={appliquerFusion}>Fusionner</button>
+                <button type="button" className="bouton" disabled={lectureSeule || preparation} onClick={() => setConfirmerRemplacement(true)}>Remplacer</button>
+                <button type="button" className="bouton bouton--plein" disabled={lectureSeule || preparation} onClick={appliquerFusion}>Fusionner</button>
               </div>
             )}
           </div>

@@ -1,10 +1,15 @@
-# À faire : reprise de session (état au 5 novembre 2026)
+# À faire : reprise de session (état au 13 novembre 2026)
 
 Ce fichier dit **où on s'est arrêtés** et **quoi faire ensuite**, dans l'ordre. Il complète `docs/SUITE.md` (état
 complet du projet, décisions, limites) et `CLAUDE.md` (règles de travail). Lire les trois avant de commencer.
 
-Dernière PR fusionnée : **#65** (relais : `keep_vars`, diagnostic de configuration, bloc `previews`). Branche de
-travail unique : `ccr-bf63eeba-887je4`. Qualité à la fin de cette session : lint OK, 384 tests, `verif:ui` 400 écrans.
+Dernière PR fusionnée : **#69** (rendus Rebrickable copiés par le relais) ; en cours : sauvegarde complète avec les
+images. Branche de travail unique : `ccr-bf63eeba-887je4`. Qualité : lint OK, 407 tests, `verif:ui` 480 écrans.
+
+Depuis la PR #66 : transfert collection ↔ wishlist (#67), boîtes BrickLink gardées sur l'appareil (#68), rendus
+Rebrickable gardés via la route `/image` du relais (#69), export/import avec toutes les images. **BrickLink est hors ligne**
+(« activité inhabituelle », déclaration du 11 novembre 2026, aucune date de retour) : à son retour, Réglages > Images sur
+l'appareil > « Sauvegarder toutes les images ». Les rendus se copient dès que l'adresse du relais est saisie dans Réglages.
 
 ## 1. Tout de suite : mettre en service les dates de sortie automatiques
 
@@ -54,13 +59,13 @@ relais). **Ce qui manque est de côté Cloudflare**, et la vraie réponse de Bri
 - Le plugin Cloudflare installé en session n'était pas activable (`/reload-plugins` n'existe pas en session distante) ;
   le conteneur est éphémère, rien à nettoyer.
 
-## 3. Photos : version 2, l'export
+## 3. Photos : export (fait) et pistes de boîtes
 
-Les photos personnelles (idée A + C, en ligne depuis la PR #61) vivent dans IndexedDB (`bl_photos`) et sont **hors de
-la sauvegarde** : perdues si Chrome vide les données du site (le set retombe alors sur sa boîte BrickLink). Antoni a
-dit oui à une version 2 : bouton « Exporter avec les photos », en option, **fichier séparé** ; lever la limite de 5 Mo
-à l'import pour ce fichier ; valider chaque image comme entrée non fiable (type, taille, décodage). Le choix de l'image
-de la liste (`imageListe`) est lui déjà dans la collection, donc dans l'export normal.
+L'export contient toutes les images (voir `docs/SUITE.md`, « Sauvegarde complète avec les images »). Piste ouverte pour de
+vraies boîtes sans BrickLink : l'appel `getAdditionalImages` de l'API Brickset (images supplémentaires d'un set, souvent des
+photos de boîte, **non vérifié**) via le relais, une fois `BRICKSET_KEY` en secret. À regarder avec une vraie réponse avant de
+coder. Les images principales de Brickset (`images.brickset.com`) sont des rendus, comme Rebrickable ; LEGO.com écarté
+(adresses non déductibles, pas d'API publique).
 
 ## 4. Idées retenues, pas commencées (ordre à choisir par Antoni)
 

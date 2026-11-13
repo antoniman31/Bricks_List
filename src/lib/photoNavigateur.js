@@ -94,3 +94,19 @@ export async function rendreRendu(blob) {
     URL.revokeObjectURL(url);
   }
 }
+
+// Le navigateur sait-il décoder cette image ? Dernier garde-fou à l'import : le début d'un fichier peut ressembler à
+// un JPEG sans en être un. Ne lève jamais.
+export async function imageDecodable(blob) {
+  const url = URL.createObjectURL(blob);
+  try {
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    return img.naturalWidth > 0 && img.naturalHeight > 0;
+  } catch {
+    return false;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}

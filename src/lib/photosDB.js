@@ -109,3 +109,55 @@ export const lireRendu = (numero) => lireImageDe(RENDUS, numero);
 export const numerosRendus = () => numerosDe(RENDUS);
 export const ecrireRendu = (numero, blob) => ecrireImageDe(RENDUS, numero, blob);
 export const purgerRendusOrphelins = (valides) => purgerDe(RENDUS, valides);
+
+// ---- Sauvegarde : tout lire, tout restaurer --------------------------------------------------------------
+
+// Une passe de curseur par magasin : clés et valeurs lues dans la MÊME transaction, donc toujours en phase (deux
+// requêtes séparées pourraient se décaler si une image est écrite entre les deux).
+function toutLire(magasin) {
+  return transaction(magasin, 'readonly', (m) => {
+    const sortie = { result: [] };
+    const curseur = m.openCursor();
+    curseur.onsuccess = () => {
+      const c = curseur.result;
+      if (c) { sortie.result.push([c.key, c.value]); c.continue(); }
+    };
+    return sortie;
+  });
+}
+
+// Toutes les images gardées, prêtes pour l'export : { photos: [[id, octets]], boites: [[numéro, octets]], rendus: [...] }.
+// Une entrée illisible ou invalide est écartée (on n'écrit pas dans un fichier ce qu'on refuserait à l'affichage).
+export async function imagesDuStock() {
+  const sortie = {};
+  for (const [groupe, magasin] of [['photos', PHOTOS], ['boites', BOITES], ['rendus', RENDUS]]) {
+    sortie[groupe] = [];
+    for (const [cle, blob] of (await toutLire(magasin)) ?? []) {
+      if (typeof cle === 'string' && photoValide(blob)) sortie[groupe].push([cle, new Uint8Array(await blob.arrayBuffer())]);
+    }
+  }
+  return sortie;
+}
+
+// Restaure les images d'un fichier, en remplaçant celles de l'appareil. `decoder(blob)` (le navigateur) a le dernier
+// mot : un JPEG qui ne se décode pas n'entre pas. Une image qui échoue ne bloque pas les suivantes ; on rend le décompte.
+export async function restaurerImages(images, decoder) {
+  const ecrire = { photos: ecrirePhoto, boites: ecrireBoite, rendus: ecrireRendu };
+  let restaurees = 0;
+  let echecs = 0;
+  let stockagePlein = false;
+  for (const groupe of Object.keys(ecrire)) {
+    for (const [cle, octets] of images[groupe] ?? []) {
+      try {
+        const blob = new Blob([octets], { type: 'image/jpeg' });
+        if (!(await decoder(blob))) { echecs += 1; continue; }
+        await ecrire[groupe](cle, blob);
+        restaurees += 1;
+      } catch (e) {
+        echecs += 1;
+        if (e?.name === 'QuotaExceededError') stockagePlein = true;
+      }
+    }
+  }
+  return { restaurees, echecs, stockagePlein };
+}
