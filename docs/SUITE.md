@@ -119,12 +119,12 @@ testé avec sa vraie collection, tout fonctionne.
   photo (champ fichier avec `capture`, sans autorisation caméra), « Choisir dans la galerie » le sélecteur ;
   puis une feuille de recadrage 4:3 (glissé au doigt, curseurs de zoom et de position pour le clavier).
   Le JPEG est rendu en 1 024 × 768, qualité 0,8 (~100 Ko ; une photo source de 1,6 Mo donne 113 Ko). Stockage :
-  IndexedDB (`bl_photos`, une entrée par fiche, clé = identifiant du set), hors export : `bl_v1` ne les
+  IndexedDB (`bl_photos`, une entrée par fiche, clé = identifiant du set), hors de `bl_v1` mais dans l'export complet : `bl_v1` ne les
   contient pas. Calcul du recadrage et validation dans `src/lib/photos.js` (testés), canvas dans
   `photoNavigateur.js`, IndexedDB dans `photosDB.js`. Lecture validée (JPEG, 1 Mo au plus). Photos des sets
   disparus retirées **au démarrage seulement** (une suppression en masse s'annule juste après), et jamais si
   la collection est illisible. Tous les sets peuvent avoir une photo, wishlist comprise. *Limite* : si le
-  navigateur vide ses données, les photos sont perdues (le set garde sa boîte BrickLink) ; un identifiant de
+  navigateur vide ses données, les photos sont perdues (le set garde sa boîte BrickLink) sauf si on a exporté : l'export complet les contient ; un identifiant de
   set réattribué à l'import orpheline sa photo.
 - **Boîtes gardées sur l'appareil** (novembre 2026, après une maintenance de BrickLink qui a fait disparaître les
   boîtes) : chaque photo de boîte affichée depuis BrickLink est recadrée en JPEG de 1 024 px au plus (une soixantaine
@@ -142,6 +142,16 @@ testé avec sa vraie collection, tout fonctionne.
   d'IndexedDB (base `bl_photos` en version 3, clé = numéro), servi avant le rendu réseau ; « Sauvegarder toutes les
   images » les copie après les boîtes, et **exige l'adresse du relais dans Réglages** (sinon le message le dit). Aucune
   copie automatique à l'affichage : seulement par ce bouton. Hors export, purgés au démarrage comme les boîtes.
+- **Sauvegarde complète avec les images** (novembre 2026) : « Exporter la collection » et « Partager la sauvegarde »
+  mettent dans le même fichier JSON les sets **et toutes les images** (photos personnelles, boîtes gardées, rendus gardés),
+  en base64, bloc `images: { photos: {<id du set>: …}, boites: {<numéro>: …}, rendus: {<numéro>: …} }` (`src/lib/imagesExport.js`,
+  testé ; lecture/écriture dans `photosDB.js`). Un fichier sans `images` (ancienne version) s'importe comme avant, une ancienne
+  version ignore le bloc. Poids : des dizaines de Mo pour 100 sets, même une sauvegarde rapide (choix d'Antoni : un seul fichier ;
+  un bouton « sans les images » reste possible si ça gêne). À l'import : limite de 5 Mo gardée **sans** images, 200 Mo avec ;
+  chaque image est une entrée non fiable (clé rattachée à un set du fichier, base64 strict, ≤ 1 Mo, début JPEG, puis décodage par
+  le navigateur) ; une image **remplace** celle de l'appareil (choix d'Antoni) ; la collection est appliquée d'abord, puis les
+  images, avec un décompte (« N images restaurées, M refusées »). Si les images ne se lisent pas à l'export, les sets partent quand
+  même et le message le dit. Parcours `verif:ui` : semer une image par magasin, exporter, vider IndexedDB, réimporter, comparer.
 - **Collection vers wishlist** (novembre 2026) : le sens inverse de « Acheté ». Sur la fiche d'un set possédé, un
   bouton « Remettre en wishlist » (sa propre ligne) ouvre une confirmation qui dit ce qui sera perdu pour ce set
   (« état « monté », emplacement « Salon », date d'achat… ») et laisse choisir la priorité (aucune par défaut) ; en
@@ -184,10 +194,10 @@ testé avec sa vraie collection, tout fonctionne.
   au rechargement (`bl_filtres`, hors export, `src/lib/filtresMemo.js`, entrée validée ; l'ancien format à un
   seul jeu est lu). La recherche texte n'est pas retenue et se vide au changement d'onglet. Un raccourci des
   Stats remplace les filtres de la collection.
-- **Qualité** : `npm run lint`, `npm test` (393 tests, dont ceux du relais), `npm run verif:ui` (axe-core, cibles de
+- **Qualité** : `npm run lint`, `npm test` (407 tests, dont ceux du relais), `npm run verif:ui` (axe-core, cibles de
   48 px, débordements, navigation, recherche visible clavier ouvert, et quatre parcours qui vérifient un
   comportement : filtres conservés au rechargement, onglets indépendants, import d'un `.txt`, repli des
-  boîtes, photo personnelle (enregistrée, relue, retirée), image de la liste (fiche et règle), dates de sortie (affichage, filtre, saisie, relais), remise en wishlist (fiche et sélection, avec annulation), boîtes gardées (sauvegarde, service hors BrickLink, arrêt en maintenance) ; 57 écrans × 2 thèmes × 4
+  boîtes, photo personnelle (enregistrée, relue, retirée), image de la liste (fiche et règle), dates de sortie (affichage, filtre, saisie, relais), remise en wishlist (fiche et sélection, avec annulation), boîtes gardées (sauvegarde, service hors BrickLink, arrêt en maintenance), rendus gardés par le relais, sauvegarde complète avec images (export, vidage, restauration) ; 60 écrans × 2 thèmes × 4
   largeurs : 360, 412, 900, 1280). Les trois tournent dans le CI avant le déploiement.
 
 ## Décisions de cadrage (ne pas rouvrir sans raison)
@@ -228,9 +238,8 @@ ce sont de petits projets de loisir, récents, la plupart sur serveur.
    - **Export CSV** en plus du JSON : séparateur point-virgule, BOM UTF-8 pour l'Excel français ; une copie à
      lire, pas ré-importable, sans la clé Rebrickable.
    - **Tirage au sort** « quoi monter ce week-end » parmi scellés, neufs et en cours.
-   - **Export des photos personnelles** (version 2, voulu par Antoni) : bouton « Exporter avec les photos »,
-     en option, dans un fichier séparé ; limite d'import (5 Mo) à lever pour ce fichier, chaque image validée
-     comme entrée non fiable. Les photos ne tiennent ni dans un lien ni dans un QR.
+   - **Export des photos** : fait (novembre 2026), dans le fichier d'export lui-même et pour toutes les images (voir
+     « Sauvegarde complète avec les images »). Les photos ne tiennent ni dans un lien ni dans un QR.
    - **Transfert entre téléphone et PC** (Antoni transfère « parfois », collection sous 100 sets) : essayer
      d'abord ce qui existe, **Partager** (Partage rapide Android vers Windows) puis **Importer un fichier**,
      sans code. Si le geste pèse : **lien** (collection compressée dans la partie après le `#`, que GitHub

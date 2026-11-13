@@ -293,6 +293,58 @@ const ECRANS = {
       await neuf.close();
     }
   },
+  // Sauvegarde complète : l'export contient toutes les images (photos perso, boîtes, rendus), et réimporter ce
+  // fichier sur un appareil vidé les restaure. On sème une image dans chaque magasin, on exporte, on vide
+  // IndexedDB, puis on réimporte : les décomptes doivent être identiques.
+  'sauvegarde : export avec images puis restauration': async (p) => {
+    await p.evaluate(() => new Promise((res, rej) => {
+      const premier = JSON.parse(localStorage.getItem('bl_v1')).sets[0];
+      const c = document.createElement('canvas'); c.width = 64; c.height = 48;
+      c.getContext('2d').fillRect(0, 0, 32, 24);
+      c.toBlob((blob) => {
+        const o = indexedDB.open('bl_photos');
+        o.onerror = () => rej(o.error);
+        o.onsuccess = () => {
+          const tx = o.result.transaction(['photos', 'boites', 'rendus'], 'readwrite');
+          tx.objectStore('photos').put(blob, premier.id);
+          tx.objectStore('boites').put(blob, premier.numero);
+          tx.objectStore('rendus').put(blob, premier.numero);
+          tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error);
+        };
+      }, 'image/jpeg', 0.8);
+    }));
+    const avant = [await nbBoitesStock(p, 'photos'), await nbBoitesStock(p, 'boites'), await nbBoitesStock(p, 'rendus')];
+    exiger(avant.every((n) => n >= 1), `le semis d'images a échoué (${avant})`);
+    await p.click(REGLAGES);
+    await p.click('dialog[open] summary:has-text("Sauvegarde")');
+    const [telechargement] = await Promise.all([p.waitForEvent('download'), p.click('dialog[open] button:has-text("Exporter la collection")')]);
+    const fichier = readFileSync(await telechargement.path());
+    const exporte = JSON.parse(fichier.toString('utf8'));
+    const nb = (g) => Object.keys(exporte.images?.[g] ?? {}).length;
+    // Une boîte peut encore arriver de BrickLink pendant le parcours : le fichier en a au moins autant que le semis.
+    const dansFichier = [nb('photos'), nb('boites'), nb('rendus')];
+    exiger(dansFichier.every((n, i) => n >= avant[i]), `l'export doit contenir toutes les images (au moins ${avant}, fichier ${dansFichier})`);
+    exiger(Object.values(exporte.images.photos).every((v) => v.startsWith('/9j/')), 'les images exportées doivent être des JPEG');
+    await p.waitForSelector('dialog[open] [role=status]:has-text("image")');
+    // L'appareil perd ses images.
+    await p.evaluate(() => new Promise((res, rej) => {
+      const o = indexedDB.open('bl_photos');
+      o.onerror = () => rej(o.error);
+      o.onsuccess = () => {
+        const tx = o.result.transaction(['photos', 'boites', 'rendus'], 'readwrite');
+        for (const m of ['photos', 'boites', 'rendus']) tx.objectStore(m).clear();
+        tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error);
+      };
+    }));
+    exiger(await nbBoitesStock(p, 'photos') === 0 && await nbBoitesStock(p, 'rendus') === 0, 'IndexedDB aurait dû être vidée');
+    await p.click('dialog[open] summary:has-text("Importer un fichier")');
+    await p.setInputFiles('dialog[open] input[type=file]', { name: 'sauvegarde.json', mimeType: 'application/json', buffer: fichier });
+    await p.waitForSelector('dialog[open] .avis:has-text("remplaceront celles de cet appareil")');
+    await p.click('dialog[open] button:has-text("Fusionner")');
+    await p.waitForSelector('dialog[open] [role=status]:has-text("restaurée")', { timeout: 20000 });
+    const apres = [await nbBoitesStock(p, 'photos'), await nbBoitesStock(p, 'boites'), await nbBoitesStock(p, 'rendus')];
+    exiger(apres.every((n, i) => n === dansFichier[i]), `les images doivent revenir à l'identique (fichier ${dansFichier}, après ${apres})`);
+  },
   // Collection vers wishlist : la confirmation dit ce qui est perdu, la priorité se choisit, et l'annulation
   // juste après remet le set exactement comme avant (état et date d'achat compris).
   'fiche (remettre en wishlist)': async (p) => {

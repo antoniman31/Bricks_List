@@ -914,6 +914,7 @@ export default function App() {
           onMajDates={mettreAJourDates}
           nbBoites={boites.size}
           nbRendus={rendus.size}
+          onImagesImportees={() => { rafraichirPhotos(); rafraichirBoites(); rafraichirRendus() }}
           majBoites={majBoites}
           onSauvegarderBoites={sauvegarderToutesLesBoites}
           onCleChange={changerCle}
