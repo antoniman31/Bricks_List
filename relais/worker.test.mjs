@@ -168,9 +168,9 @@ test('/image : refuse un type qui n\'est pas une image, une redirection, une ima
   assert.deepEqual(await code(async () => imageRep(new Uint8Array(3), 'image/svg+xml')), [502, 'type']);
   assert.deepEqual(await code(async () => new Response(null, { status: 302, headers: { Location: 'https://evil.test/x.jpg' } })), [502, 'rebrickable']);
   assert.deepEqual(await code(async () => new Response('', { status: 404 })), [404, 'absente']);
-  assert.deepEqual(await code(async () => imageRep(new Uint8Array(3), 'image/jpeg', { 'Content-Length': String(3 * 1024 * 1024) })), [502, 'taille']);
+  assert.deepEqual(await code(async () => imageRep(new Uint8Array(3), 'image/jpeg', { 'Content-Length': String(7 * 1024 * 1024) })), [502, 'taille']);
   // Sans Content-Length fiable : le plafond s'applique à la lecture.
-  assert.deepEqual(await code(async () => imageRep(new Uint8Array(2 * 1024 * 1024 + 1))), [502, 'taille']);
+  assert.deepEqual(await code(async () => imageRep(new Uint8Array(6 * 1024 * 1024 + 1))), [502, 'taille']);
   assert.deepEqual(await code(async () => { throw new Error('réseau'); }), [502, 'rebrickable']);
 });
 
@@ -190,4 +190,10 @@ test('prixPropre : le prix allemand, seulement s\'il est raisonnable ; la lectur
   assert.equal(lireBrickset(SUCCES([{ ...FALCON, LEGOCom: null }]), '75192-1').valeur.prixDE, null);
   assert.equal(lireBrickset(SUCCES([{ ...FALCON, LEGOCom: { DE: { retailPrice: 'beaucoup' } } }]), '75192-1').valeur.prixDE, null);
   assert.equal(lireBrickset(SUCCES([]), '75192-1').valeur.prixDE, null);
+});
+
+test('/image : une image de 3 Mo (refusée avec l\'ancien plafond de 2 Mo) passe', async () => {
+  const r = await appelImage(BONNE, { fetchFn: async () => imageRep(new Uint8Array(3 * 1024 * 1024)) });
+  assert.equal(r.status, 200);
+  assert.equal((await r.arrayBuffer()).byteLength, 3 * 1024 * 1024);
 });

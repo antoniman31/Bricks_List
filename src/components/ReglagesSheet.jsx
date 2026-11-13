@@ -246,7 +246,7 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
       <details className="reglage">
         <summary>Images sur l'appareil</summary>
         <p className="reglage__aide">
-          Chaque boîte affichée est gardée sur cet appareil : si BrickLink est en panne, elle reste visible. Les rendus Rebrickable se copient par le relais. {nbBoites} boîte{nbBoites > 1 ? 's' : ''} et {nbRendus} rendu{nbRendus > 1 ? 's' : ''} sauvegardé{nbBoites + nbRendus > 1 ? 's' : ''}, hors export.
+          Chaque boîte affichée est gardée sur cet appareil : si BrickLink est en panne, elle reste visible. Les rendus Rebrickable se copient par le relais. {nbBoites} boîte{nbBoites > 1 ? 's' : ''} et {nbRendus} rendu{nbRendus > 1 ? 's' : ''} sauvegardé{nbBoites + nbRendus > 1 ? 's' : ''}, dans l'export complet.
         </p>
         <button type="button" className="bouton" disabled={majBoites.etat === 'charge'} onClick={onSauvegarderBoites}>Sauvegarder toutes les images</button>
         {majBoites.message && (

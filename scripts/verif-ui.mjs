@@ -264,6 +264,27 @@ const ECRANS = {
     await p.reload(); await p.waitForSelector('.carte');
     await p.waitForFunction(() => document.querySelectorAll('.carte img.vignette[data-origine="rendu"]').length > 0);
   },
+  // Une image refusée par le relais (trop grosse…) ne doit pas arrêter la copie des autres : elle est comptée et nommée.
+  'rendus : une image refusée n\'arrête pas la sauvegarde': async (p) => {
+    let demandes = 0;
+    await p.route('https://relais-test.example/image**', (r) => {
+      demandes += 1;
+      const cors = { 'Access-Control-Allow-Origin': '*' };
+      return demandes === 1
+        ? r.fulfill({ status: 502, contentType: 'application/json', headers: cors, body: JSON.stringify({ erreur: 'taille' }) })
+        : r.fulfill({ status: 200, contentType: 'image/png', body: PNG, headers: cors });
+    });
+    await p.evaluate(() => localStorage.setItem('bl_relais', JSON.stringify({ url: 'https://relais-test.example', jeton: '' })));
+    await p.reload(); await p.waitForSelector('.carte');
+    await p.click(REGLAGES);
+    await p.click('dialog[open] summary:has-text("Images sur")');
+    await p.click('dialog[open] button:has-text("Sauvegarder toutes les images")');
+    await p.waitForSelector('dialog[open] [role=alert]:has-text("refusé")', { timeout: 20000 });
+    const attendu = await p.evaluate(() => new Set(JSON.parse(localStorage.getItem('bl_v1')).sets.filter((x) => x.image).map((x) => x.numero)).size);
+    exiger(attendu > 1 && await nbBoitesStock(p, 'rendus') === attendu - 1, `les autres rendus doivent être gardés (attendu ${attendu - 1}, gardé ${await nbBoitesStock(p, 'rendus')}, ${demandes} demandes)`);
+    const texte = await p.locator('dialog[open] [role=alert]').innerText();
+    exiger(/1 refusé \(\d{3,7}-\d\)/.test(texte), `le message doit nommer le set refusé : « ${texte} »`);
+  },
   // Dans un contexte de navigateur NEUF (aucun cache, aucun service worker, aucune boîte gardée) : un appareil qui n'a
   // jamais vu BrickLink. Les contextes du parcours partagent leurs caches, qui resservaient des images malgré la coupure.
   'boîtes : BrickLink en maintenance, la sauvegarde s\'arrête': async (p) => {

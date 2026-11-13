@@ -93,7 +93,7 @@ export async function recupererSortie(relais, numero, fetchFn = globalThis.fetch
   return { ok: true, trouve: corps.trouve, lancement: dateSortieValide(corps.lancement), prixDE: prixValide(corps.prixDE) };
 }
 
-const TAILLE_IMAGE_MAX = 2 * 1024 * 1024;
+const TAILLE_IMAGE_MAX = 6 * 1024 * 1024; // comme le relais ; l'image est réduite à 1 024 px avant d'être gardée
 const DELAI_IMAGE_MS = 15_000;
 
 // Demande au relais le rendu Rebrickable d'un set (le CDN n'a pas de CORS). Renvoie { ok: true, blob } ou
@@ -121,4 +121,13 @@ export async function recupererImage(relais, urlRendu, fetchFn = globalThis.fetc
   if (!/^image\/(jpeg|png|webp)$/.test(blob.type)) return { ok: false, code: 'type' };
   if (blob.size === 0 || blob.size > TAILLE_IMAGE_MAX) return { ok: false, code: 'taille' };
   return { ok: true, blob };
+}
+
+// Faut-il arrêter la copie des rendus après cet échec ? Une image refusée (trop grosse, absente, illisible) n'engage
+// qu'elle-même : on passe à la suivante. Seules les vraies pannes du relais arrêtent tout : jeton refusé, relais
+// injoignable, et plusieurs délais dépassés de suite (insister ne ferait que gaspiller du temps).
+export const DELAIS_AVANT_ARRET = 3;
+export function arretRelais(code, delaisDeSuite = 0) {
+  if (code === 'jeton' || code === 'reseau' || code === 'configuration') return true;
+  return code === 'delai' && delaisDeSuite >= DELAIS_AVANT_ARRET;
 }
