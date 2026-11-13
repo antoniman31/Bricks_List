@@ -7,6 +7,7 @@ import { aEtiquette, ajouterEtiquettes, basculerEtiquette } from '../lib/etiquet
 import { champsPerdus } from '../lib/collection.js'
 import { aujourdhuiISO, dateSortieValide, dateValide, finSortiePossible, formaterDate } from '../lib/dates.js'
 import { etatSortie, relatif } from '../lib/sortie.js'
+import { PRIX_MAX, formaterPrix, lirePrixSaisi, prixPourSaisie } from '../lib/prix.js'
 
 function Ligne({ libelle, valeur }) {
   if (valeur == null || valeur === '') return null
@@ -68,6 +69,7 @@ export function FicheContenu({ set, lectureSeule, lieux = [], lieuRecent = '', e
   const [edition, setEdition] = useState('')
   const [probleme, setProbleme] = useState('')
   const [nouvelle, setNouvelle] = useState('')
+  const [saisiePrix, setSaisiePrix] = useState('')
 
   // La modification s'enregistre aussitôt. Si le modèle la refuse (valeur hors règles), on le dit :
   // un changement qui disparaîtrait sans bruit serait pire qu'un bouton « Enregistrer » oublié.
@@ -96,6 +98,18 @@ export function FicheContenu({ set, lectureSeule, lieux = [], lieuRecent = '', e
     if (v === '') return
     if (dateSortieValide(v) === null) return setProbleme('Date invalide.')
     if (changer({ dateSortie: v, sortieSource: 'manuelle' })) setEdition('')
+  }
+  // Le prix officiel (wishlist) : saisi à la main, il n'est plus remplacé par le prix allemand pré-rempli ; l'effacer
+  // rend la main à la mise à jour automatique.
+  function ouvrirPrix() {
+    setSaisiePrix(prixPourSaisie(set.prix))
+    basculer('prix')
+  }
+  function enregistrerPrix(e) {
+    e.preventDefault()
+    const v = lirePrixSaisi(saisiePrix)
+    if (v === null) return setProbleme(`Prix invalide (de 0,01 à ${PRIX_MAX.toLocaleString('fr-FR')} €).`)
+    if (changer({ prix: v, prixSource: 'manuelle' })) setEdition('')
   }
   const etiquettes = set.etiquettes ?? []
   const choixEtiquettes = [...etiquettes, ...etiquettesConnues.filter((c) => !aEtiquette(set, c))]
@@ -148,6 +162,21 @@ export function FicheContenu({ set, lectureSeule, lieux = [], lieuRecent = '', e
           onBasculer={() => basculer('dateSortie')}
           onChoisir={changerSortie}
         />
+        {!possede && (
+          <LigneEditable
+            libelle="Prix"
+            valeur={set.prix != null ? `${formaterPrix(set.prix)}${set.prixSource === 'brickset-de' ? ' (prix DE)' : ''}` : 'Ajouter'}
+            ouvert={edition === 'prix'}
+            desactive={lectureSeule}
+            onBasculer={ouvrirPrix}
+          >
+            <form className="fiche__prix" onSubmit={enregistrerPrix}>
+              <input className="champ" type="text" inputMode="decimal" autoComplete="off" aria-label="Prix en euros" placeholder="849,99" value={saisiePrix} onChange={(e) => setSaisiePrix(e.target.value)} />
+              <button type="submit" className="bouton bouton--plein">Enregistrer</button>
+              {set.prix != null && <button type="button" className="bouton" onClick={() => { if (changer({ prix: null, prixSource: null })) setEdition('') }}>Effacer</button>}
+            </form>
+          </LigneEditable>
+        )}
         {possede ? (
           <>
             <LigneDate libelle="Acheté le" valeur={set.dateAchat} ouvert={edition === 'dateAchat'} desactive={lectureSeule} onBasculer={() => basculer('dateAchat')} onChoisir={(v) => changerDate('dateAchat', v)} />

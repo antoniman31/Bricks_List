@@ -99,7 +99,7 @@ dans le CI avant chaque déploiement. Adapter `CHROMIUM` au chemin du navigateur
 - `scripts/` : vérification d'interface et génération des icônes.
 
 Conventions et façon de travailler : [`CLAUDE.md`](CLAUDE.md). État d'avancement, décisions de cadrage
-(pas d'APK, de minifigs, de pièces détachées ni de prix) et idées à venir : [`docs/SUITE.md`](docs/SUITE.md).
+(pas d'APK, de minifigs, de pièces détachées ni de prix du marché ; seulement le prix officiel de la wishlist) et idées à venir : [`docs/SUITE.md`](docs/SUITE.md).
 
 ## Déploiement
 

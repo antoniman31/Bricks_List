@@ -295,7 +295,7 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
         {etatRelais.message && (
           <p className={`avis${etatRelais.type === 'erreur' ? ' avis--erreur' : ''}`} role={etatRelais.type === 'erreur' ? 'alert' : 'status'}>{etatRelais.message}</p>
         )}
-        <button type="button" className="bouton" disabled={lectureSeule || !relais.url || majDates.etat === 'charge'} onClick={onMajDates}>Mettre à jour les dates</button>
+        <button type="button" className="bouton" disabled={lectureSeule || !relais.url || majDates.etat === 'charge'} onClick={onMajDates}>Mettre à jour dates et prix</button>
         {majDates.message && (
           <p className={`avis${majDates.etat === 'erreur' ? ' avis--erreur' : ''}`} role={majDates.etat === 'erreur' ? 'alert' : 'status'}>{majDates.message}</p>
         )}

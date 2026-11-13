@@ -1,10 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { datePropre, lireBrickset, traiter, urlImageValide } from './worker.js';
+import { datePropre, lireBrickset, prixPropre, traiter, urlImageValide } from './worker.js';
 
 const ENV = { BRICKSET_KEY: 'cle-secrete-de-test', ORIGINE: 'https://antoniman31.github.io' };
 const SUCCES = (sets) => ({ status: 'success', matches: sets.length, sets });
-const FALCON = { number: '75192', numberVariant: 1, launchDate: '2017-10-01T00:00:00Z', exitDate: '2023-12-31T00:00:00Z', availability: 'Retired', name: 'Millennium Falcon', pieces: 7541 };
+const FALCON = { number: '75192', numberVariant: 1, launchDate: '2017-10-01T00:00:00Z', exitDate: '2023-12-31T00:00:00Z', availability: 'Retired', name: 'Millennium Falcon', pieces: 7541, LEGOCom: { US: { retailPrice: 799.99 }, DE: { retailPrice: 849.99 } } };
 const reponseJson = (corps, statut = 200) => new Response(JSON.stringify(corps), { status: statut });
 const appel = (chemin, { env = ENV, fetchFn, init } = {}) => traiter(new Request(`https://relais.example${chemin}`, init), env, { fetchFn });
 
@@ -16,7 +16,7 @@ test('datePropre : garde le jour, écarte l\'absurde', () => {
 
 test('lireBrickset : un set trouvé donne ses dates, sans rien d\'autre', () => {
   const r = lireBrickset(SUCCES([FALCON]), '75192-1');
-  assert.deepEqual(r, { ok: true, valeur: { numero: '75192-1', trouve: true, lancement: '2017-10-01', retrait: '2023-12-31', disponibilite: 'Retired' } });
+  assert.deepEqual(r, { ok: true, valeur: { numero: '75192-1', trouve: true, lancement: '2017-10-01', retrait: '2023-12-31', disponibilite: 'Retired', prixDE: 849.99 } });
   assert.ok(!('pieces' in r.valeur) && !('name' in r.valeur));
 });
 
@@ -39,7 +39,7 @@ test('appel nominal : Brickset reçoit la clé en corps de formulaire, la répon
   const fetchFn = async (url, init) => { vu = { url, init }; return reponseJson(SUCCES([FALCON])); };
   const r = await appel('/sortie?numero=75192-1', { fetchFn });
   assert.equal(r.status, 200);
-  assert.deepEqual(await r.json(), { numero: '75192-1', trouve: true, lancement: '2017-10-01', retrait: '2023-12-31', disponibilite: 'Retired' });
+  assert.deepEqual(await r.json(), { numero: '75192-1', trouve: true, lancement: '2017-10-01', retrait: '2023-12-31', disponibilite: 'Retired', prixDE: 849.99 });
   assert.equal(vu.url, 'https://brickset.com/api/v3.asmx/getSets');
   assert.equal(vu.init.method, 'POST');
   const corps = new URLSearchParams(vu.init.body);
@@ -179,4 +179,15 @@ test('/image : le jeton s\'applique aussi, et /image fonctionne sans clé Bricks
   const env = { ORIGINE: ENV.ORIGINE, JETON: 'secret' };
   assert.equal((await appelImage(BONNE, { env, fetchFn })).status, 401);
   assert.equal((await appelImage(BONNE, { env, fetchFn, init: { headers: { 'X-Jeton': 'secret' } } })).status, 200);
+});
+
+test('prixPropre : le prix allemand, seulement s\'il est raisonnable ; la lecture ignore les autres régions', () => {
+  assert.equal(prixPropre(849.99), 849.99);
+  assert.equal(prixPropre(19.999), 20);
+  for (const v of [0, -1, 10001, NaN, '849.99', null, undefined, {}]) assert.equal(prixPropre(v), null, String(v));
+  const sansDE = lireBrickset(SUCCES([{ ...FALCON, LEGOCom: { US: { retailPrice: 799.99 } } }]), '75192-1').valeur;
+  assert.equal(sansDE.prixDE, null);
+  assert.equal(lireBrickset(SUCCES([{ ...FALCON, LEGOCom: null }]), '75192-1').valeur.prixDE, null);
+  assert.equal(lireBrickset(SUCCES([{ ...FALCON, LEGOCom: { DE: { retailPrice: 'beaucoup' } } }]), '75192-1').valeur.prixDE, null);
+  assert.equal(lireBrickset(SUCCES([]), '75192-1').valeur.prixDE, null);
 });

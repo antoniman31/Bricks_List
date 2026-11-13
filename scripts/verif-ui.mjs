@@ -36,7 +36,7 @@ for (let i = 0; i < 16; i += 1) {
   });
 }
 for (let k = 0; k < 3; k += 1) {
-  SETS.push({ id: `w${k}`, numero: `${20000 + k}-1`, nom: `Souhait ${k}`, theme: 'Icons', annee: 2024, pieces: 1500 * (k + 1), statut: 'souhaité', priorite: ['forte', 'un-jour', 'pas-presse', null][k % 4], etat: null, notes: '', image: null, dateSortie: [`${new Date().getFullYear() + 1}-03-01`, '2020-05-05', null][k], sortieSource: ['manuelle', 'brickset', null][k], dateAjout: '2026-10-10T00:00:00.000Z' });
+  SETS.push({ id: `w${k}`, numero: `${20000 + k}-1`, nom: `Souhait ${k}`, theme: 'Icons', annee: 2024, pieces: 1500 * (k + 1), statut: 'souhaité', priorite: ['forte', 'un-jour', 'pas-presse', null][k % 4], etat: null, notes: '', image: null, dateSortie: [`${new Date().getFullYear() + 1}-03-01`, '2020-05-05', null][k], sortieSource: ['manuelle', 'brickset', null][k], prix: [249, null, 59.99][k], prixSource: ['manuelle', null, 'brickset-de'][k], dateAjout: '2026-10-10T00:00:00.000Z' });
 }
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
 
@@ -325,6 +325,7 @@ const ECRANS = {
     const dansFichier = [nb('photos'), nb('boites'), nb('rendus')];
     exiger(dansFichier.every((n, i) => n >= avant[i]), `l'export doit contenir toutes les images (au moins ${avant}, fichier ${dansFichier})`);
     exiger(Object.values(exporte.images.photos).every((v) => v.startsWith('/9j/')), 'les images exportées doivent être des JPEG');
+    exiger(exporte.sets.find((x) => x.nom === 'Souhait 0')?.prix === 249 && exporte.sets.find((x) => x.nom === 'Souhait 2')?.prixSource === 'brickset-de', 'les prix doivent être dans l\'export');
     await p.waitForSelector('dialog[open] [role=status]:has-text("image")');
     // L'appareil perd ses images.
     await p.evaluate(() => new Promise((res, rej) => {
@@ -393,7 +394,7 @@ const ECRANS = {
   'wishlist (dates de sortie)': async (p) => {
     await p.click('.nav__item:has-text("Wishlist")');
     await p.waitForSelector('.carte:has-text("Sort ")');
-    exiger(await p.locator('button:has-text("Mettre à jour les dates")').count() === 1, 'le bouton « Mettre à jour les dates » manque');
+    exiger(await p.locator('button:has-text("Mettre à jour dates et prix")').count() === 1, 'le bouton « Mettre à jour dates et prix » manque');
   },
   'wishlist grille (dates de sortie)': async (p) => {
     await p.click(GRILLE);
@@ -419,6 +420,73 @@ const ECRANS = {
     await p.click('dialog[open] .bouton--plein');
     exiger(await p.locator('.carte').count() === 1, 'le filtre « Déjà sorti » doit garder exactement le set sorti');
   },
+  // Prix officiel (wishlist) : affichage avec total, saisie à la main, filtre et tri, puis pré-remplissage par le relais.
+  // Données de départ : Souhait 0 à 249 € saisi, Souhait 1 sans prix, Souhait 2 à 59,99 € pré-rempli (DE).
+  'wishlist (prix)': async (p) => {
+    await p.click('.nav__item:has-text("Wishlist")');
+    await p.waitForSelector('.total-prix');
+    const total = await p.innerText('.total-prix');
+    exiger(/Total\s*:\s*308,99\s€\s·\s1 sans prix/.test(total.replace(/\u202f|\u00a0/g, ' ')), `le total de la wishlist est faux : « ${total} »`);
+    exiger(await p.locator('.carte:has-text("Souhait 0"):has-text("249")').count() === 1, 'le prix manque sur la carte');
+    exiger(await p.locator('.carte:has-text("Souhait 2") .pastille-source').count() === 1, 'la pastille DE manque sur un prix pré-rempli');
+    exiger(await p.locator('.carte:has-text("Souhait 0") .pastille-source').count() === 0, 'un prix saisi ne doit pas porter la pastille DE');
+  },
+  'wishlist grille (prix)': async (p) => {
+    await p.click(GRILLE);
+    await p.click('.nav__item:has-text("Wishlist")');
+    await p.waitForSelector('.carte--tuile .carte__prix');
+  },
+  'fiche (prix)': async (p) => {
+    await p.click('.nav__item:has-text("Wishlist")');
+    await p.locator('.carte:has-text("Souhait 2")').click();
+    await p.click('.fiche__ligne--edit:has(dt:text-is("Prix")) .fiche__valeur');
+    await p.waitForSelector('input[aria-label="Prix en euros"]');
+  },
+  'fiche : prix saisi à la main': async (p) => {
+    await p.click('.nav__item:has-text("Wishlist")');
+    await p.locator('.carte:has-text("Souhait 1")').click();
+    await p.click('.fiche__ligne--edit:has(dt:text-is("Prix")) .fiche__valeur');
+    await p.fill('input[aria-label="Prix en euros"]', 'beaucoup');
+    await p.click('button:has-text("Enregistrer")');
+    await p.waitForSelector(':text("Prix invalide")');
+    await p.fill('input[aria-label="Prix en euros"]', '89,9');
+    await p.click('button:has-text("Enregistrer")');
+    await p.waitForSelector('.fiche__ligne--edit:has(dt:text-is("Prix")) .fiche__valeur:has-text("89,90")');
+    const s = await p.evaluate(() => JSON.parse(localStorage.getItem('bl_v1')).sets.find((x) => x.nom === 'Souhait 1'));
+    exiger(s.prix === 89.9 && s.prixSource === 'manuelle', 'le prix saisi n\'est pas enregistré comme manuel');
+  },
+  'prix : filtre et tri': async (p) => {
+    await p.click('.nav__item:has-text("Wishlist")');
+    await p.click(FILTRES);
+    await p.waitForSelector('dialog[open] .puce:text-is("Prix croissant")');
+    await p.click('dialog[open] .groupe:has(.groupe__ligne:has-text("Prix")) .groupe__ligne');
+    await p.click('dialog[open] .groupe:has(.groupe__ligne:has-text("Prix")) .puce:text-is("200 € et plus")');
+    await p.click('dialog[open] .bouton--plein');
+    exiger(await p.locator('.carte').count() === 1 && await p.locator('.carte:has-text("Souhait 0")').count() === 1, 'le filtre « 200 € et plus » doit garder seulement Souhait 0');
+    await p.click('.nav__item:has-text("Collection")');
+    await p.click(FILTRES);
+    exiger(await p.locator('dialog[open] .puce:text-is("Prix croissant")').count() === 0, 'le tri par prix ne concerne pas la collection');
+  },
+  'prix : tri croissant': async (p) => {
+    await p.click('.nav__item:has-text("Wishlist")');
+    await p.click(FILTRES);
+    await p.click('dialog[open] .puce:text-is("Prix croissant")');
+    await p.click('dialog[open] .bouton--plein');
+    const noms = await p.locator('.carte .carte__nom').allInnerTexts();
+    exiger(noms[0].includes('Souhait 2') && noms[1].includes('Souhait 0') && noms[2].includes('Souhait 1'), `tri par prix croissant faux : ${noms.join(' | ')}`);
+  },
+  'prix : pré-remplissage par le relais': async (p) => {
+    await p.evaluate(() => localStorage.setItem('bl_relais', JSON.stringify({ url: 'https://relais.test', jeton: '' })));
+    await p.reload(); await p.waitForSelector('.carte');
+    await p.click('.nav__item:has-text("Wishlist")');
+    await p.click('button:has-text("Mettre à jour dates et prix")');
+    await p.waitForSelector('.avis:has-text("prix")', { timeout: 20000 });
+    const sets = await p.evaluate(() => JSON.parse(localStorage.getItem('bl_v1')).sets);
+    const prix = (nom) => { const s = sets.find((x) => x.nom === nom); return [s.prix, s.prixSource]; };
+    exiger(JSON.stringify(prix('Souhait 0')) === '[249,"manuelle"]', 'un prix saisi à la main a été écrasé');
+    exiger(JSON.stringify(prix('Souhait 1')) === '[129.99,"brickset-de"]', 'le prix manquant n\'a pas été pré-rempli');
+    exiger(JSON.stringify(prix('Souhait 2')) === '[129.99,"brickset-de"]', 'le prix DE n\'a pas été rafraîchi');
+  },
   'fiche : date de sortie saisie à la main': async (p) => {
     await p.click('.nav__item:has-text("Wishlist")');
     await p.locator('.carte:has-text("Souhait 2")').click();
@@ -434,7 +502,7 @@ const ECRANS = {
     await p.evaluate(() => localStorage.setItem('bl_relais', JSON.stringify({ url: 'https://relais.test', jeton: '' })));
     await p.reload(); await p.waitForSelector('.carte');
     await p.click('.nav__item:has-text("Wishlist")');
-    await p.click('button:has-text("Mettre à jour les dates")');
+    await p.click('button:has-text("Mettre à jour dates et prix")');
     await p.waitForSelector('.avis:has-text("enregistrée")', { timeout: 20000 });
     const sets = await p.evaluate(() => JSON.parse(localStorage.getItem('bl_v1')).sets);
     const brickset = sets.filter((x) => x.sortieSource === 'brickset');
@@ -646,13 +714,13 @@ try {
       await ctx.route('https://img.bricklink.com/**', (r) => (parseInt(r.request().url().split('/').pop(), 10) % 2
         ? r.fulfill({ status: 200, contentType: 'image/png', headers: { 'access-control-allow-origin': '*' }, body: PNG })
         : r.fulfill({ status: 404, contentType: 'text/html', body: '' })));
-      // Un relais Brickset de test : les numéros divisibles par 3 n'ont pas de date, les autres sortent en juin.
+      // Un relais Brickset de test : les numéros divisibles par 3 n'ont pas de date, les autres sortent en juin ; tous ont un prix DE.
       await ctx.route('https://relais.test/**', (r) => {
         const entetes = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'X-Jeton', 'content-type': 'application/json' };
         if (r.request().method() === 'OPTIONS') return r.fulfill({ status: 204, headers: entetes });
         const numero = new globalThis.URL(r.request().url()).searchParams.get('numero');
         const lancement = parseInt(numero, 10) % 3 === 0 ? null : `${new Date().getFullYear() + 1}-06-01`;
-        return r.fulfill({ status: 200, headers: entetes, body: JSON.stringify({ numero, trouve: true, lancement, retrait: null, disponibilite: null }) });
+        return r.fulfill({ status: 200, headers: entetes, body: JSON.stringify({ numero, trouve: true, lancement, retrait: null, disponibilite: null, prixDE: 129.99 }) });
       });
       // Un Rebrickable de test : une recherche par nom paginée, et un thème.
       await ctx.route('https://rebrickable.com/api/v3/lego/**', (r) => {

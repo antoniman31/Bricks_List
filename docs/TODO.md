@@ -3,11 +3,10 @@
 Ce fichier dit **où on s'est arrêtés** et **quoi faire ensuite**, dans l'ordre. Il complète `docs/SUITE.md` (état
 complet du projet, décisions, limites) et `CLAUDE.md` (règles de travail). Lire les trois avant de commencer.
 
-Dernière PR fusionnée : **#69** (rendus Rebrickable copiés par le relais) ; en cours : sauvegarde complète avec les
-images. Branche de travail unique : `ccr-bf63eeba-887je4`. Qualité : lint OK, 407 tests, `verif:ui` 480 écrans.
+Dernière PR fusionnée : **#70** (sauvegarde complète avec les images) ; en cours : prix officiel de la wishlist. Branche de travail unique : `ccr-bf63eeba-887je4`. Qualité : lint OK, 418 tests, `verif:ui` 536 écrans.
 
 Depuis la PR #66 : transfert collection ↔ wishlist (#67), boîtes BrickLink gardées sur l'appareil (#68), rendus
-Rebrickable gardés via la route `/image` du relais (#69), export/import avec toutes les images. **BrickLink est hors ligne**
+Rebrickable gardés via la route `/image` du relais (#69), export/import avec toutes les images (#70), prix officiel de la wishlist (saisie à la main + prix DE). **BrickLink est hors ligne**
 (« activité inhabituelle », déclaration du 11 novembre 2026, aucune date de retour) : à son retour, Réglages > Images sur
 l'appareil > « Sauvegarder toutes les images ». Les rendus se copient dès que l'adresse du relais est saisie dans Réglages.
 
@@ -40,6 +39,9 @@ relais). **Ce qui manque est de côté Cloudflare**, et la vraie réponse de Bri
 3. Dans l'appli : Réglages > Dates de sortie > saisir l'adresse du relais > « Tester » (interroge le Faucon, 75192-1,
    attendu : « sorti le 1 oct. 2017 ») > « Enregistrer » > « Mettre à jour les dates ». Vérifier sur le S26 que les
    sets de la wishlist pas encore sortis affichent « Sort le … · dans n jours ».
+3bis. **Vérifier le prix DE avec une vraie réponse de Brickset** : `lireBrickset` lit `LEGOCom.DE.retailPrice` (d'après la
+   documentation, jamais vu). Si le champ est ailleurs, ajuster `relais/worker.js` et ses tests. Brickset limite à 100 appels `getSets` par
+   jour et par clé : « Mettre à jour dates et prix » fait un appel par set, donc par lots sur une grosse wishlist.
 4. Confirmer **le prix de la clé et sa limite quotidienne** (page de Brickset, non confirmés) et les consigner dans
    `docs/SUITE.md`.
 

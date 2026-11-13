@@ -1,6 +1,7 @@
 import { normaliserNumero } from './numero.js';
 import { dateSortieValide, dateValide } from './dates.js';
 import { normaliserEtiquettes } from './etiquettes.js';
+import { SOURCES_PRIX, prixValide } from './prix.js';
 
 export const STATUTS = ['possédé', 'souhaité'];
 // Du moins avancé au plus avancé : le tri des stats et les puces suivent cet ordre.
@@ -95,6 +96,12 @@ export function normaliserSet(brut, { anneeMax = new Date().getFullYear() + 2, m
   const sortieValide = brut.dateSortie == null || dateSortie !== null;
   const sourceValide = brut.sortieSource == null || SOURCES_SORTIE.includes(brut.sortieSource);
   const sortieSource = dateSortie === null ? null : SOURCES_SORTIE.includes(brut.sortieSource) ? brut.sortieSource : 'manuelle';
+  // Prix officiel (euros) : comme la date de sortie, pour les deux statuts (il survit à « Acheté » et revient si on remet
+  // le set en wishlist) ; sans prix, pas de source ; un prix sans source connue est réputé saisi à la main.
+  const prix = prixValide(brut.prix);
+  const prixOk = brut.prix == null || prix !== null;
+  const prixSourceOk = brut.prixSource == null || SOURCES_PRIX.includes(brut.prixSource);
+  const prixSource = prix === null ? null : SOURCES_PRIX.includes(brut.prixSource) ? brut.prixSource : 'manuelle';
   const imageListeValide = brut.imageListe == null || IMAGES_LISTE.includes(brut.imageListe);
   const imageListe = IMAGES_LISTE.includes(brut.imageListe) ? brut.imageListe : null;
 
@@ -118,6 +125,8 @@ export function normaliserSet(brut, { anneeMax = new Date().getFullYear() + 2, m
       imageListe: corriger(imageListeValide, imageListe),
       dateSortie: corriger(sortieValide, dateSortie),
       sortieSource: corriger(sourceValide, sortieSource),
+      prix: corriger(prixOk, prix),
+      prixSource: corriger(prixSourceOk, prixSource),
       etiquettes: corriger(!etiquettes.corrige, etiquettes.liste),
       dateAchat: corriger(brut.dateAchat == null || !possede || dateAchat !== null, dateAchat),
       dateMontage: corriger(brut.dateMontage == null || !possede || dateMontage !== null, dateMontage),

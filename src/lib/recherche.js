@@ -2,6 +2,7 @@ import { cleEmplacement, ecrituresEmplacements, memeEmplacement } from './emplac
 import { PRIORITES } from './model.js';
 import { aEtiquette } from './etiquettes.js';
 import { comparerSorties, correspondSortie } from './sortie.js';
+import { comparerPrix, correspondPrix } from './prix.js';
 
 // Minuscules sans accents : « creatif » doit trouver « Créatif », et « Technic »
 // ne doit pas dépendre de la casse tapée.
@@ -22,6 +23,9 @@ export const TRIS = [
   { cle: 'achat', libelle: 'Date d\'achat', statut: 'possédé' },
   // La prochaine sortie d'abord : pour une wishlist, « qu'est-ce qui arrive bientôt ».
   { cle: 'sortie', libelle: 'Date de sortie' },
+  // Le prix officiel n'existe que pour la wishlist ; les sets sans prix restent en dernier dans les deux sens.
+  { cle: 'prix', libelle: 'Prix croissant', statut: 'souhaité' },
+  { cle: 'prix-desc', libelle: 'Prix décroissant', statut: 'souhaité' },
 ];
 
 // Un tri propre à un onglet n'est pas proposé dans l'autre, et la liste retombe sur
@@ -34,7 +38,7 @@ export function triPourOnglet(cle, statut) {
 // La recherche porte sur le nom, le thème, le numéro et l'emplacement de rangement. Les notes en sont
 // exclues volontairement : un mot d'une note faisait remonter des sets sans
 // rapport avec ce qu'on cherchait.
-export function filtrer(sets, { statut, texte = '', theme = '', etat = '', annee = '', manque = '', emplacement = '', boite = '', notice = '', priorite = '', etiquette = '', taille = '', sortie = '', maintenant = new Date() } = {}) {
+export function filtrer(sets, { statut, texte = '', theme = '', etat = '', annee = '', manque = '', emplacement = '', boite = '', notice = '', priorite = '', etiquette = '', taille = '', sortie = '', prix = '', maintenant = new Date() } = {}) {
   const q = normaliserTexte(texte);
   const champManquant = CHAMPS_A_COMPLETER.find((c) => c.cle === manque);
   return sets.filter((s) => {
@@ -47,6 +51,7 @@ export function filtrer(sets, { statut, texte = '', theme = '', etat = '', annee
     if (priorite && s.priorite !== priorite) return false;
     if (taille && cleTaille(s.pieces) !== taille) return false;
     if (sortie && !correspondSortie(s, sortie, maintenant)) return false;
+    if (prix && !correspondPrix(s, prix)) return false;
     if (etiquette && !aEtiquette(s, etiquette)) return false;
     if (annee && !correspondAnnee(s.annee, annee)) return false;
     if (champManquant && !champManquant.manque(s)) return false;
@@ -102,6 +107,11 @@ export function trier(sets, cle, maintenant = new Date()) {
     case 'sortie': {
       const parSortie = comparerSorties(maintenant);
       return copie.sort((a, b) => parSortie(a, b) || comparerNoms(a, b));
+    }
+    case 'prix':
+    case 'prix-desc': {
+      const parPrix = comparerPrix(cle === 'prix' ? 1 : -1);
+      return copie.sort((a, b) => parPrix(a, b) || comparerNoms(a, b));
     }
     case 'nom':
       return copie.sort((a, b) => a.nom.localeCompare(b.nom, 'fr', { sensitivity: 'base' }));

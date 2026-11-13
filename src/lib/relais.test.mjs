@@ -40,7 +40,7 @@ test('réglage : écrire puis lire, une valeur corrompue ou dangereuse retombe s
 test('recupererSortie : date trouvée, jeton envoyé seulement s\'il existe', async () => {
   let vu;
   const fetchFn = async (url, init) => { vu = { url, init }; return json({ numero: '72051-1', trouve: true, lancement: '2027-03-01', retrait: null, disponibilite: 'Coming soon' }); };
-  assert.deepEqual(await recupererSortie(RELAIS, '72051-1', fetchFn), { ok: true, trouve: true, lancement: '2027-03-01' });
+  assert.deepEqual(await recupererSortie(RELAIS, '72051-1', fetchFn), { ok: true, trouve: true, lancement: '2027-03-01', prixDE: null });
   assert.equal(vu.url, 'https://bricks-relais.exemple.workers.dev/sortie?numero=72051-1');
   assert.deepEqual(vu.init.headers, {});
   await recupererSortie({ ...RELAIS, jeton: 'abcdefgh12' }, '72051-1', fetchFn);
@@ -48,8 +48,8 @@ test('recupererSortie : date trouvée, jeton envoyé seulement s\'il existe', as
 });
 
 test('recupererSortie : pas de date chez Brickset, ou date absurde, donne lancement null', async () => {
-  assert.deepEqual(await recupererSortie(RELAIS, '72051-1', async () => json({ trouve: true, lancement: null })), { ok: true, trouve: true, lancement: null });
-  assert.deepEqual(await recupererSortie(RELAIS, '72051-1', async () => json({ trouve: false, lancement: null })), { ok: true, trouve: false, lancement: null });
+  assert.deepEqual(await recupererSortie(RELAIS, '72051-1', async () => json({ trouve: true, lancement: null })), { ok: true, trouve: true, lancement: null, prixDE: null });
+  assert.deepEqual(await recupererSortie(RELAIS, '72051-1', async () => json({ trouve: false, lancement: null })), { ok: true, trouve: false, lancement: null, prixDE: null });
   assert.equal((await recupererSortie(RELAIS, '72051-1', async () => json({ trouve: true, lancement: '2999-01-01' }))).lancement, null);
   assert.equal((await recupererSortie(RELAIS, '72051-1', async () => json({ trouve: true, lancement: '<script>' }))).lancement, null);
 });
@@ -95,4 +95,10 @@ test('recupererImage : renvoie l\'image, ou un code sans jamais lever', async ()
   assert.equal(await code(async () => new Response(new Blob(['<html>'], { type: 'text/html' }), { status: 200 })), 'type');
   assert.equal(await code(async () => new Response(new Blob([], { type: 'image/jpeg' }), { status: 200 })), 'taille');
   assert.equal(await code(async () => new Response(new Blob([new Uint8Array(2 * 1024 * 1024 + 1)], { type: 'image/png' }), { status: 200 })), 'taille');
+});
+
+test('recupererSortie : le prix allemand est relu (nombre raisonnable), sinon null', async () => {
+  const prix = async (v) => (await recupererSortie(RELAIS, '72051-1', async () => json({ trouve: true, lancement: null, prixDE: v }))).prixDE;
+  assert.equal(await prix(849.99), 849.99);
+  for (const v of [0, -3, 99999, '849', null, undefined, {}]) assert.equal(await prix(v), null, String(v));
 });

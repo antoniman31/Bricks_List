@@ -7,8 +7,10 @@ l'appeler directement. Le relais l'appelle à sa place, avec ta clé Brickset ga
 
 ```
 GET /sortie?numero=75192-1
--> { "numero": "75192-1", "trouve": true, "lancement": "2017-10-01", "retrait": "2023-12-31", "disponibilite": "Retired" }
+-> { "numero": "75192-1", "trouve": true, "lancement": "2017-10-01", "retrait": "2023-12-31", "disponibilite": "Retired", "prixDE": 849.99 }
 ```
+
+`prixDE` est le prix public allemand en euros (`LEGOCom.DE.retailPrice` chez Brickset), `null` s'il manque ; la France n'a pas de prix chez Brickset.
 
 `lancement` vaut `null` quand Brickset n'a pas de date : l'application affichera alors « date inconnue ».
 
