@@ -85,9 +85,9 @@ CHROMIUM=/opt/pw-browsers/chromium npm run verif:ui
 CHROMIUM=/opt/pw-browsers/chromium npm run icones   # régénère les icônes PNG depuis public/favicon.svg
 ```
 
-`verif:ui` construit l'app puis parcourt chaque écran en 2 thèmes × 4 largeurs (360, 412, 900, 1280 px) :
-accessibilité (axe-core), cibles de 48 px, débordements, navigation, et quelques parcours qui vérifient un
-comportement (filtres conservés, import, repli des images). Lint, tests et `verif:ui` tournent
+`verif:ui` construit l'app puis parcourt chaque écran, en parallèle, en 2 thèmes à 360, 900 et 1280 px :
+accessibilité (axe-core), cibles de 48 px, débordements, navigation ; les parcours qui vérifient un
+comportement (filtres conservés, import, repli des images) passent en 360 et 1280 px. Lint, tests et `verif:ui` tournent
 dans le CI avant chaque déploiement. Adapter `CHROMIUM` au chemin du navigateur local.
 
 ### Organisation

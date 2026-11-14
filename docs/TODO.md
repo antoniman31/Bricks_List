@@ -3,8 +3,8 @@
 Ce fichier dit **où on s'est arrêtés** et **quoi faire ensuite**, dans l'ordre. Il complète `docs/SUITE.md` (état
 complet du projet, décisions, limites) et `CLAUDE.md` (règles de travail). Lire les trois avant de commencer.
 
-Dernière PR fusionnée : **#85** (prix par pièce et bloc « À venir ») ; en cours : `verif:ui` en parallèle, puis bandeau « Sortie », puis sous-onglets des Stats. Branche de travail unique :
-`ccr-bf63eeba-887je4`. Qualité : lint OK, 492 tests, `verif:ui` 880 écrans.
+Dernière PR fusionnée : **#86** (`verif:ui` en parallèle) ; en cours : contrôle d'interface allégé (3 largeurs, comportements en 360 et 1280 px) et CI en 4 jobs, puis bandeau « Sortie » (variante 1, paliers 30 et 90 jours, vert dans le mois, toutes les sorties annoncées), puis sous-onglets des Stats (puces, 4 onglets : Aperçu, Répartition, Suivi, Wishlist, plus les blocs ajoutés). Branche de travail unique :
+`ccr-bf63eeba-887je4`. Qualité : lint OK, 492 tests, `verif:ui` 554 écrans (3 largeurs ; comportements en 360 et 1280 px).
 
 Depuis la PR #66 : transfert collection ↔ wishlist (#67), boîtes BrickLink gardées sur l'appareil (#68), rendus
 Rebrickable gardés via la route `/image` du relais (#69), sauvegarde complète avec toutes les images (#70), prix officiel
