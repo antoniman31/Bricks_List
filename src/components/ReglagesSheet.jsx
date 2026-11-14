@@ -336,7 +336,7 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
           <p className={`avis${etatCle.type === 'erreur' ? ' avis--erreur' : ''}`} role={etatCle.type === 'erreur' ? 'alert' : 'status'}>{etatCle.message}</p>
         )}
         </Section>
-        <Section id="relais" titre="Brickset · dates, prix, images" etat={resumeRelais(relais.url)} ouverte={ouverte} onBasculer={basculer}>
+        <Section id="relais" titre="Brickset · dates, prix, images" etat={resumeRelais(relais.url, relais.jeton)} ouverte={ouverte} onBasculer={basculer}>
         <p className="reglage__aide">
           Dates, prix et images de Brickset. Adresse gardée sur cet appareil. Jeton : obligatoire pour la sauvegarde en ligne.
         </p>

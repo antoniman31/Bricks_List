@@ -56,7 +56,8 @@ test('résumés des Réglages : une ligne d\'état par section', async () => {
   const { resumeCle, resumeImages, resumeRelais, resumeSauvegarde } = await import('./reglages.js');
   assert.equal(resumeCle('abcdefgh1234'), 'Clé enregistrée (…1234)');
   assert.equal(resumeCle(''), 'Pas de clé');
-  assert.equal(resumeRelais('https://r.example'), 'Adresse enregistrée');
+  assert.equal(resumeRelais('https://r.example'), 'Adresse enregistrée · pas de jeton');
+  assert.equal(resumeRelais('https://r.example', 'abcdefgh'), 'Adresse et jeton enregistrés');
   assert.equal(resumeRelais(''), 'Non configuré');
   assert.equal(resumeImages(51, 8), '51 boîtes · 8 rendus');
   assert.equal(resumeImages(1, 1), '1 boîte · 1 rendu');
