@@ -3,8 +3,8 @@
 Ce fichier dit **où on s'est arrêtés** et **quoi faire ensuite**, dans l'ordre. Il complète `docs/SUITE.md` (état
 complet du projet, décisions, limites) et `CLAUDE.md` (règles de travail). Lire les trois avant de commencer.
 
-Dernière PR fusionnée : **#80** (retrait, sous-thème, notices PDF) ; en cours : carrousel de la fiche, plein écran, plusieurs photos par set. Branche de travail unique :
-`ccr-bf63eeba-887je4`. Qualité : lint OK, 472 tests, `verif:ui` 776 écrans.
+Dernière PR fusionnée : **#81** (carrousel, plein écran, plusieurs photos) ; en cours : images de la galerie Brickset (planche, garder, boîte). Branche de travail unique :
+`ccr-bf63eeba-887je4`. Qualité : lint OK, 482 tests, `verif:ui` 816 écrans.
 
 Depuis la PR #66 : transfert collection ↔ wishlist (#67), boîtes BrickLink gardées sur l'appareil (#68), rendus
 Rebrickable gardés via la route `/image` du relais (#69), sauvegarde complète avec toutes les images (#70), prix officiel
@@ -21,10 +21,9 @@ de la wishlist (#71), correctif de la copie des rendus (#72).
 3. **BrickLink est hors ligne** (« activité inhabituelle », déclaration du 11 novembre 2026, aucune date de retour). 51 boîtes
    sont déjà gardées sur l'appareil ; à son retour, relancer « Sauvegarder toutes les images » pour les autres.
 
-**Images Brickset, étape 2 (à faire après test d'Antoni)** : ouvrir `https://bricks-relais.antoniman31.workers.dev/galerie?numero=75192-1` dans le
-navigateur (2 appels Brickset, pas de clé à saisir) et coller le JSON. Selon ce qu'il contient : images dans le carrousel, **copiées sur l'appareil et dans
-l'export** (Antoni veut toutes les choisir pour la liste et toutes les sauvegarder), choix `extra-n` dans `imageListe`, hôte des images à ajouter à la liste
-blanche de `/image`. Voir `docs/SUITE.md` (« Carrousel, plein écran, plusieurs photos »).
+**Images Brickset (PR suivante)** : faites (liste sur appui, planche, garder, image de la liste, boîte). **À vérifier par Antoni** : sur la fiche d'un set, « Chercher les images Brickset » (2 appels sur les 100 du jour), puis « Toutes les images », « Garder sur l'appareil » et
+l'étoile ; sur un set sans boîte BrickLink (Mario Kart 72054-1, 75467-1), une image « Box » → « Définir comme boîte » ; vérifier que l'export complet reste raisonnable. Le Chrome Beta de son téléphone
+affiche `ERR_ECH_FALLBACK_CERTIFICATE_INVALID` sur le relais (Encrypted Client Hello) : utiliser Chrome stable.
 
 ## 2. Le relais Cloudflare : en service depuis le 13 novembre
 

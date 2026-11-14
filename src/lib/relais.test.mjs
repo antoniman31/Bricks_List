@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { DELAIS_AVANT_ARRET, arretRelais, ecrireRelais, jetonValide, lireRelais, messageRelais, recupererNotices, recupererSortie, urlNoticeSure, urlRelaisValide } from './relais.js';
+import { DELAIS_AVANT_ARRET, arretRelais, ecrireRelais, jetonValide, lireRelais, messageRelais, recupererGalerie, recupererImage, recupererNotices, recupererSortie, urlNoticeSure, urlRelaisValide } from './relais.js';
 
 const faux = (init = {}) => {
   const m = new Map(Object.entries(init));
@@ -149,4 +149,35 @@ test('recupererNotices : aucune notice n\'est une réponse valide ; pannes et en
   assert.equal(await code(async () => new Response('<html>', { status: 200 })), 'reponse');
   assert.equal(await code(async () => { throw new TypeError('réseau'); }), 'reseau');
   assert.equal(await code(async () => { throw Object.assign(new Error('t'), { name: 'TimeoutError' }); }), 'delai');
+});
+
+const BASE_IMG = 'https://images.brickset.com/sets/AdditionalImages/75192-1/';
+
+test('recupererGalerie : liste filtrée, jeton envoyé seulement s\'il existe, pannes en codes', async () => {
+  let vu;
+  const fetchFn = async (url, init) => { vu = { url, init }; return json({ numero: '75192-1', trouve: true, images: [{ url: `${BASE_IMG}a.jpg`, miniature: `${BASE_IMG}tn_a.jpg` }, { url: 'https://evil.example/b.jpg' }] }); };
+  assert.deepEqual(await recupererGalerie(RELAIS, '75192-1', fetchFn), { ok: true, images: [{ url: `${BASE_IMG}a.jpg`, miniature: `${BASE_IMG}tn_a.jpg`, nom: 'a.jpg', boite: false }] });
+  assert.equal(vu.url, 'https://bricks-relais.exemple.workers.dev/galerie?numero=75192-1');
+  assert.deepEqual(vu.init.headers, {});
+  await recupererGalerie({ ...RELAIS, jeton: 'abcdefgh12' }, '75192-1', fetchFn);
+  assert.deepEqual(vu.init.headers, { 'X-Jeton': 'abcdefgh12' });
+  assert.deepEqual(await recupererGalerie(RELAIS, '75192-1', async () => json({ trouve: false, images: [] })), { ok: true, images: [] });
+  let appels = 0;
+  assert.equal((await recupererGalerie(RELAIS, 'abc', async () => { appels += 1; return json({}); })).code, 'numero');
+  assert.equal((await recupererGalerie({ url: '', jeton: '' }, '75192-1', async () => { appels += 1; return json({}); })).code, 'numero');
+  assert.equal(appels, 0);
+  const code = async (f) => (await recupererGalerie(RELAIS, '75192-1', f)).code;
+  assert.equal(await code(async () => json({ erreur: 'limite' }, 429)), 'limite');
+  assert.equal(await code(async () => json({ trouve: true })), 'reponse');
+  assert.equal(await code(async () => new Response('<html>', { status: 200 })), 'reponse');
+  assert.equal(await code(async () => { throw new TypeError('réseau'); }), 'reseau');
+});
+
+test('recupererImage : accepte les images de la galerie de Brickset, refuse les autres adresses sans appel', async () => {
+  let appels = 0;
+  const fetchFn = async () => { appels += 1; return new Response(new Blob([new Uint8Array([1, 2, 3])], { type: 'image/jpeg' }), { status: 200 }); };
+  assert.equal((await recupererImage(RELAIS, `${BASE_IMG}a.jpg`, fetchFn)).ok, true);
+  assert.equal(appels, 1);
+  for (const u of ['https://evil.example/a.jpg', `${BASE_IMG}a.jpg?x=1`, 'https://images.brickset.com/other/a.jpg']) assert.equal((await recupererImage(RELAIS, u, fetchFn)).code, 'url', u);
+  assert.equal(appels, 1);
 });

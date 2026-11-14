@@ -107,3 +107,24 @@ test('diapositives : boîte, rendu si le set en a un, photos dans l\'ordre des p
   assert.deepEqual(cles(set, ['a'], true), ['boite', 'rendu', 'photo']); // lecture seule : on ne propose pas d'ajouter
   assert.deepEqual(cles(set, ['b', 'b#2']), ['boite', 'rendu', 'ajout']); // les photos d'un autre set ne comptent pas
 });
+
+test('image de la galerie Brickset comme image de la liste : valide dans le modèle, choisie seulement si elle est gardée', () => {
+  const base = { numero: '75192-1', nom: 'Faucon' };
+  assert.equal(normaliserSet({ ...base, imageListe: 'extra:75192_Box1_V39.jpg' }).set.imageListe, 'extra:75192_Box1_V39.jpg');
+  for (const v of ['extra:', 'extra:../a.jpg', 'extra:a.gif', 'extra:' + 'a'.repeat(100) + '.jpg']) assert.equal(normaliserSet({ ...base, imageListe: v }).set.imageListe, null, v);
+  const gardee = (nom) => nom === 'a.jpg';
+  assert.equal(choisirImage({ imageListe: 'extra:a.jpg' }, 'boite', () => false, gardee), 'extra:a.jpg');
+  assert.equal(choisirImage({ imageListe: 'extra:b.jpg' }, 'boite', () => false, gardee), 'boite');
+  assert.equal(choisirImage({ imageListe: 'extra:a.jpg' }, 'boite', false), 'boite'); // sans la fonction : rien n'est gardé
+});
+
+test('diapositives : les images Brickset suivent les photos, avant « ajouter » ; gardées seules hors ligne', () => {
+  const set = { id: 'a', image: 'https://cdn.rebrickable.com/media/sets/x.jpg' };
+  const g = (nom) => ({ nom, url: `https://images.brickset.com/sets/AdditionalImages/75192-1/${nom}`, miniature: null, boite: false });
+  const d = diapositives(set, new Set(['a']), false, { galerie: [g('x.jpg'), g('y.jpg')], gardees: new Set(['y.jpg']) });
+  assert.deepEqual(d.map((x) => x.cle), ['boite', 'rendu', 'photo', 'extra:x.jpg', 'extra:y.jpg', 'ajout']);
+  assert.deepEqual(d.filter((x) => x.extra).map((x) => [x.libelle, x.gardee]), [['Brickset', false], ['Brickset', true]]);
+  const horsLigne = diapositives(set, new Set(), false, { galerie: [], gardees: new Set(['y.jpg']) });
+  assert.deepEqual(horsLigne.map((x) => x.cle), ['boite', 'rendu', 'extra:y.jpg', 'ajout']);
+  assert.equal(horsLigne.find((x) => x.extra).extra.url, null);
+});

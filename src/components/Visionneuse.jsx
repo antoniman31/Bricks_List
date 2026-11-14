@@ -106,7 +106,7 @@ export default function Visionneuse({ set, diapos, cle, onAller, onFermer, image
           className="bouton visionneuse__action"
           aria-pressed={imageListe === diapo.cle}
           disabled={lectureSeule}
-          onClick={() => onBasculerListe(diapo.cle)}
+          onClick={async () => setMessage(await onBasculerListe(diapo.cle))}
         >
           <Icone nom="etoile" />{imageListe === diapo.cle ? 'Image de la liste' : 'Pour la liste'}
         </button>

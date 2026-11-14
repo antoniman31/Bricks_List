@@ -2,14 +2,15 @@
 // la logique pure (encodage, validation) ; la lecture et l'écriture dans IndexedDB sont dans `photosDB.js`, le
 // décodage par le navigateur dans `photoNavigateur.js`.
 //
-// Forme dans le fichier : `images: { photos: { <id du set>: <base64>, <id du set>#2: <base64>, … }, boites: { <numéro>: <base64> }, rendus: { … } }`.
+// Forme dans le fichier : `images: { photos: { <id du set>: <base64>, <id du set>#2: <base64>, … }, extras: { <numéro>|<nom du fichier>: <base64> }, boites: { <numéro>: <base64> }, rendus: { … } }`.
 // Tout est du JPEG (c'est ce que l'appli enregistre), donc pas de type à transporter. Un fichier sans `images`
 // (ancienne version) reste valable, et une ancienne version qui lit un fichier avec `images` les ignore.
 import { OCTETS_MAX } from './photos.js';
 import { normaliserNumero } from './numero.js';
 import { lireClePhoto } from './imageListe.js';
+import { lireCleExtra } from './galerie.js';
 
-export const GROUPES = ['photos', 'boites', 'rendus'];
+export const GROUPES = ['photos', 'boites', 'rendus', 'extras'];
 // Un fichier avec images pèse des dizaines de Mo ; sans images, la limite d'avant (5 Mo) reste valable.
 export const TAILLE_MAX_AVEC_IMAGES = 200 * 1024 * 1024;
 const BASE64 = /^[A-Za-z0-9+/]+={0,2}$/;
@@ -37,7 +38,7 @@ export function octetsVersBase64(octets) {
   return btoa(binaire);
 }
 
-// Le bloc `images` à écrire : `entrees` = { photos: [[id, Uint8Array], …], boites: […], rendus: […] }.
+// Le bloc `images` à écrire : `entrees` = { photos: [[id, Uint8Array], …], boites: […], rendus: […], extras: […] }.
 export function blocImages(entrees) {
   const bloc = {};
   for (const g of GROUPES) {
@@ -54,7 +55,7 @@ export const nombreImages = (entrees) => GROUPES.reduce((n, g) => n + (entrees?.
 // n'y est pas, serait un orphelin que le démarrage purgerait de toute façon. Une entrée de forme douteuse est
 // refusée et comptée, jamais écrite.
 export function lireImages(brut, sets) {
-  const r = { photos: [], boites: [], rendus: [], refusees: 0 };
+  const r = { photos: [], boites: [], rendus: [], extras: [], refusees: 0 };
   if (brut == null) return r;
   if (typeof brut !== 'object' || Array.isArray(brut)) return { ...r, refusees: 1 };
   const ids = new Set(sets.map((s) => s.id));
@@ -64,7 +65,8 @@ export function lireImages(brut, sets) {
     if (groupe == null) continue;
     if (typeof groupe !== 'object' || Array.isArray(groupe)) { r.refusees += 1; continue; }
     for (const [cle, valeur] of Object.entries(groupe)) {
-      const valide = g === 'photos' ? ids.has(lireClePhoto(cle)?.id) : numeros.has(cle);
+      // Une image gardée de la galerie Brickset a pour clé « numéro|nom » : le numéro doit être celui d'un set du fichier.
+      const valide = g === 'photos' ? ids.has(lireClePhoto(cle)?.id) : g === 'extras' ? numeros.has(lireCleExtra(cle)?.numero) : numeros.has(cle);
       const octets = valide ? base64VersOctets(valeur) : null;
       if (octets) r[g].push([cle, octets]);
       else r.refusees += 1;
@@ -79,5 +81,6 @@ export function resume(images) {
   n('photos', 'photo', 'photos');
   n('boites', 'boîte', 'boîtes');
   n('rendus', 'rendu', 'rendus');
+  n('extras', 'image Brickset', 'images Brickset');
   return morceaux.join(', ');
 }

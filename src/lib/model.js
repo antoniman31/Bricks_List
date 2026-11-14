@@ -3,6 +3,7 @@ import { dateSortieValide, dateValide } from './dates.js';
 import { normaliserEtiquettes } from './etiquettes.js';
 import { SOURCES_PRIX, prixValide } from './prix.js';
 import { libelleCourt } from './libelle.js';
+import { choixListeValide } from './imageListe.js';
 
 export const STATUTS = ['possédé', 'souhaité'];
 // Du moins avancé au plus avancé : le tri des stats et les puces suivent cet ordre.
@@ -21,7 +22,7 @@ export const PRIORITES = ['forte', 'un-jour', 'pas-presse'];
 // Image qui représente un set dans la liste : null = automatique (la règle des Réglages).
 // D'où vient la date de sortie : saisie à la main (jamais écrasée par une mise à jour) ou donnée par Brickset.
 export const SOURCES_SORTIE = ['manuelle', 'brickset'];
-export const IMAGES_LISTE = ['boite', 'rendu', 'photo', 'photo-2', 'photo-3', 'photo-4', 'photo-5', 'photo-6'];
+
 // Libellés choisis par Antoni (novembre 2026), du plus pressé au moins pressé. Les clés stockées (et exportées) n'ont pas changé :
 // « un-jour » s'affiche « Envie » et « pas-presse » s'affiche « Un jour », pour ne rien migrer.
 export const LIBELLES_PRIORITE = { forte: 'Prioritaire', 'un-jour': 'Envie', 'pas-presse': 'Un jour' };
@@ -109,8 +110,8 @@ export function normaliserSet(brut, { anneeMax = new Date().getFullYear() + 2, m
   const prixOk = brut.prix == null || prix !== null;
   const prixSourceOk = brut.prixSource == null || SOURCES_PRIX.includes(brut.prixSource);
   const prixSource = prix === null ? null : SOURCES_PRIX.includes(brut.prixSource) ? brut.prixSource : 'manuelle';
-  const imageListeValide = brut.imageListe == null || IMAGES_LISTE.includes(brut.imageListe);
-  const imageListe = IMAGES_LISTE.includes(brut.imageListe) ? brut.imageListe : null;
+  const imageListeValide = brut.imageListe == null || choixListeValide(brut.imageListe);
+  const imageListe = choixListeValide(brut.imageListe) ? brut.imageListe : null;
 
   return {
     set: {

@@ -184,10 +184,17 @@ testé avec sa vraie collection, tout fonctionne.
     (`clePhoto`, `lireClePhoto` dans `src/lib/imageListe.js`) : rien à migrer, pas de nouvelle version de la base. `imageListe` accepte `photo`, `photo-2`…`photo-6`.
     L'export complet porte toutes les photos (clés `<id>#n` validées comme les autres : le set doit exister, n de 2 à 6) ; l'import et le nettoyage des orphelins
     en tiennent compte. Un fichier d'avant (une photo par set) reste valable.
-  - **Images supplémentaires de Brickset (étape 1)** : route de test `GET /galerie?numero=` du relais (`getSets` pour le `setID`, puis `getAdditionalImages` : **deux appels
-    Brickset**, noms de champs non vérifiés). **Rien dans l'appli ne l'appelle encore.** Étape 2, une fois la vraie réponse vue : les images arrivent dans le carrousel et
-    sont **copiées sur l'appareil et dans l'export** (Antoni veut pouvoir toutes les choisir pour la liste et toutes les sauvegarder) : un magasin `extras` (clé
-    numéro + rang), une copie par le relais (liste blanche de l'hôte des images à étendre), des choix `extra-n` pour `imageListe`.
+  - **Images de la galerie Brickset** (14 novembre 2026, vraie réponse vue : **28 images pour le Faucon**, sur `images.brickset.com/sets/AdditionalImages/<set>/<nom>.jpg`, photos d'ambiance,
+    boîte « Box1_V39 », couverture et dos de la notice ; fichiers de ~1,4 Mo, sans CORS ni protection anti-lien). Route `/galerie` du relais (`getSets` pour le `setID`,
+    puis `getAdditionalImages` : **deux appels Brickset par set**, 40 images au plus). **La liste se demande sur appui** (« Chercher les images Brickset », jamais en masse) et se
+    **mémorise sur l'appareil** (magasin `galeries`, hors sauvegarde : elle se redemande en deux appels). Les images s'affichent **en ligne** dans le carrousel (étiquette
+    « Brickset · 4/9 ») et dans la **planche** (« Toutes les images (n) » : miniatures, la boîte probable, c'est-à-dire un nom contenant « box », en tête).
+  - **Garder** : `« Garder sur l'appareil »` copie l'image par le relais (`/image`, étendu à cet hôte et à ce dossier seulement), réduite à 1 024 px comme les rendus, dans le magasin
+    `extras` (clé `<numéro>|<nom du fichier>`, **6 par set au plus**). Elles entrent dans l'**export complet** et la restauration (`images.extras`, clé validée : le numéro doit être celui
+    d'un set du fichier). **Choix d'Antoni** : garder seulement celles qu'il choisit, pas les ~28 de chaque set (plus de 500 Mo pour la collection, au-delà de la limite d'import de 200 Mo).
+    Une image gardée peut être l'**image de la liste** (`imageListe` = `extra:<nom>`) ; choisir une image non gardée la garde d'abord ; la retirer de l'appareil retire aussi ce choix.
+  - **Boîte** : sur une image dont le nom contient « box », « Définir comme boîte » (ou « Remplacer la boîte », après confirmation) l'écrit dans le magasin des boîtes : utile pour les sets sans boîte
+    BrickLink (Mario Kart 72054-1, 75467-1). Rien n'est remplacé tout seul.
 - **Notice LEGO** (novembre 2026) : sur la fiche d'un set **possédé**, une ligne « Notice LEGO » avec un lien « Ouvrir sur lego.com » (nouvel onglet,
   `noopener noreferrer`). L'adresse se déduit du numéro, sans suffixe de version : `https://www.lego.com/fr-fr/service/building-instructions/<numéro>`
   (`src/lib/notice.js`, testé ; format constaté sur des dizaines de pages indexées, **jamais ouvert depuis l'environnement de développement** : LEGO.com
@@ -270,10 +277,10 @@ testé avec sa vraie collection, tout fonctionne.
   au rechargement (`bl_filtres`, hors export, `src/lib/filtresMemo.js`, entrée validée ; l'ancien format à un
   seul jeu est lu). La recherche texte n'est pas retenue et se vide au changement d'onglet. Un raccourci des
   Stats remplace les filtres de la collection.
-- **Qualité** : `npm run lint`, `npm test` (472 tests, dont ceux du relais), `npm run verif:ui` (axe-core, cibles de
+- **Qualité** : `npm run lint`, `npm test` (482 tests, dont ceux du relais), `npm run verif:ui` (axe-core, cibles de
   48 px, débordements, navigation, recherche visible clavier ouvert, et quatre parcours qui vérifient un
   comportement : filtres conservés au rechargement, onglets indépendants, import d'un `.txt`, repli des
-  boîtes, photo personnelle (enregistrée, relue, retirée), image de la liste (fiche et règle), dates de sortie (affichage, filtre, saisie, relais), remise en wishlist (fiche et sélection, avec annulation), retrait (carte, filtre, frise), sous-thème (fiche, filtre, rattrapage), notices PDF, carrousel, plein écran (zoom, flèches, partage, image de la liste) et plusieurs photos par set, boîtes gardées (sauvegarde, service hors BrickLink, arrêt en maintenance), rendus gardés par le relais, sauvegarde complète avec images (export, vidage, restauration) ; 97 écrans × 2 thèmes × 4
+  boîtes, photo personnelle (enregistrée, relue, retirée), image de la liste (fiche et règle), dates de sortie (affichage, filtre, saisie, relais), remise en wishlist (fiche et sélection, avec annulation), retrait (carte, filtre, frise), sous-thème (fiche, filtre, rattrapage), notices PDF, carrousel, plein écran (zoom, flèches, partage, image de la liste), plusieurs photos par set, images Brickset (chercher, planche, garder, boîte), boîtes gardées (sauvegarde, service hors BrickLink, arrêt en maintenance), rendus gardés par le relais, sauvegarde complète avec images (export, vidage, restauration) ; 102 écrans × 2 thèmes × 4
   largeurs : 360, 412, 900, 1280). Les trois tournent dans le CI avant le déploiement.
 
 ## Décisions de cadrage (ne pas rouvrir sans raison)

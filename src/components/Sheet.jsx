@@ -61,8 +61,10 @@ export default function Sheet({ ouvert, onFermer, titre, children, modifie = fal
       ref={ref}
       className={`sheet${pleinEcran ? ' sheet--plein' : ''}${heros ? ' sheet--heros' : ''}`}
       aria-label={titre}
-      onClose={() => { setConfirmer(false); onFermer() }}
-      onCancel={(e) => { if (modifie) { e.preventDefault(); setConfirmer(true) } }}
+      // `close` et `cancel` remontent par React jusqu'à la feuille qui contient celle-ci (la planche d'images dans la fiche) : sans
+      // `stopPropagation`, fermer la feuille intérieure avec Échap fermerait aussi la fiche.
+      onClose={(e) => { e.stopPropagation(); setConfirmer(false); onFermer() }}
+      onCancel={(e) => { e.stopPropagation(); if (modifie) { e.preventDefault(); setConfirmer(true) } }}
       onClick={(e) => { if (e.target === ref.current) demanderFermer() }}
     >
       <div className="sheet__corps">

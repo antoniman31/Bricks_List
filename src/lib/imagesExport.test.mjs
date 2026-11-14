@@ -64,11 +64,11 @@ test('images hostiles : clés étrangères, types faux, formes inattendues, jama
   assert.deepEqual(r.rendus, []);
   assert.equal(r.refusees, 6); // 2 photos, 3 boîtes, 1 groupe de forme fausse
   for (const v of ['texte', 5, [], true]) assert.equal(lireImages(v, SETS).refusees, 1);
-  assert.deepEqual(lireImages(undefined, SETS), { photos: [], boites: [], rendus: [], refusees: 0 });
+  assert.deepEqual(lireImages(undefined, SETS), { photos: [], boites: [], rendus: [], extras: [], refusees: 0 });
 });
 
 test('blocImages : un groupe vide reste présent, les clés ne sont pas déformées', () => {
-  assert.deepEqual(blocImages({ photos: [] }), { photos: {}, boites: {}, rendus: {} });
+  assert.deepEqual(blocImages({ photos: [] }), { photos: {}, boites: {}, rendus: {}, extras: {} });
   assert.deepEqual(Object.keys(blocImages({ boites: [['75192-1', jpeg()]] }).boites), ['75192-1']);
 });
 
@@ -78,4 +78,14 @@ test('lireImages : les photos supplémentaires (id#2…id#6) se rattachent à le
   const r = lireImages(bloc, SETS);
   assert.deepEqual(r.photos.map(([k]) => k), ['a1', 'a1#2', 'a1#6']);
   assert.equal(r.refusees, 4);
+});
+
+test('lireImages : les images gardées de la galerie Brickset (numéro|nom) se rattachent à un set du fichier, les clés bancales sont refusées', () => {
+  const b = (o) => octetsVersBase64(o);
+  const bloc = { extras: { '75192-1|75192_Box1_V39.jpg': b(jpeg()), '10294-1|a_&_b.jpg': b(jpeg()), '99999-1|a.jpg': b(jpeg()), '75192-1|../a.jpg': b(jpeg()), '75192-1|a.gif': b(jpeg()), '75192-1': b(jpeg()), 'a.jpg': b(jpeg()) } };
+  const r = lireImages(bloc, SETS);
+  assert.deepEqual(r.extras.map(([k]) => k), ['75192-1|75192_Box1_V39.jpg', '10294-1|a_&_b.jpg']);
+  assert.equal(r.refusees, 5);
+  assert.deepEqual(blocImages({ extras: [['75192-1|a.jpg', jpeg(5, 1)]] }).extras, { '75192-1|a.jpg': octetsVersBase64(jpeg(5, 1)) });
+  assert.match(resume({ photos: [], boites: [], rendus: [], extras: r.extras }), /2 images Brickset/);
 });

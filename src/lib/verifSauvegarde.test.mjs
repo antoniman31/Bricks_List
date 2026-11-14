@@ -4,8 +4,8 @@ import { comparerSauvegarde } from './verifSauvegarde.js';
 
 const set = (id, nom, extra = {}) => ({ id, numero: `${id}-1`, nom, statut: 'possédé', ...extra });
 const octets = new Uint8Array([0xff, 0xd8, 0xff, 1]);
-const images = (o = {}) => ({ photos: [], boites: [], rendus: [], refusees: 0, ...o });
-const base = () => ({ fichier: { sets: [set('1', 'Faucon'), set('2', 'Titanic')], corriges: 0, rejetes: 0, images: images({ boites: [['1-1', octets], ['2-1', octets]] }) }, actuels: [set('1', 'Faucon'), set('2', 'Titanic')], cles: { photos: [], boites: ['1-1', '2-1'], rendus: [] } });
+const images = (o = {}) => ({ photos: [], boites: [], rendus: [], extras: [], refusees: 0, ...o });
+const base = () => ({ fichier: { sets: [set('1', 'Faucon'), set('2', 'Titanic')], corriges: 0, rejetes: 0, images: images({ boites: [['1-1', octets], ['2-1', octets]] }) }, actuels: [set('1', 'Faucon'), set('2', 'Titanic')], cles: { photos: [], boites: ['1-1', '2-1'], rendus: [], extras: [] } });
 
 test('un fichier identique à la collection : correspond, sans rien à signaler', () => {
   const r = comparerSauvegarde(base());
@@ -52,7 +52,7 @@ test('un fichier sans images, des images illisibles ou des images de l\'appareil
   const r1 = comparerSauvegarde(sans);
   assert.equal(r1.identique, false);
   assert.ok(r1.lignes.includes('Ce fichier ne contient pas d\'images.'));
-  const vide = base(); vide.fichier.images = null; vide.cles = { photos: [], boites: [], rendus: [] };
+  const vide = base(); vide.fichier.images = null; vide.cles = { photos: [], boites: [], rendus: [], extras: [] };
   assert.equal(comparerSauvegarde(vide).identique, true); // rien à retrouver, rien à manquer
   const illisibles = base(); illisibles.fichier.images.refusees = 2;
   assert.equal(comparerSauvegarde(illisibles).identique, false);
