@@ -92,7 +92,7 @@ test('« à compléter » : les chiffres collent au filtre', () => {
 });
 
 test('wishlist : sets et pièces à acquérir', () => {
-  assert.deepEqual(calculerStats(COLLECTION).wishlist, { sets: 2, pieces: 2000, sansPieces: 1, budget: null, priorites: [] });
+  assert.deepEqual(calculerStats(COLLECTION).wishlist, { sets: 2, pieces: 2000, sansPieces: 1, budget: null, avenir: [], priorites: [] });
 });
 
 // ---------- répartition par emplacement ----------
@@ -377,4 +377,15 @@ test('budget : aucun prix connu, pas de budget ; un set possédé n\'y entre jam
   assert.equal(calculerStats(SOUHAITS).wishlist.budget, null);
   assert.equal(calculerStats([set({ statut: 'possédé', prix: 500 }), wl({ priorite: 'forte' })]).wishlist.budget, null);
   assert.equal(calculerStats([wl({ prix: 20 })]).wishlist.budget.prixDE, false);
+});
+
+test('wishlist : les sorties et retraits à venir sont calculés pour les sets souhaités seulement', () => {
+  const maintenant = new Date(2026, 10, 14);
+  const sets = [
+    set({ nom: 'A', statut: 'souhaité', dateRetrait: '2026-12-31' }),
+    set({ nom: 'B', statut: 'possédé', dateRetrait: '2026-12-31' }),
+    set({ nom: 'C', statut: 'souhaité', dateSortie: '2020-01-01' }),
+  ];
+  const avenir = calculerStats(sets, maintenant).wishlist.avenir;
+  assert.deepEqual(avenir.map((m) => [m.libelle, m.evenements.map((e) => e.nom)]), [['Décembre 2026', ['A']]]);
 });

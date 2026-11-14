@@ -723,6 +723,7 @@ export default function App() {
         <StatsView
           stats={stats}
           onOuvrir={ouvrirDepuisStats}
+          onOuvrirSet={(id) => setEcran({ type: 'fiche', id })}
           onVoirWishlist={() => { setVueStats(false); changerOnglet('souhaité') }}
         />
       ) : (

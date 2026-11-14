@@ -4,6 +4,7 @@ import { anneeDe } from './dates.js';
 import { TAILLES, cleAnnee, cleTaille, libelleAnnee, manquants, modeAnnees } from './recherche.js';
 import { cleEtiquette } from './etiquettes.js';
 import { prixValide } from './prix.js';
+import { evenementsAVenir } from './avenir.js';
 
 // Chaque barre porte le filtre qui retrouve exactement ses sets. Le chiffre
 // affiché et la liste obtenue en la touchant utilisent donc les mêmes prédicats
@@ -255,6 +256,8 @@ export function calculerStats(sets, maintenant = new Date()) {
       pieces: total(souhaites),
       sansPieces: souhaites.filter((s) => s.pieces == null).length,
       budget: budgetWishlist(souhaites),
+      // Les sorties et retraits à venir, par mois (bloc « À venir » des Stats).
+      avenir: evenementsAVenir(souhaites, maintenant),
       // Seulement si la fonction sert : sinon une seule ligne « non précisée » = le total.
       priorites: souhaites.some((s) => s.priorite)
         ? [...PRIORITES.map((p) => ({ cle: p, libelle: LIBELLES_PRIORITE[p], sets: souhaites.filter((s) => s.priorite === p).length })),

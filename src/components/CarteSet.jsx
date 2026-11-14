@@ -3,6 +3,7 @@ import ImageSet from './ImageSet.jsx'
 import { LIBELLES_PRIORITE } from '../lib/model.js'
 import { badgeRetrait, texteCarte } from '../lib/sortie.js'
 import { formaterPrix } from '../lib/prix.js'
+import PastillePrixPiece from './PastillePrixPiece.jsx'
 
 export default function CarteSet({ set, onOuvrir, selection, onBasculer, vue = 'liste', courante = false, exemplaires }) {
   // « ×2 » quand le même numéro existe en plusieurs exemplaires possédés : on les repère d'un coup d'œil.
@@ -62,6 +63,7 @@ export default function CarteSet({ set, onOuvrir, selection, onBasculer, vue = '
             </p>
             {sortieCourte && <p className="carte__details carte__sortie">{sortieCourte}</p>}
             {prix && <p className="carte__details carte__prix">{prix}</p>}
+            {prix && <p className="carte__details"><PastillePrixPiece set={set} /></p>}
             {repere && <span className="tuile__repere">{repere}</span>}
           </div>
         </button>
@@ -81,7 +83,7 @@ export default function CarteSet({ set, onOuvrir, selection, onBasculer, vue = '
           <p className="carte__nom">{set.nom}{badge}{pourLecteur}</p>
           <p className="carte__details">{set.numero}{details.length > 0 && ` · ${details.join(' · ')}`}</p>
           {sortieLongue && <p className="carte__etat">{sortieLongue}</p>}
-          {prix && <p className="carte__etat">{prix}</p>}
+          {prix && <p className="carte__etat">{prix}<PastillePrixPiece set={set} /></p>}
           {set.priorite && <p className="carte__etat">{LIBELLES_PRIORITE[set.priorite]}</p>}
           {set.etiquettes?.length > 0 && <p className="carte__etat">{set.etiquettes.join(' · ')}</p>}
           {(set.etat || set.emplacement) && (

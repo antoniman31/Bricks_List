@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { filtrer, trier, themes, normaliserTexte, modeAnnees, cleAnnee, libelleAnnee, groupesAnnees, manquants, rechercherAilleurs, emplacements, comptesEmplacements } from './recherche.js';
+import { TRIS, filtrer, trier, themes, normaliserTexte, modeAnnees, cleAnnee, libelleAnnee, groupesAnnees, manquants, rechercherAilleurs, emplacements, comptesEmplacements } from './recherche.js';
 
 const S = [
   { id: '1', numero: '75192-1', nom: 'Faucon Millenium', theme: 'Star Wars', annee: 2017, pieces: 7541, statut: 'possédé', etat: 'scellé', dateAjout: '2026-10-01', notes: 'secret' },
@@ -318,4 +318,16 @@ test('prix : tri croissant et décroissant (sans prix en dernier) et filtre par 
   assert.ok(TRIS.filter((t) => t.cle.startsWith('prix')).every((t) => t.statut === 'souhaité'));
   assert.equal(triPourOnglet('prix', 'possédé'), 'ajout');
   assert.equal(triPourOnglet('prix', 'souhaité'), 'prix');
+});
+
+test('prix par pièce : tri « Meilleur prix par pièce » (wishlist), sans chiffre en dernier', () => {
+  const sets = [
+    { id: 'a', nom: 'A', statut: 'souhaité', prix: 100, pieces: 500 },
+    { id: 'b', nom: 'B', statut: 'souhaité' },
+    { id: 'c', nom: 'C', statut: 'souhaité', prix: 100, pieces: 1000 },
+    { id: 'd', nom: 'D', statut: 'souhaité', prix: 50 },
+  ];
+  assert.deepEqual(trier(sets, 'prix-piece').map((s) => s.id), ['c', 'a', 'b', 'd']);
+  assert.ok(TRIS.some((t) => t.cle === 'prix-piece' && t.statut === 'souhaité'));
+  assert.ok(!TRIS.some((t) => t.cle === 'prix-piece' && t.statut !== 'souhaité'));
 });
