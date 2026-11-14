@@ -1,7 +1,7 @@
 // Toute la carte est un vrai <button> (clavier, lecteur d'écran) et ouvre la fiche.
 import ImageSet from './ImageSet.jsx'
 import { LIBELLES_PRIORITE } from '../lib/model.js'
-import { texteCarte, texteRetrait } from '../lib/sortie.js'
+import { badgeRetrait, texteCarte } from '../lib/sortie.js'
 import { formaterPrix } from '../lib/prix.js'
 
 export default function CarteSet({ set, onOuvrir, selection, onBasculer, vue = 'liste', courante = false, exemplaires }) {
@@ -15,8 +15,11 @@ export default function CarteSet({ set, onOuvrir, selection, onBasculer, vue = '
   const sortieCourte = texteCarte(set, undefined, true)
   // Le prix officiel ne s'affiche que sur la wishlist. Pas de marque « DE » sur les cartes (choix d'Antoni) : la fiche, elle, dit
   // « prix DE » quand le prix est le prix allemand pré-rempli.
-  // Le retrait prévu (wishlist seulement) : « Retiré », ou « Retrait dans 5 mois » dans les six mois.
-  const retrait = texteRetrait(set)
+  // Le retrait prévu (wishlist seulement) : un bandeau en travers de la photo, « Retiré » (rouge) ou « Retrait 3 mois » (jaune, dans
+  // les six mois). Décoratif : le texte de la carte porte la même information pour un lecteur d'écran.
+  const retrait = badgeRetrait(set)
+  const bandeau = retrait && <span className={`badge-retrait badge-retrait--${retrait.etat}`} aria-hidden="true">{retrait.texte}</span>
+  const pourLecteur = retrait && <span className="visuellement-cache"> ({retrait.accessible})</span>
   const prix = set.statut === 'souhaité' && set.prix != null ? formaterPrix(set.prix) : ''
   const details = [
     set.theme || null,
@@ -48,16 +51,16 @@ export default function CarteSet({ set, onOuvrir, selection, onBasculer, vue = '
         <button type="button" className="carte carte--tuile" {...interaction}>
           <div className="tuile__image">
             <ImageSet set={set} variante="tuile" />
+            {bandeau}
             {coche}
           </div>
           <div className="carte__texte">
-            <p className="carte__nom">{set.nom}{badge}</p>
+            <p className="carte__nom">{set.nom}{badge}{pourLecteur}</p>
             <p className="carte__details">
               {set.pieces != null ? `${set.pieces.toLocaleString('fr-FR')} pièces` : set.numero}
               {set.emplacement && ` · ${set.emplacement}`}
             </p>
             {sortieCourte && <p className="carte__details carte__sortie">{sortieCourte}</p>}
-            {retrait && <p className="carte__details carte__sortie">{retrait}</p>}
             {prix && <p className="carte__details carte__prix">{prix}</p>}
             {repere && <span className="tuile__repere">{repere}</span>}
           </div>
@@ -70,12 +73,14 @@ export default function CarteSet({ set, onOuvrir, selection, onBasculer, vue = '
     <li>
       <button type="button" className="carte" {...interaction}>
         {coche}
-        <ImageSet set={set} />
+        <div className="carte__photo">
+          <ImageSet set={set} />
+          {bandeau}
+        </div>
         <div className="carte__texte">
-          <p className="carte__nom">{set.nom}{badge}</p>
+          <p className="carte__nom">{set.nom}{badge}{pourLecteur}</p>
           <p className="carte__details">{set.numero}{details.length > 0 && ` · ${details.join(' · ')}`}</p>
           {sortieLongue && <p className="carte__etat">{sortieLongue}</p>}
-          {retrait && <p className="carte__etat">{retrait}</p>}
           {prix && <p className="carte__etat">{prix}</p>}
           {set.priorite && <p className="carte__etat">{LIBELLES_PRIORITE[set.priorite]}</p>}
           {set.etiquettes?.length > 0 && <p className="carte__etat">{set.etiquettes.join(' · ')}</p>}

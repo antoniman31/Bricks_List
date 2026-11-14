@@ -60,6 +60,8 @@
   --echelle-3: #2f6bc2; --sur-echelle-3: #ffffff;
   --echelle-4: #3987e5; --sur-echelle-4: #0b0b0b;
   --echelle-5: #7fb2f2; --sur-echelle-5: #0b0b0b;
+  /* Bandeau « Retiré » sur la photo : aplat opaque (le contraste ne dépend jamais de la boîte dessous). Blanc dessus : 6,5:1. */
+  --retire: #b3261e; --sur-retire: #ffffff;
   color-scheme: dark;
 }
 
@@ -95,6 +97,7 @@ html[data-theme='light'] {
   --echelle-3: #5d97e0; --sur-echelle-3: #0b0b0b;
   --echelle-4: #2468c4; --sur-echelle-4: #ffffff;
   --echelle-5: #1b4f96; --sur-echelle-5: #ffffff;
+  --retire: #b3261e; --sur-retire: #ffffff; /* 6,5:1 */
   color-scheme: light;
 }
 
@@ -1023,3 +1026,14 @@ div.anneau__ligne { padding: 6px 0; }
 .photo-menu .avis { margin: 8px 0 0; }
 .heros .photo-vide span { display: block; margin-top: 4px; font-size: 0.75rem; }
 .detail .photo-menu .photo-actions { padding: 8px 0 0; }
+
+/* ---------- Bandeau « Retiré » en travers de la photo de la liste et de la grille ---------- */
+/* La vignette de 112 px de la liste est enveloppée pour porter le bandeau (qui dépasse l'image : le cadre le coupe). */
+.carte__photo { position: relative; flex: none; overflow: hidden; border-radius: 8px; }
+.tuile__image { overflow: hidden; }
+/* Une bande de bord à bord, penchée, au milieu de l'image : rouge pour « Retiré », jaune de l'appli (texte sombre) dans les six mois. */
+.badge-retrait { position: absolute; left: -12%; right: -12%; top: 50%; z-index: 1; padding: 2px 0; text-align: center; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.14em; line-height: 16px; text-transform: uppercase; white-space: nowrap; transform: translateY(-50%) rotate(-16deg); box-shadow: 0 1px 0 rgb(0 0 0 / 0.3); }
+.badge-retrait--retire { background: var(--retire); color: var(--sur-retire); }
+.badge-retrait--bientot { background: var(--accent-fond); color: var(--sur-accent); font-size: 0.65625rem; letter-spacing: 0.08em; }
+.carte--tuile .badge-retrait { font-size: 0.9375rem; line-height: 20px; }
+.carte--tuile .badge-retrait--bientot { font-size: 0.875rem; }

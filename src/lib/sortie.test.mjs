@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { aInterroger, candidats, comparerSorties, correspondRetrait, correspondSortie, dateCourte, etatRetrait, etatSortie, relatif, texteCarte, texteRetrait } from './sortie.js';
+import { aInterroger, candidats, comparerSorties, correspondRetrait, correspondSortie, dateCourte, etatRetrait, etatSortie, relatif, texteCarte, badgeRetrait } from './sortie.js';
 import { dateSortieValide, joursJusque } from './dates.js';
 import { normaliserSet } from './model.js';
 import { filtrer, trier } from './recherche.js';
@@ -106,11 +106,15 @@ test('retrait : retiré, bientôt (6 mois, bornes comprises) ou loin', () => {
   assert.equal(e('2027-05-08').bientot, false); // 184 jours
 });
 
-test('texteRetrait : seulement pour la wishlist, seulement retiré ou dans les six mois', () => {
-  const t = (d, extra) => texteRetrait(retrait('a', d, extra), AUJOURDHUI);
-  assert.equal(t('2026-01-01'), 'Retiré');
-  assert.equal(t('2027-01-01'), 'Retrait dans 57 jours');
-  assert.equal(t('2026-11-06'), 'Retrait demain');
+test('badgeRetrait : seulement pour la wishlist, seulement retiré ou dans les six mois ; texte court sur le bandeau, phrase pour le lecteur d\'écran', () => {
+  const t = (d, extra) => badgeRetrait(retrait('a', d, extra), AUJOURDHUI);
+  assert.deepEqual(t('2026-01-01'), { etat: 'retire', texte: 'Retiré', accessible: 'retiré' });
+  assert.deepEqual(t('2027-01-01'), { etat: 'bientot', texte: 'Retrait 57 j', accessible: 'retrait dans 57 jours' }); // 57 jours : en jours
+  assert.deepEqual(t('2026-11-06'), { etat: 'bientot', texte: 'Retrait demain', accessible: 'retrait demain' });
+  assert.deepEqual(t('2026-11-05'), { etat: 'bientot', texte: 'Dernier jour', accessible: 'retrait aujourd\'hui' });
+  assert.equal(t('2027-02-05').texte, 'Retrait 3 mois'); // 92 jours
+  assert.equal(t('2027-05-07').texte, 'Retrait 6 mois'); // 183 jours : la limite
+  assert.equal(t('2027-05-08'), null); // au-delà de six mois
   assert.equal(t('2028-01-01'), null);
   assert.equal(t(null), null);
   assert.equal(t('2027-01-01', { statut: 'possédé' }), null);

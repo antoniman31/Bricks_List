@@ -3,7 +3,7 @@
 Ce fichier dit **où on s'est arrêtés** et **quoi faire ensuite**, dans l'ordre. Il complète `docs/SUITE.md` (état
 complet du projet, décisions, limites) et `CLAUDE.md` (règles de travail). Lire les trois avant de commencer.
 
-Dernière PR fusionnée : **#82** (images de la galerie Brickset : chercher, planche, garder, boîte) ; en cours : boutons d'images repliés sous un chevron. Branche de travail unique :
+Dernière PR fusionnée : **#83** (boutons d'images sous un chevron) ; en cours : bandeau « Retiré » en travers de la photo. Branche de travail unique :
 `ccr-bf63eeba-887je4`. Qualité : lint OK, 482 tests, `verif:ui` 832 écrans.
 
 Depuis la PR #66 : transfert collection ↔ wishlist (#67), boîtes BrickLink gardées sur l'appareil (#68), rendus
