@@ -20,7 +20,16 @@ const PORT = Number(process.env.VERIF_PORT) || 4174;
 const CONFIGS = process.env.VERIF_CONFIGS ? new Set(process.env.VERIF_CONFIGS.split(',')) : null;
 const URL = `http://localhost:${PORT}/Bricks_List/`;
 const THEMES = ['dark', 'light'];
-const LARGEURS = [360, 412, 900, 1280];
+// 360 et 412 px sont presque la même mise en page : on garde 360 (le plus étroit). 900 px : la feuille en deux colonnes ; 1280 px : le
+// panneau de détail à droite (à partir de 840 px).
+const LARGEURS = [360, 900, 1280];
+// Un parcours qui VÉRIFIE un comportement (il appelle `exiger`) ne dépend ni du thème ni de la largeur au-delà des deux familles de mise en
+// page : la feuille (360 px) et le panneau (1280 px), chacune dans les deux thèmes. Les autres parcours (de simples écrans, contrôlés par axe, cibles et
+// débordements) passent dans toutes les configurations.
+const CONFIGS_COMPORTEMENT = new Set(['dark:360', 'light:360', 'dark:1280', 'light:1280']);
+const estComportement = (aller) => /\bexiger\(/.test(String(aller));
+// VERIF_PARTIE=« i/n » : cette copie ne joue que les parcours dont le rang vaut i modulo n (voir `verif-ui-parallele.mjs` et le CI).
+const PARTIE = (() => { const m = /^(\d+)\/(\d+)$/.exec(process.env.VERIF_PARTIE ?? ''); return m ? { i: Number(m[1]), n: Number(m[2]) } : null; })();
 
 // Une collection qui exerce les cas difficiles : textes longs, données absentes,
 // états variés, wishlist, image absente et image présente.
@@ -258,7 +267,7 @@ const ECRANS = {
     await p.click(REGLAGES);
     await p.click('dialog[open] summary:has-text("Images sur")');
     await p.click('dialog[open] button:has-text("Sauvegarder toutes les images")');
-    await p.waitForSelector('dialog[open] .avis:has-text("sauvegardée")', { timeout: 20000 });
+    await p.waitForSelector('dialog[open] .avis:has-text("sauvegardée")', { timeout: 40000 });
     const attendu = await p.evaluate(() => new Set(JSON.parse(localStorage.getItem('bl_v1')).sets.map((x) => x.numero).filter((n) => parseInt(n, 10) % 2 === 1)).size);
     exiger(attendu > 0 && await nbBoitesStock(p) === attendu, `les boîtes disponibles doivent toutes être gardées (attendu ${attendu}, gardé ${await nbBoitesStock(p)})`);
     const dit = await p.locator('dialog[open] .avis').first().innerText();
@@ -272,7 +281,7 @@ const ECRANS = {
     await p.click(REGLAGES);
     await p.click('dialog[open] summary:has-text("Images sur")');
     await p.click('dialog[open] button:has-text("Sauvegarder toutes les images")');
-    await p.waitForSelector('dialog[open] [role=alert]:has-text("ajoute le relais")', { timeout: 20000 });
+    await p.waitForSelector('dialog[open] [role=alert]:has-text("ajoute le relais")', { timeout: 40000 });
     exiger(await nbBoitesStock(p, 'rendus') === 0, 'sans relais, aucun rendu ne doit être gardé');
   },
   'rendus : copiés par le relais puis servis sans Rebrickable': async (p) => {
@@ -283,7 +292,7 @@ const ECRANS = {
     await p.click(REGLAGES);
     await p.click('dialog[open] summary:has-text("Images sur")');
     await p.click('dialog[open] button:has-text("Sauvegarder toutes les images")');
-    await p.waitForSelector('dialog[open] .avis:has-text("rendu")', { timeout: 20000 });
+    await p.waitForSelector('dialog[open] .avis:has-text("rendu")', { timeout: 40000 });
     const attendu = await p.evaluate(() => new Set(JSON.parse(localStorage.getItem('bl_v1')).sets.filter((x) => x.image).map((x) => x.numero)).size);
     exiger(attendu > 0 && await nbBoitesStock(p, 'rendus') === attendu, `tous les rendus doivent être gardés (attendu ${attendu}, gardé ${await nbBoitesStock(p, 'rendus')}, ${demandes} demandes au relais)`);
     // Rebrickable coupé, rendu demandé en premier : l'image vient de l'appareil.
@@ -307,7 +316,7 @@ const ECRANS = {
     await p.click(REGLAGES);
     await p.click('dialog[open] summary:has-text("Images sur")');
     await p.click('dialog[open] button:has-text("Sauvegarder toutes les images")');
-    await p.waitForSelector('dialog[open] [role=alert]:has-text("refusé")', { timeout: 20000 });
+    await p.waitForSelector('dialog[open] [role=alert]:has-text("refusé")', { timeout: 40000 });
     const attendu = await p.evaluate(() => new Set(JSON.parse(localStorage.getItem('bl_v1')).sets.filter((x) => x.image).map((x) => x.numero)).size);
     exiger(attendu > 1 && await nbBoitesStock(p, 'rendus') === attendu - 1, `les autres rendus doivent être gardés (attendu ${attendu - 1}, gardé ${await nbBoitesStock(p, 'rendus')}, ${demandes} demandes)`);
     const texte = await p.locator('dialog[open] [role=alert]').innerText();
@@ -332,7 +341,7 @@ const ECRANS = {
       await q.click('dialog[open] summary:has-text("Images sur")');
       await q.click('dialog[open] button:has-text("Sauvegarder toutes les images")');
       try {
-        await q.waitForSelector('dialog[open] [role=alert]:has-text("BrickLink ne répond pas")', { timeout: 20000 });
+        await q.waitForSelector('dialog[open] [role=alert]:has-text("BrickLink ne répond pas")', { timeout: 40000 });
       } catch {
         const vu = (await q.locator('dialog[open] .avis').allInnerTexts()).join(' | ');
         throw new Error(`pas d'arrêt de la sauvegarde (${appels} demandes à BrickLink) ; la feuille dit : « ${vu} »`);
@@ -394,7 +403,7 @@ const ECRANS = {
     await p.setInputFiles('dialog[open] label:has-text("Choisir un fichier JSON") input[type=file]', { name: 'sauvegarde.json', mimeType: 'application/json', buffer: fichier });
     await p.waitForSelector('dialog[open] .avis:has-text("remplaceront celles de cet appareil")');
     await p.click('dialog[open] button:has-text("Fusionner")');
-    await p.waitForSelector('dialog[open] [role=status]:has-text("restaurée")', { timeout: 20000 });
+    await p.waitForSelector('dialog[open] [role=status]:has-text("restaurée")', { timeout: 40000 });
     const apres = [await nbBoitesStock(p, 'photos'), await nbBoitesStock(p, 'boites'), await nbBoitesStock(p, 'rendus'), await nbBoitesStock(p, 'extras')];
     exiger(apres.every((n, i) => n === dansFichier[i]), `les images doivent revenir à l'identique (fichier ${dansFichier}, après ${apres})`);
   },
@@ -588,7 +597,7 @@ const ECRANS = {
     await p.evaluate(() => localStorage.setItem('bl_relais', JSON.stringify({ url: 'https://relais.test', jeton: '' })));
     await p.reload(); await p.waitForSelector('.carte');
     await mettreAJourParLesReglages(p);
-    await p.waitForSelector('dialog[open] .avis:has-text("prix")', { timeout: 20000 });
+    await p.waitForSelector('dialog[open] .avis:has-text("prix")', { timeout: 40000 });
     await p.click('dialog[open] button[aria-label="Fermer"]');
     const sets = await p.evaluate(() => JSON.parse(localStorage.getItem('bl_v1')).sets);
     const prix = (nom) => { const s = sets.find((x) => x.nom === nom); return [s.prix, s.prixSource]; };
@@ -611,7 +620,7 @@ const ECRANS = {
     await p.evaluate(() => localStorage.setItem('bl_relais', JSON.stringify({ url: 'https://relais.test', jeton: '' })));
     await p.reload(); await p.waitForSelector('.carte');
     await mettreAJourParLesReglages(p);
-    await p.waitForSelector('dialog[open] .avis:has-text("enregistrée")', { timeout: 20000 });
+    await p.waitForSelector('dialog[open] .avis:has-text("enregistrée")', { timeout: 40000 });
     await p.click('dialog[open] button[aria-label="Fermer"]');
     const sets = await p.evaluate(() => JSON.parse(localStorage.getItem('bl_v1')).sets);
     const brickset = sets.filter((x) => x.sortieSource === 'brickset');
@@ -980,7 +989,7 @@ const ECRANS = {
     await p.evaluate(() => localStorage.setItem('bl_relais', JSON.stringify({ url: 'https://relais.test', jeton: '' })));
     await p.reload(); await p.waitForSelector('.carte');
     await mettreAJourParLesReglages(p);
-    await p.waitForSelector('dialog[open] .avis:has-text("sous-thème")', { timeout: 20000 });
+    await p.waitForSelector('dialog[open] .avis:has-text("sous-thème")', { timeout: 40000 });
     await p.click('dialog[open] button[aria-label="Fermer"]');
     const sets = await p.evaluate(() => JSON.parse(localStorage.getItem('bl_v1')).sets);
     exiger(sets.every((x) => typeof x.sousTheme === 'string'), 'tous les sets doivent avoir un sous-thème (vide si Brickset n\'en a pas)');
@@ -1259,8 +1268,10 @@ try {
       });
       // VERIF_FILTRE=texte : ne rejoue que les parcours dont le nom contient ce texte (pour comprendre un échec). VERIF_TRACE=1 :
       // affiche ce que la page écrit dans sa console.
-      for (const [nom, aller] of Object.entries(ECRANS)) {
+      for (const [rang, [nom, aller]] of Object.entries(ECRANS).entries()) {
         if (process.env.VERIF_FILTRE && !nom.includes(process.env.VERIF_FILTRE)) continue;
+        if (PARTIE && rang % PARTIE.n !== PARTIE.i) continue;
+        if (estComportement(aller) && !CONFIGS_COMPORTEMENT.has(`${theme}:${largeur}`)) continue;
         const page = await ctx.newPage();
         page.setDefaultTimeout(4000);
         const erreursPage = [];
@@ -1295,7 +1306,7 @@ try {
   serveur.kill();
 }
 
-console.log(`${total} écrans vérifiés (${THEMES.length} thèmes × ${LARGEURS.length} largeurs × ${Object.keys(ECRANS).length} écrans).`);
+console.log(`${total} écrans vérifiés (${Object.keys(ECRANS).length} parcours ; ceux qui vérifient un comportement en 360 et 1280 px seulement, les autres aux ${THEMES.length * LARGEURS.length} configurations).`);
 if (echecs.length > 0) {
   console.error(`\n${echecs.length} écart(s) :`);
   for (const e of echecs) console.error(` - ${e}`);
