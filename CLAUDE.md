@@ -13,7 +13,7 @@ commencer).
 - `npm run dev` : serveur de développement.
 - `npm run lint` (oxlint) et `npm test` : à passer avant tout commit.
 - `CHROMIUM=/opt/pw-browsers/chromium npm run verif:ui` : construit, puis parcourt chaque
-  écran (2 thèmes × 4 largeurs) : accessibilité axe-core, cibles de 48 px, débordements,
+  écran (2 thèmes × 4 largeurs, une copie du contrôle par largeur, en parallèle : environ 9 min ; `verif:ui:serie` fait la même chose en une seule copie, plus lent, pour comprendre un échec) : accessibilité axe-core, cibles de 48 px, débordements,
   navigation. À passer pour tout changement d'interface ; il bloque aussi le CI.
 - `CHROMIUM=/opt/pw-browsers/chromium npm run icones` : régénère les icônes PNG
   depuis `public/favicon.svg`.
