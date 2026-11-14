@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { choisirImage, ecrireRegle, lireRegle, regleValide } from './imageListe.js';
+import { choisirImage, choixPhoto, clePhoto, diapositives, ecrireRegle, lireClePhoto, lireRegle, numeroPhotoDe, regleValide } from './imageListe.js';
 import { normaliserSet } from './model.js';
 import { modifier } from './collection.js';
 import { sourcesImage } from './boite.js';
@@ -65,4 +65,45 @@ test('sources : « rendu » en premier inverse l\'ordre, sans trou', () => {
   ]);
   assert.deepEqual(sourcesImage('xx', 'https://cdn.rebrickable.com/a.jpg', 'rendu'), ['https://cdn.rebrickable.com/a.jpg']);
   assert.deepEqual(sourcesImage('75192-1', null, 'rendu'), ['https://img.bricklink.com/ItemImage/ON/0/75192-1.png']);
+});
+
+test('plusieurs photos : clés du magasin et choix de la liste, la première garde ses noms d\'origine', () => {
+  assert.equal(clePhoto('abc', 1), 'abc');
+  assert.equal(clePhoto('abc', 3), 'abc#3');
+  assert.equal(choixPhoto(1), 'photo');
+  assert.equal(choixPhoto(4), 'photo-4');
+  assert.deepEqual([numeroPhotoDe('photo'), numeroPhotoDe('photo-2'), numeroPhotoDe('photo-6')], [1, 2, 6]);
+  for (const v of ['photo-1', 'photo-7', 'photo-', 'boite', null, undefined, 3]) assert.equal(numeroPhotoDe(v), null, String(v));
+  assert.deepEqual(lireClePhoto('abc'), { id: 'abc', n: 1 });
+  assert.deepEqual(lireClePhoto('abc#2'), { id: 'abc', n: 2 });
+  assert.deepEqual(lireClePhoto('a#b#6'), { id: 'a#b', n: 6 });
+  for (const v of ['abc#1', 'abc#7', 'abc#', '#2', 'abc#x', '', null, 5]) assert.equal(lireClePhoto(v), null, String(v));
+});
+
+test('choisirImage : une photo voulue (photo-3) n\'est choisie que si elle existe, sinon la boîte', () => {
+  const existe = (n) => n === 3;
+  assert.equal(choisirImage({ imageListe: 'photo-3' }, 'boite', existe), 'photo-3');
+  assert.equal(choisirImage({ imageListe: 'photo-2' }, 'boite', existe), 'boite');
+  assert.equal(choisirImage({ imageListe: 'photo' }, 'boite', existe), 'boite');
+  assert.equal(choisirImage({ imageListe: null }, 'photo', (n) => n === 1), 'photo'); // la règle « Ma photo » vise la première
+  assert.equal(choisirImage({ imageListe: 'photo-3' }, 'boite', true), 'boite'); // booléen : seulement la première photo
+});
+
+test('modèle : toute photo personnelle peut être l\'image de la liste', () => {
+  const base = { numero: '75192-1', nom: 'Faucon' };
+  for (const v of ['photo', 'photo-2', 'photo-6']) assert.equal(normaliserSet({ ...base, imageListe: v }).set.imageListe, v);
+  for (const v of ['photo-7', 'photo-1', 'photo-0']) assert.equal(normaliserSet({ ...base, imageListe: v }).set.imageListe, null);
+});
+
+test('diapositives : boîte, rendu si le set en a un, photos dans l\'ordre des places, puis « ajouter » tant qu\'il reste de la place', () => {
+  const set = { id: 'a', image: 'https://cdn.rebrickable.com/media/sets/x.jpg' };
+  const cles = (s, photos, lecture) => diapositives(s, new Set(photos), lecture).map((d) => d.cle);
+  assert.deepEqual(cles(set, []), ['boite', 'rendu', 'ajout']);
+  assert.deepEqual(cles({ id: 'a' }, []), ['boite', 'ajout']);
+  assert.deepEqual(cles(set, ['a', 'a#3']), ['boite', 'rendu', 'photo', 'photo-3', 'ajout']);
+  assert.deepEqual(diapositives(set, new Set(['a', 'a#3'])).map((d) => d.libelle), ['Boîte', 'Rendu', 'Ma photo 1', 'Ma photo 2', 'Ajouter une photo']);
+  assert.equal(diapositives(set, new Set(['a'])).find((d) => d.cle === 'photo').libelle, 'Ma photo');
+  assert.deepEqual(cles(set, ['a', 'a#2', 'a#3', 'a#4', 'a#5', 'a#6']).at(-1), 'photo-6'); // six photos : plus de place
+  assert.deepEqual(cles(set, ['a'], true), ['boite', 'rendu', 'photo']); // lecture seule : on ne propose pas d'ajouter
+  assert.deepEqual(cles(set, ['b', 'b#2']), ['boite', 'rendu', 'ajout']); // les photos d'un autre set ne comptent pas
 });

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { datePropre, libellePropre, lireBrickset, lireNotices, prixPropre, traiter, urlImageValide, urlNoticeValide } from './worker.js';
+import { datePropre, identifiantBrickset, libellePropre, lireBrickset, lireImagesSet, lireNotices, prixPropre, traiter, urlImageValide, urlNoticeValide } from './worker.js';
 
 const ENV = { BRICKSET_KEY: 'cle-secrete-de-test', ORIGINE: 'https://antoniman31.github.io' };
 const SUCCES = (sets) => ({ status: 'success', matches: sets.length, sets });
@@ -250,4 +250,60 @@ test('/notices : appelle getInstructions2 avec la clé en corps de formulaire, m
   assert.equal((await appel('/notices?numero=75192-1', { fetchFn, env: { ...ENV, JETON: 'secret-jeton-123' } })).status, 401);
   assert.equal((await appel('/notices?numero=75192-1', { fetchFn, init: { method: 'POST' } })).status, 405);
   assert.equal((await appel('/notices?numero=75192-1', { fetchFn: async () => reponseJson({ status: 'error', message: 'API limit exceeded' }) })).status, 429);
+});
+
+test('identifiantBrickset : le setID du bon set, sinon null', () => {
+  assert.equal(identifiantBrickset(SUCCES([{ ...FALCON, setID: 7013 }]), '75192-1'), 7013);
+  assert.equal(identifiantBrickset(SUCCES([{ ...FALCON, setID: 7013, number: '10294' }]), '75192-1'), null);
+  for (const v of [undefined, '12', 0, -1, 1.5, null]) assert.equal(identifiantBrickset(SUCCES([{ ...FALCON, setID: v }]), '75192-1'), null, String(v));
+  assert.equal(identifiantBrickset({ status: 'error' }, '75192-1'), null);
+  assert.equal(identifiantBrickset(null, '75192-1'), null);
+});
+
+test('lireImagesSet : garde les bonnes adresses, sans doublon, avec miniature seulement si elle est sûre', () => {
+  const ok = { status: 'success', additionalImages: [
+    { imageURL: 'https://images.brickset.com/sets/AdditionalImages/75192-1/a.jpg', thumbnailURL: 'https://images.brickset.com/sets/AdditionalImages/75192-1/a_t.jpg' },
+    { imageURL: 'https://images.brickset.com/sets/AdditionalImages/75192-1/a.jpg' },
+    { imageURL: 'https://evil.example/b.jpg' },
+    { imageURL: 'https://images.brickset.com/b.jpg', thumbnailURL: 'https://evil.example/t.jpg' },
+  ] };
+  const r = lireImagesSet(ok, '75192-1');
+  assert.equal(r.valeur.trouve, true);
+  assert.deepEqual(r.valeur.images, [
+    { url: 'https://images.brickset.com/sets/AdditionalImages/75192-1/a.jpg', miniature: 'https://images.brickset.com/sets/AdditionalImages/75192-1/a_t.jpg' },
+    { url: 'https://images.brickset.com/b.jpg', miniature: null },
+  ]);
+  assert.deepEqual(lireImagesSet({ status: 'success', additionalImages: [] }, 'x').valeur, { numero: 'x', trouve: false, images: [] });
+  assert.equal(lireImagesSet({ status: 'error', message: 'API limit exceeded' }, 'x').code, 'limite');
+  assert.equal(lireImagesSet(null, 'x').ok, false);
+});
+
+test('/galerie : getSets puis getAdditionalImages avec le setID, la clé reste en corps de formulaire', async () => {
+  const vus = [];
+  const fetchFn = async (url, init) => {
+    vus.push({ url, corps: new URLSearchParams(init.body) });
+    return url.endsWith('getSets')
+      ? reponseJson(SUCCES([{ ...FALCON, setID: 7013 }]))
+      : reponseJson({ status: 'success', additionalImages: [{ imageURL: 'https://images.brickset.com/a.jpg', thumbnailURL: 'https://images.brickset.com/a_t.jpg' }] });
+  };
+  const r = await appel('/galerie?numero=75192-1', { fetchFn });
+  assert.equal(r.status, 200);
+  assert.deepEqual(await r.json(), { numero: '75192-1', trouve: true, images: [{ url: 'https://images.brickset.com/a.jpg', miniature: 'https://images.brickset.com/a_t.jpg' }] });
+  assert.equal(vus.length, 2);
+  assert.equal(vus[1].url, 'https://brickset.com/api/v3.asmx/getAdditionalImages');
+  assert.equal(vus[1].corps.get('setID'), '7013');
+  assert.equal(vus[1].corps.get('apiKey'), 'cle-secrete-de-test');
+  assert.ok(vus.every((v) => !v.url.includes('cle-secrete')));
+});
+
+test('/galerie : set inconnu = aucune image sans second appel ; limite, jeton, numéro et méthode comme les autres routes', async () => {
+  let appels = 0;
+  const inconnu = await appel('/galerie?numero=75192-1', { fetchFn: async () => { appels += 1; return reponseJson(SUCCES([])); } });
+  assert.deepEqual(await inconnu.json(), { numero: '75192-1', trouve: false, images: [] });
+  assert.equal(appels, 1);
+  assert.equal((await appel('/galerie?numero=75192-1', { fetchFn: async () => reponseJson({ status: 'error', message: 'API limit exceeded' }) })).status, 429);
+  assert.equal((await appel('/galerie?numero=abc', { fetchFn: async () => reponseJson({}) })).status, 400);
+  assert.equal((await appel('/galerie?numero=75192-1', { fetchFn: async () => reponseJson({}), env: { ...ENV, JETON: 'secret-jeton-123' } })).status, 401);
+  assert.equal((await appel('/galerie?numero=75192-1', { fetchFn: async () => reponseJson({}), init: { method: 'POST' } })).status, 405);
+  assert.equal((await appel('/galerie?numero=75192-1', { fetchFn: async () => reponseJson({}), env: { ORIGINE: ENV.ORIGINE } })).status, 500);
 });

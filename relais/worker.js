@@ -6,6 +6,7 @@
 // (jamais dans l'application, jamais dans le dépôt), et ne renvoie que ce dont l'app a besoin.
 //
 //   GET /sortie?numero=75192-1  ->  { numero, trouve, lancement, retrait, disponibilite, prixDE, sousTheme }
+//   GET /galerie?numero=75192-1  ->  { numero, trouve, images: [{ url, miniature }] }  (images supplémentaires de Brickset : DEUX appels Brickset)
 //   GET /notices?numero=75192-1  ->  { numero, trouve, notices: [{ url, description }] }  (notices PDF de Brickset)
 //   GET /image?url=https://cdn.rebrickable.com/media/sets/75192-1.jpg  ->  l'image elle-même, avec CORS
 //     (le CDN de Rebrickable n'en envoie pas : sans relais, l'app ne peut pas copier le rendu sur l'appareil).
@@ -17,8 +18,10 @@
 //   ORIGINE       (variable)             sites autorisés à appeler depuis un navigateur, séparés par des virgules
 
 const BRICKSET = 'https://brickset.com/api/v3.asmx/getSets';
+const BRICKSET_IMAGES = 'https://brickset.com/api/v3.asmx/getAdditionalImages';
 const BRICKSET_NOTICES = 'https://brickset.com/api/v3.asmx/getInstructions2';
 const MAX_NOTICES = 12;
+const MAX_IMAGES = 30;
 const NUMERO = /^\d{3,7}-\d{1,2}$/;
 const ORIGINE_PAR_DEFAUT = 'https://antoniman31.github.io';
 const DELAI_MS = 8000;
@@ -88,6 +91,38 @@ export function lireNotices(donnees, numero) {
       if (notices.length >= MAX_NOTICES) break;
     }
     return { ok: true, valeur: { numero, trouve: notices.length > 0, notices } };
+  }
+  const message = String(donnees.message ?? '').toLowerCase();
+  if (message.includes('limit')) return { ok: false, statut: 429, code: 'limite' };
+  if (message.includes('key') || message.includes('invalid')) return { ok: false, statut: 502, code: 'cle' };
+  return { ok: false, statut: 502, code: 'brickset' };
+}
+
+// Une adresse d'image renvoyée par Brickset : https, sans identifiants, chez Brickset ou LEGO, comme pour les notices.
+export const urlImageSetValide = urlNoticeValide;
+
+// L'identifiant interne de Brickset (`setID`) du set demandé dans une réponse `getSets`, ou null. `getAdditionalImages` ne connaît
+// que cet identifiant, pas le numéro du set.
+export function identifiantBrickset(donnees, numero) {
+  if (!donnees || donnees.status !== 'success' || !Array.isArray(donnees.sets)) return null;
+  const set = donnees.sets.find((s) => s && `${s.number}-${s.numberVariant}` === numero);
+  return Number.isInteger(set?.setID) && set.setID > 0 ? set.setID : null;
+}
+
+// Les images supplémentaires de `getAdditionalImages`, lues sans lui faire confiance. Les noms de champs (`imageURL`,
+// `thumbnailURL`) suivent la documentation de l'API et n'ont pas été vus dans une vraie réponse.
+export function lireImagesSet(donnees, numero) {
+  if (!donnees || typeof donnees !== 'object') return { ok: false, statut: 502, code: 'reponse' };
+  if (donnees.status === 'success') {
+    const liste = Array.isArray(donnees.additionalImages) ? donnees.additionalImages : [];
+    const images = [];
+    for (const i of liste) {
+      const url = urlImageSetValide(i?.imageURL ?? i?.imageUrl);
+      if (!url || images.some((x) => x.url === url)) continue;
+      images.push({ url, miniature: urlImageSetValide(i?.thumbnailURL ?? i?.thumbnailUrl) });
+      if (images.length >= MAX_IMAGES) break;
+    }
+    return { ok: true, valeur: { numero, trouve: images.length > 0, images } };
   }
   const message = String(donnees.message ?? '').toLowerCase();
   if (message.includes('limit')) return { ok: false, statut: 429, code: 'limite' };
@@ -178,6 +213,33 @@ async function traiterImage(url, h, rep, fetchFn) {
   }
 }
 
+// Deux appels Brickset : `getSets` donne l'identifiant interne du set, `getAdditionalImages` ses images. Ils comptent tous deux dans
+// la limite de 100 appels par jour : l'application ne l'appelle que pour un set à la fois, à la demande.
+async function appelerBrickset(adresse, champs, fetchFn) {
+  const reponse = await fetchFn(adresse, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(champs).toString(),
+    signal: AbortSignal.timeout(DELAI_MS),
+  });
+  if (!reponse.ok) throw Object.assign(new Error('brickset'), { code: 'brickset' });
+  return reponse.json();
+}
+
+async function traiterGalerie(numero, env, rep, fetchFn) {
+  try {
+    const sets = await appelerBrickset(BRICKSET, { apiKey: env.BRICKSET_KEY, userHash: '', params: JSON.stringify({ setNumber: numero }) }, fetchFn);
+    const lu = lireBrickset(sets, numero);
+    if (!lu.ok) return rep(lu.statut, { erreur: lu.code });
+    const id = identifiantBrickset(sets, numero);
+    if (!id) return rep(200, { numero, trouve: false, images: [] });
+    const r = lireImagesSet(await appelerBrickset(BRICKSET_IMAGES, { apiKey: env.BRICKSET_KEY, setID: String(id) }, fetchFn), numero);
+    return r.ok ? rep(200, r.valeur) : rep(r.statut, { erreur: r.code });
+  } catch (e) {
+    return rep(e?.name === 'TimeoutError' ? 504 : 502, { erreur: e?.name === 'TimeoutError' ? 'delai' : 'brickset' });
+  }
+}
+
 export async function traiter(request, env, { fetchFn = fetch } = {}) {
   const h = entetes(request, env);
   const rep = (statut, corps) => new Response(corps === null ? null : JSON.stringify(corps), { status: statut, headers: h });
@@ -185,7 +247,7 @@ export async function traiter(request, env, { fetchFn = fetch } = {}) {
   if (request.method === 'OPTIONS') return rep(204, null);
   if (request.method !== 'GET') return rep(405, { erreur: 'methode' });
   const url = new URL(request.url);
-  if (url.pathname !== '/sortie' && url.pathname !== '/image' && url.pathname !== '/notices') return rep(404, { erreur: 'introuvable' });
+  if (url.pathname !== '/sortie' && url.pathname !== '/image' && url.pathname !== '/notices' && url.pathname !== '/galerie') return rep(404, { erreur: 'introuvable' });
   if (env.JETON && request.headers.get('X-Jeton') !== env.JETON) return rep(401, { erreur: 'jeton' });
   if (url.pathname === '/image') return traiterImage(url, h, rep, fetchFn);
 
@@ -197,6 +259,8 @@ export async function traiter(request, env, { fetchFn = fetch } = {}) {
     const proches = Object.keys(env).filter((k) => /brick|key|cle/i.test(k)).slice(0, 5);
     return rep(500, proches.length > 0 ? { erreur: 'configuration', proches } : { erreur: 'configuration' });
   }
+
+  if (url.pathname === '/galerie') return traiterGalerie(numero, env, rep, fetchFn);
 
   const notices = url.pathname === '/notices';
   let donnees;

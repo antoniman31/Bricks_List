@@ -173,6 +173,21 @@ testé avec sa vraie collection, tout fonctionne.
   seul sélecteur de date sous la frise. Puis une grille de deux colonnes (libellé au-dessus de la valeur) : emplacement, boîte, notice, étiquettes,
   notice LEGO, ajouté le, notes (prix pour la wishlist) ; une valeur longue ou une cellule ouverte prend toute la largeur. Aucune fonction ne change
   (photo perso, image de la liste, édition sur place, remise en wishlist, suppression, achat). Le bandeau jaune (`EnteteFiche`) disparaît.
+- **Carrousel, plein écran, plusieurs photos** (14 novembre 2026, demandé par Antoni) : le haut de la fiche est un carrousel (`PhotoFiche`) : boîte,
+  rendu Rebrickable (s'il y en a un), jusqu'à **six photos personnelles**, puis une diapositive « Ajouter une photo ». On glisse ou on touche les
+  flèches (touches ← → au clavier) ; la légende dit « Boîte · 1/3 ». **La fiche s'ouvre sur l'image choisie pour la liste** (`set.imageListe`), sinon sur
+  celle de la règle des Réglages (`choisirImage`). Un appui sur l'image l'ouvre en **plein écran** (`Visionneuse`, un `<dialog>` noir) : un appui zoome
+  (×2,6, on se déplace en faisant défiler), flèches, **Partager** (`navigator.share` avec le fichier ; sinon téléchargement, « Enregistrer »), et « Pour la
+  liste » (n'importe quelle image peut être celle de la liste). Un rendu Rebrickable pas encore copié sur l'appareil ne peut pas être partagé (pas de CORS) :
+  le message renvoie vers Réglages > Images sur l'appareil.
+  - **Stockage** : la première photo garde la clé historique (l'identifiant du set) dans le magasin `photos` d'IndexedDB, les suivantes sont `<id>#2`…`<id>#6`
+    (`clePhoto`, `lireClePhoto` dans `src/lib/imageListe.js`) : rien à migrer, pas de nouvelle version de la base. `imageListe` accepte `photo`, `photo-2`…`photo-6`.
+    L'export complet porte toutes les photos (clés `<id>#n` validées comme les autres : le set doit exister, n de 2 à 6) ; l'import et le nettoyage des orphelins
+    en tiennent compte. Un fichier d'avant (une photo par set) reste valable.
+  - **Images supplémentaires de Brickset (étape 1)** : route de test `GET /galerie?numero=` du relais (`getSets` pour le `setID`, puis `getAdditionalImages` : **deux appels
+    Brickset**, noms de champs non vérifiés). **Rien dans l'appli ne l'appelle encore.** Étape 2, une fois la vraie réponse vue : les images arrivent dans le carrousel et
+    sont **copiées sur l'appareil et dans l'export** (Antoni veut pouvoir toutes les choisir pour la liste et toutes les sauvegarder) : un magasin `extras` (clé
+    numéro + rang), une copie par le relais (liste blanche de l'hôte des images à étendre), des choix `extra-n` pour `imageListe`.
 - **Notice LEGO** (novembre 2026) : sur la fiche d'un set **possédé**, une ligne « Notice LEGO » avec un lien « Ouvrir sur lego.com » (nouvel onglet,
   `noopener noreferrer`). L'adresse se déduit du numéro, sans suffixe de version : `https://www.lego.com/fr-fr/service/building-instructions/<numéro>`
   (`src/lib/notice.js`, testé ; format constaté sur des dizaines de pages indexées, **jamais ouvert depuis l'environnement de développement** : LEGO.com
@@ -244,7 +259,7 @@ testé avec sa vraie collection, tout fonctionne.
   ma photo) et un choix de celle qui le représente dans la liste et la grille. Sur la fiche, trois onglets
   (Rendu seulement si le set en a un) et un bouton « Utiliser dans la liste » sous l'image affichée ; une étoile
   marque l'onglet choisi, un second appui revient à « automatique ». Le choix est un champ de la fiche
-  (`imageListe` : `boite`, `rendu`, `photo` ou null), donc dans la collection et dans l'export ; une valeur
+  (`imageListe` : `boite`, `rendu`, `photo`, `photo-2`…`photo-6` ou null), donc dans la collection et dans l'export ; une valeur
   inconnue devient null et est comptée à la validation. Pour les sets sans choix, une **règle** dans Réglages >
   Apparence (`bl_image_liste`, hors export) : « Boîte, sinon rendu » (défaut, comportement d'avant), « Ma photo
   quand elle existe » ou « Rendu Rebrickable ». `src/lib/imageListe.js` décide (`choisirImage`, testé) ; les cartes
@@ -255,10 +270,10 @@ testé avec sa vraie collection, tout fonctionne.
   au rechargement (`bl_filtres`, hors export, `src/lib/filtresMemo.js`, entrée validée ; l'ancien format à un
   seul jeu est lu). La recherche texte n'est pas retenue et se vide au changement d'onglet. Un raccourci des
   Stats remplace les filtres de la collection.
-- **Qualité** : `npm run lint`, `npm test` (461 tests, dont ceux du relais), `npm run verif:ui` (axe-core, cibles de
+- **Qualité** : `npm run lint`, `npm test` (472 tests, dont ceux du relais), `npm run verif:ui` (axe-core, cibles de
   48 px, débordements, navigation, recherche visible clavier ouvert, et quatre parcours qui vérifient un
   comportement : filtres conservés au rechargement, onglets indépendants, import d'un `.txt`, repli des
-  boîtes, photo personnelle (enregistrée, relue, retirée), image de la liste (fiche et règle), dates de sortie (affichage, filtre, saisie, relais), remise en wishlist (fiche et sélection, avec annulation), retrait (carte, filtre, frise), sous-thème (fiche, filtre, rattrapage), notices PDF, boîtes gardées (sauvegarde, service hors BrickLink, arrêt en maintenance), rendus gardés par le relais, sauvegarde complète avec images (export, vidage, restauration) ; 90 écrans × 2 thèmes × 4
+  boîtes, photo personnelle (enregistrée, relue, retirée), image de la liste (fiche et règle), dates de sortie (affichage, filtre, saisie, relais), remise en wishlist (fiche et sélection, avec annulation), retrait (carte, filtre, frise), sous-thème (fiche, filtre, rattrapage), notices PDF, carrousel, plein écran (zoom, flèches, partage, image de la liste) et plusieurs photos par set, boîtes gardées (sauvegarde, service hors BrickLink, arrêt en maintenance), rendus gardés par le relais, sauvegarde complète avec images (export, vidage, restauration) ; 97 écrans × 2 thèmes × 4
   largeurs : 360, 412, 900, 1280). Les trois tournent dans le CI avant le déploiement.
 
 ## Décisions de cadrage (ne pas rouvrir sans raison)

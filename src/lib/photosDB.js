@@ -8,6 +8,7 @@
 // Les perdre ne coûte qu'une image (la boîte se retélécharge, la photo retombe sur la boîte). Couche mince :
 // la logique est dans `photos.js` et `boite.js`.
 import { photoValide } from './photos.js';
+import { lireClePhoto } from './imageListe.js';
 
 const BASE = 'bl_photos';
 const VERSION = 3;
@@ -74,7 +75,8 @@ export async function supprimerPhoto(id) {
 // suppression en masse s'annule juste après, et la photo doit alors revenir avec le set.
 export async function purgerOrphelines(idsValides) {
   const cles = await transaction(PHOTOS, 'readonly', (m) => m.getAllKeys());
-  const orphelines = (cles ?? []).filter((c) => !idsValides.has(c));
+  // Une clé `<id>#2` appartient au set `<id>` ; une clé de forme inconnue est un orphelin.
+  const orphelines = (cles ?? []).filter((c) => !idsValides.has(lireClePhoto(c)?.id));
   if (orphelines.length === 0) return 0;
   await transaction(PHOTOS, 'readwrite', (m) => { for (const c of orphelines) m.delete(c); });
   return orphelines.length;

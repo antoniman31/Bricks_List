@@ -71,3 +71,11 @@ test('blocImages : un groupe vide reste présent, les clés ne sont pas déform�
   assert.deepEqual(blocImages({ photos: [] }), { photos: {}, boites: {}, rendus: {} });
   assert.deepEqual(Object.keys(blocImages({ boites: [['75192-1', jpeg()]] }).boites), ['75192-1']);
 });
+
+test('lireImages : les photos supplémentaires (id#2…id#6) se rattachent à leur set, les clés bancales sont refusées', () => {
+  const b = (o) => octetsVersBase64(o);
+  const bloc = { photos: { a1: b(jpeg()), 'a1#2': b(jpeg()), 'a1#6': b(jpeg()), 'a1#7': b(jpeg()), 'a1#1': b(jpeg()), 'inconnu#2': b(jpeg()), 'a1#': b(jpeg()) } };
+  const r = lireImages(bloc, SETS);
+  assert.deepEqual(r.photos.map(([k]) => k), ['a1', 'a1#2', 'a1#6']);
+  assert.equal(r.refusees, 4);
+});

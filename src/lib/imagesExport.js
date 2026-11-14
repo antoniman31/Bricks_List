@@ -2,11 +2,12 @@
 // la logique pure (encodage, validation) ; la lecture et l'écriture dans IndexedDB sont dans `photosDB.js`, le
 // décodage par le navigateur dans `photoNavigateur.js`.
 //
-// Forme dans le fichier : `images: { photos: { <id du set>: <base64> }, boites: { <numéro>: <base64> }, rendus: { … } }`.
+// Forme dans le fichier : `images: { photos: { <id du set>: <base64>, <id du set>#2: <base64>, … }, boites: { <numéro>: <base64> }, rendus: { … } }`.
 // Tout est du JPEG (c'est ce que l'appli enregistre), donc pas de type à transporter. Un fichier sans `images`
 // (ancienne version) reste valable, et une ancienne version qui lit un fichier avec `images` les ignore.
 import { OCTETS_MAX } from './photos.js';
 import { normaliserNumero } from './numero.js';
+import { lireClePhoto } from './imageListe.js';
 
 export const GROUPES = ['photos', 'boites', 'rendus'];
 // Un fichier avec images pèse des dizaines de Mo ; sans images, la limite d'avant (5 Mo) reste valable.
@@ -63,7 +64,7 @@ export function lireImages(brut, sets) {
     if (groupe == null) continue;
     if (typeof groupe !== 'object' || Array.isArray(groupe)) { r.refusees += 1; continue; }
     for (const [cle, valeur] of Object.entries(groupe)) {
-      const valide = g === 'photos' ? ids.has(cle) : numeros.has(cle);
+      const valide = g === 'photos' ? ids.has(lireClePhoto(cle)?.id) : numeros.has(cle);
       const octets = valide ? base64VersOctets(valeur) : null;
       if (octets) r[g].push([cle, octets]);
       else r.refusees += 1;
