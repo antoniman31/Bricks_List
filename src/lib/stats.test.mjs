@@ -92,7 +92,7 @@ test('« à compléter » : les chiffres collent au filtre', () => {
 });
 
 test('wishlist : sets et pièces à acquérir', () => {
-  assert.deepEqual(calculerStats(COLLECTION).wishlist, { sets: 2, pieces: 2000, sansPieces: 1, budget: null, avenir: [], priorites: [] });
+  assert.deepEqual(calculerStats(COLLECTION).wishlist, { sets: 2, pieces: 2000, sansPieces: 1, budget: null, avenir: [], urgent: null, prixPiece: null, budgetThemes: null, priorites: [] });
 });
 
 // ---------- répartition par emplacement ----------

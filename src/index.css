@@ -1074,3 +1074,13 @@ div.anneau__ligne { padding: 6px 0; }
 .badge-sortie--mois { background: var(--sortie-mois); }
 .badge-sortie--proche { background: var(--sortie-proche); }
 .carte--tuile .badge-sortie { font-size: 0.75rem; line-height: 18px; }
+
+/* ---------- Stats : sous-onglets (puces, collées sous l'en-tête pendant le défilement) ---------- */
+.stats__onglets { position: sticky; top: var(--haut-entete, 72px); z-index: 8; display: flex; gap: 6px; margin: 0 -16px; padding: 4px 16px 8px; overflow-x: auto; background: var(--fond); scrollbar-width: none; }
+.stats__onglets::-webkit-scrollbar { display: none; }
+.puce--onglet { flex: none; white-space: nowrap; }
+.puce--onglet[aria-selected='true'] { background: var(--accent-conteneur); border-color: var(--accent-conteneur); color: var(--sur-accent-conteneur); font-weight: 600; }
+.stats__panneau { display: grid; gap: var(--espace); min-width: 0; }
+.stats__panneau > * { min-width: 0; }
+/* Lignes dont le libellé est un nom de set (long) : il passe à la ligne au lieu de pousser la page en largeur. Les « Records » gardent leur libellé fixe. */
+.records__libelle--souple { flex: 0 1 auto; min-width: 0; overflow-wrap: anywhere; }

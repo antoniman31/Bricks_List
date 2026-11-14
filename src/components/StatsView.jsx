@@ -1,8 +1,14 @@
-import { Fragment, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { ETATS } from '../lib/model.js'
 import { blocsProportionnels } from '../lib/treemap.js'
 import { formaterPrix, formaterPrixRond } from '../lib/prix.js'
 import { relatif } from '../lib/sortie.js'
+import { ONGLETS, ecrireOnglet, lireOnglet } from '../lib/statsOnglet.js'
+import { formaterCentimes } from '../lib/prixPiece.js'
+import { ecartEntre } from '../lib/frise.js'
+import { aujourdhuiISO } from '../lib/dates.js'
+import { formaterOctets } from '../lib/octets.js'
+import { clesImages, tailleImages } from '../lib/photosDB.js'
 
 const SERIES = ['var(--serie-1)', 'var(--serie-2)', 'var(--serie-3)', 'var(--serie-4)']
 // Une couleur par priorité, la même dans « Par priorité » et « Budget par priorité » (jamais selon la position dans la liste).
@@ -251,6 +257,73 @@ function Avancement({ avancement: a, onOuvrir }) {
   )
 }
 
+// Des lignes « libellé · valeur », comme « Records et repères » : une ligne qui mène quelque part est un vrai bouton.
+function Lignes({ lignes }) {
+  return (
+    <ul className="records">
+      {lignes.map((l) => (
+        <li key={l.cle}>
+          {l.onClick ? (
+            <button type="button" className="records__ligne records__ligne--bouton" onClick={l.onClick}>
+              <span className="records__libelle records__libelle--souple">{l.libelle}</span>
+              <span className="records__valeur">{l.valeur}</span>
+            </button>
+          ) : (
+            <div className="records__ligne">
+              <span className="records__libelle records__libelle--souple">{l.libelle}</span>
+              <span className="records__valeur">{l.valeur}</span>
+            </div>
+          )}
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+// Ce que l'appareil garde comme images (photos, boîtes, rendus, images Brickset) et la place qu'elles prennent : lu à l'ouverture de l'onglet.
+function ImagesAppareil() {
+  const [r, setR] = useState(null)
+  useEffect(() => {
+    let actif = true
+    Promise.all([clesImages(), tailleImages()])
+      .then(([cles, octets]) => { if (actif) setR({ cles, octets }) })
+      .catch(() => { if (actif) setR({ erreur: true }) })
+    return () => { actif = false }
+  }, [])
+  if (r === null) return <p className="stats__note">Lecture des images…</p>
+  if (r.erreur) return <p className="stats__note">Les images de l'appareil n'ont pas pu être lues.</p>
+  const n = (g) => (r.cles[g] ?? []).length
+  const total = n('photos') + n('boites') + n('rendus') + n('extras')
+  if (total === 0) return <p className="stats__note">Aucune image gardée sur cet appareil.</p>
+  return (
+    <Lignes
+      lignes={[
+        { cle: 'photos', libelle: 'Photos à toi', valeur: nombre(n('photos')) },
+        { cle: 'boites', libelle: 'Boîtes', valeur: nombre(n('boites')) },
+        { cle: 'rendus', libelle: 'Rendus Rebrickable', valeur: nombre(n('rendus')) },
+        { cle: 'extras', libelle: 'Images Brickset', valeur: nombre(n('extras')) },
+        { cle: 'place', libelle: 'Place prise', valeur: formaterOctets(r.octets) },
+      ]}
+    />
+  )
+}
+
+// La hauteur de l'en-tête de l'appli (collé en haut) : la barre des sous-onglets se colle juste dessous.
+function useHauteurEntete() {
+  const [h, setH] = useState(72)
+  useEffect(() => {
+    const el = document.querySelector('.entete')
+    if (!el) return undefined
+    const mesurer = () => setH(el.offsetHeight)
+    mesurer()
+    if (typeof ResizeObserver === 'undefined') return undefined
+    const ro = new ResizeObserver(mesurer)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  return h
+}
+
 function Bloc({ titre, children }) {
   return (
     <section className="bloc">
@@ -261,9 +334,12 @@ function Bloc({ titre, children }) {
 }
 
 export default function StatsView({ stats, onOuvrir, onOuvrirSet, onVoirWishlist }) {
+  const [onglet, setOnglet] = useState(lireOnglet)
+  const hauteurEntete = useHauteurEntete()
+  const choisirOnglet = (cle) => { setOnglet(cle); ecrireOnglet(cle); window.scrollTo({ top: 0 }) }
   const [tousLesThemes, setTousLesThemes] = useState(false)
   const [anneesDetail, setAnneesDetail] = useState(false)
-  const { resume, themes, annees, etats, tailles, etiquettes, emplacements, boiteNotice, aCompleter, wishlist, activite, avancement, mensuel, delai } = stats
+  const { resume, themes, annees, etats, tailles, etiquettes, emplacements, boiteNotice, aCompleter, wishlist, activite, avancement, mensuel, delai, sousThemes, extremes, pileAncienne, donnees } = stats
 
   if (resume.sets === 0) {
     return (
@@ -276,209 +352,331 @@ export default function StatsView({ stats, onOuvrir, onOuvrirSet, onVoirWishlist
 
   return (
     <div className="stats">
-      <div className="kpis">
-        <div className="kpi"><span className="kpi__valeur">{nombre(resume.sets)}</span><span className="kpi__libelle">set{resume.sets > 1 ? 's' : ''}</span></div>
-        <div className="kpi"><span className="kpi__valeur">{nombre(resume.pieces)}</span><span className="kpi__libelle">pièces</span></div>
-        <div className="kpi"><span className="kpi__valeur">{nombre(resume.themes)}</span><span className="kpi__libelle">thème{resume.themes > 1 ? 's' : ''}</span></div>
-        {resume.moyennePieces != null && (
-          <div className="kpi"><span className="kpi__valeur">{nombre(resume.moyennePieces)}</span><span className="kpi__libelle">pièces par set</span></div>
-        )}
-      </div>
-      {resume.sansPieces > 0 && (
-        <p className="stats__note">
-          Pièces connues pour {pluriel(resume.sets - resume.sansPieces, 'set')} ({resume.sansPieces} sans).
-        </p>
-      )}
-
-      {aCompleter.fiches > 0 && (
-        <Bloc titre={`À compléter · ${pluriel(aCompleter.fiches, 'fiche')}`}>
-          <div className="stats__puces">
-            {aCompleter.champs.map((c) => (
-              <button key={c.cle} type="button" className="puce" onClick={() => onOuvrir({ manque: c.cle })}>
-                {c.libelle} ({c.nombre})
-              </button>
-            ))}
-          </div>
-        </Bloc>
-      )}
-
-      <Bloc titre="Par thème">
-        <Blocs barres={themes} onOuvrir={onOuvrir} onAutres={() => setTousLesThemes((v) => !v)} autresOuvert={tousLesThemes} />
-        {themes.length > 1 && (
-          <button type="button" className="bouton stats__detail" aria-expanded={tousLesThemes} onClick={() => setTousLesThemes((v) => !v)}>
-            {tousLesThemes ? 'Masquer le détail' : `Voir les ${themes.length} thèmes`}
+      <div className="stats__onglets" role="tablist" aria-label="Sections des statistiques" style={{ '--haut-entete': `${hauteurEntete}px` }}>
+        {ONGLETS.map((o) => (
+          <button
+            key={o.cle}
+            type="button"
+            role="tab"
+            id={`stats-onglet-${o.cle}`}
+            aria-selected={onglet === o.cle}
+            aria-controls="stats-panneau"
+            tabIndex={onglet === o.cle ? 0 : -1}
+            className="puce puce--onglet"
+            onClick={() => choisirOnglet(o.cle)}
+            onKeyDown={(e) => {
+              const i = ONGLETS.findIndex((x) => x.cle === o.cle)
+              const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0
+              if (!d) return
+              e.preventDefault()
+              const suivant = ONGLETS[(i + d + ONGLETS.length) % ONGLETS.length].cle
+              choisirOnglet(suivant)
+              document.getElementById(`stats-onglet-${suivant}`)?.focus()
+            }}
+          >
+            {o.libelle}
           </button>
-        )}
-        {tousLesThemes && <Barres barres={themes} onOuvrir={onOuvrir} />}
-      </Bloc>
+        ))}
+      </div>
 
-      {annees.length > 0 && (
-        <Bloc titre="Par année de sortie">
-          <Courbe barres={annees} />
-          {annees.filter((b) => b.cle !== '').length >= 2 ? (
-            <button type="button" className="bouton stats__detail" aria-expanded={anneesDetail} onClick={() => setAnneesDetail((v) => !v)}>
-              {anneesDetail ? 'Masquer le détail' : 'Voir par année'}
-            </button>
-          ) : null}
-          {(anneesDetail || annees.filter((b) => b.cle !== '').length < 2) && <Barres barres={annees} onOuvrir={onOuvrir} />}
-        </Bloc>
-      )}
-
-      {etats.length > 0 && (
-        <Bloc titre="Par état">
-          <AnneauEtats barres={etats} total={resume.sets} onOuvrir={onOuvrir} />
-        </Bloc>
-      )}
-
-      {avancement && (
-        <Bloc titre="Avancement et pile à monter">
-          <Avancement avancement={avancement} onOuvrir={onOuvrir} />
-        </Bloc>
-      )}
-
-      {(mensuel || delai || activite) && (
-        <Bloc titre="Activité">
-          {activite && (
-            <p className="stats__note">
-              En {activite.annee} : {pluriel(activite.achetes, 'set')} {activite.achetes > 1 ? 'achetés' : 'acheté'}, {pluriel(activite.montes, 'set')} {activite.montes > 1 ? 'montés' : 'monté'}.
-            </p>
-          )}
-          {mensuel && (mensuel.achetes > 0 || mensuel.montes > 0) && (
-            <>
-              <h3 className="bloc__sous">Achats et montages, 12 mois</h3>
-              <Mensuel nom="Achats et montages par mois" mois={mensuel.mois}
-                mesures={[{ cle: 'achetes', libelle: 'Achats', couleur: 'var(--serie-1)' }, { cle: 'montes', libelle: 'Montages', couleur: 'var(--serie-2)' }]} />
-            </>
-          )}
-          {delai && (
-            <p className="stats__note">
-              Délai moyen entre achat et montage : {pluriel(delai.jours, 'jour')} (sur {pluriel(delai.sets, 'set')}).
-            </p>
-          )}
-          {mensuel && mensuel.ajoutes > 0 && (
-            <>
-              <h3 className="bloc__sous">Sets ajoutés, 12 mois</h3>
-              <Mensuel nom="Sets ajoutés par mois" mois={mensuel.mois} mesures={[{ cle: 'ajoutes', libelle: 'Ajoutés', couleur: 'var(--serie-3)' }]} />
-            </>
-          )}
-        </Bloc>
-      )}
-
-      {tailles.some((b) => b.cle !== '') && (
-        <Bloc titre="Taille des sets">
-          <Barres barres={tailles} onOuvrir={onOuvrir} />
-        </Bloc>
-      )}
-
-      {emplacements.length > 0 && (
-        <Bloc titre="Par emplacement">
-          <Barres barres={emplacements} onOuvrir={onOuvrir} />
-        </Bloc>
-      )}
-
-      {boiteNotice && (
-        <Bloc titre="Boîte et notice">
-          <h3 className="bloc__sous">Boîte</h3>
-          <Barres barres={boiteNotice.boite} onOuvrir={onOuvrir} />
-          <h3 className="bloc__sous">Notice</h3>
-          <Barres barres={boiteNotice.notice} onOuvrir={onOuvrir} />
-        </Bloc>
-      )}
-
-      {etiquettes.barres.length > 0 && (
-        <Bloc titre="Étiquettes les plus utilisées">
-          <Barres barres={etiquettes.barres} onOuvrir={onOuvrir} />
-          {etiquettes.total > etiquettes.barres.length && (
-            <p className="stats__note">{etiquettes.barres.length} sur {etiquettes.total} étiquettes.</p>
-          )}
-        </Bloc>
-      )}
-
-      <Records stats={stats} onOuvrir={onOuvrir} />
-
-      <Bloc titre="Wishlist">
-        {wishlist.sets === 0 ? (
-          <p className="stats__note">Aucun set souhaité.</p>
-        ) : (
+      <div className="stats__panneau" role="tabpanel" id="stats-panneau" aria-labelledby={`stats-onglet-${onglet}`}>
+        {onglet === 'apercu' && (
           <>
-            <div className={`kpis ${1 + (wishlist.pieces > 0 ? 1 : 0) + (wishlist.budget ? 1 : 0) === 3 ? 'kpis--trois' : 'kpis--deux'}`}>
-              <div className="kpi"><span className="kpi__valeur">{nombre(wishlist.sets)}</span><span className="kpi__libelle">set{wishlist.sets > 1 ? 's' : ''} à acquérir</span></div>
-              {wishlist.pieces > 0 && (
-                <div className="kpi"><span className="kpi__valeur">{nombre(wishlist.pieces)}</span><span className="kpi__libelle">pièces{wishlist.sansPieces > 0 ? ' connues' : ''}</span></div>
-              )}
-              {wishlist.budget && (
-                <div className="kpi"><span className="kpi__valeur">{formaterPrixRond(wishlist.budget.total)}</span><span className="kpi__libelle">budget</span></div>
-              )}
-            </div>
-            {wishlist.priorites.length > 0 && (
-              <div className="wishlist__priorites">
-                <h3 className="bloc__sous">Par priorité</h3>
-                <div className="empile" role="img" aria-label={`Par priorité : ${wishlist.priorites.map((p) => `${p.libelle} ${p.sets}`).join(', ')}`}>
-                  {wishlist.priorites.map((p) => (
-                    <span key={p.cle || 'vide'} style={{ flex: p.sets, background: couleurPriorite(p.cle) }} />
-                  ))}
-                </div>
-                <ul className="legende-mesures">
-                  {wishlist.priorites.map((p) => (
-                    <li key={p.cle || 'vide'}><span className="anneau__pastille" style={{ background: couleurPriorite(p.cle) }} aria-hidden="true" />{p.libelle} <b>{p.sets}</b></li>
-                  ))}
-                </ul>
+          <div className="kpis">
+            <div className="kpi"><span className="kpi__valeur">{nombre(resume.sets)}</span><span className="kpi__libelle">set{resume.sets > 1 ? 's' : ''}</span></div>
+            <div className="kpi"><span className="kpi__valeur">{nombre(resume.pieces)}</span><span className="kpi__libelle">pièces</span></div>
+            <div className="kpi"><span className="kpi__valeur">{nombre(resume.themes)}</span><span className="kpi__libelle">thème{resume.themes > 1 ? 's' : ''}</span></div>
+            {resume.moyennePieces != null && (
+              <div className="kpi"><span className="kpi__valeur">{nombre(resume.moyennePieces)}</span><span className="kpi__libelle">pièces par set</span></div>
+            )}
+          </div>
+          {resume.sansPieces > 0 && (
+            <p className="stats__note">
+              Pièces connues pour {pluriel(resume.sets - resume.sansPieces, 'set')} ({resume.sansPieces} sans).
+            </p>
+          )}
+          {resume.medianePieces != null && (
+            <p className="stats__note">Médiane : {nombre(resume.medianePieces)} pièces par set.</p>
+          )}
+
+          {aCompleter.fiches > 0 && (
+            <Bloc titre={`À compléter · ${pluriel(aCompleter.fiches, 'fiche')}`}>
+              <div className="stats__puces">
+                {aCompleter.champs.map((c) => (
+                  <button key={c.cle} type="button" className="puce" onClick={() => onOuvrir({ manque: c.cle })}>
+                    {c.libelle} ({c.nombre})
+                  </button>
+                ))}
               </div>
-            )}
-            {wishlist.budget && wishlist.budget.priorites.some((p) => p.cle !== '') && (
-              <div className="wishlist__budget">
-                <h3 className="bloc__sous">Budget par priorité</h3>
-                <div className="empile" role="img" aria-label={`Budget par priorité : ${wishlist.budget.priorites.map((p) => `${p.libelle} ${formaterPrix(p.montant)}`).join(', ')}`}>
-                  {wishlist.budget.priorites.map((p) => (
-                    <span key={p.cle || 'vide'} style={{ flex: p.montant, background: couleurPriorite(p.cle) }} />
-                  ))}
-                </div>
-                {/* Les montants sur une seule ligne : une colonne par priorité (quatre au plus, la quatrième s'appelle « Autre »). */}
-                <ul className={`budget__colonnes${wishlist.budget.priorites.length > 3 ? ' budget__colonnes--serre' : ''}`} style={{ '--n': wishlist.budget.priorites.length }}>
-                  {wishlist.budget.priorites.map((p) => (
-                    <li key={p.cle || 'vide'}>
-                      <span className="budget__nom"><span className="anneau__pastille" style={{ background: couleurPriorite(p.cle) }} aria-hidden="true" />{p.cle === '' && wishlist.budget.priorites.length > 3 ? 'Autre' : p.libelle}</span>
-                      <b>{formaterPrix(p.montant)}</b>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {wishlist.budget && (wishlist.budget.sansPrix > 0 || wishlist.budget.prixDE) && (
-              <p className="stats__note">
-                {wishlist.budget.sansPrix > 0 && `${wishlist.budget.sansPrix} set${wishlist.budget.sansPrix > 1 ? 's' : ''} sans prix, non compté${wishlist.budget.sansPrix > 1 ? 's' : ''}. `}
-                {wishlist.budget.prixDE && 'Certains prix sont des prix allemands.'}
-              </p>
-            )}
-            <button type="button" className="bouton" onClick={onVoirWishlist}>Voir la wishlist</button>
+            </Bloc>
+          )}
+
+          <Records stats={stats} onOuvrir={onOuvrir} />
+
+          {donnees && (
+            <Bloc titre="Données">
+              <Lignes
+                lignes={[
+                  { cle: 'sortie', libelle: 'Date de sortie connue', valeur: `${nombre(donnees.dateSortie)} sur ${nombre(donnees.sets)}` },
+                  { cle: 'sous', libelle: 'Sous-thème connu', valeur: `${nombre(donnees.sousTheme)} sur ${nombre(donnees.sets)}` },
+                ]}
+              />
+              <h3 className="bloc__sous">Images sur l'appareil</h3>
+              <ImagesAppareil />
+            </Bloc>
+          )}
           </>
         )}
-      </Bloc>
+        {onglet === 'repartition' && (
+          <>
+          <Bloc titre="Par thème">
+            <Blocs barres={themes} onOuvrir={onOuvrir} onAutres={() => setTousLesThemes((v) => !v)} autresOuvert={tousLesThemes} />
+            {themes.length > 1 && (
+              <button type="button" className="bouton stats__detail" aria-expanded={tousLesThemes} onClick={() => setTousLesThemes((v) => !v)}>
+                {tousLesThemes ? 'Masquer le détail' : `Voir les ${themes.length} thèmes`}
+              </button>
+            )}
+            {tousLesThemes && <Barres barres={themes} onOuvrir={onOuvrir} />}
+          </Bloc>
 
-      {wishlist.avenir.length > 0 && (
-        <Bloc titre="À venir">
-          <ol className="avenir">
-            {wishlist.avenir.map((m) => (
-              <Fragment key={m.cle}>
-                <li className="avenir__mois">{m.libelle}</li>
-                {m.evenements.map((e) => (
-                  <li key={`${e.id}-${e.type}`} className={`avenir__evt avenir__evt--${e.type}`}>
-                    <span className="avenir__jour" aria-hidden="true"><b>{e.jour}</b><span>{e.moisCourt}</span></span>
-                    <button type="button" className="avenir__bloc" onClick={() => onOuvrirSet(e.id)}>
-                      <span className="avenir__nom">{e.nom}</span>
-                      <span className="avenir__det">
-                        <span className={`avenir__chip avenir__chip--${e.type}`}>{e.type === 'retrait' ? 'Retrait' : 'Sortie'}</span>
-                        {`le ${e.jour} ${e.moisCourt} · ${relatif(e.jours)}`}
-                        {e.prix != null && ` · ${formaterPrix(e.prix)}`}
-                      </span>
-                    </button>
-                  </li>
+          {annees.length > 0 && (
+            <Bloc titre="Par année de sortie">
+              <Courbe barres={annees} />
+              {annees.filter((b) => b.cle !== '').length >= 2 ? (
+                <button type="button" className="bouton stats__detail" aria-expanded={anneesDetail} onClick={() => setAnneesDetail((v) => !v)}>
+                  {anneesDetail ? 'Masquer le détail' : 'Voir par année'}
+                </button>
+              ) : null}
+              {(anneesDetail || annees.filter((b) => b.cle !== '').length < 2) && <Barres barres={annees} onOuvrir={onOuvrir} />}
+            </Bloc>
+          )}
+
+          {etats.length > 0 && (
+            <Bloc titre="Par état">
+              <AnneauEtats barres={etats} total={resume.sets} onOuvrir={onOuvrir} />
+            </Bloc>
+          )}
+
+          {tailles.some((b) => b.cle !== '') && (
+            <Bloc titre="Taille des sets">
+              <Barres barres={tailles} onOuvrir={onOuvrir} />
+            </Bloc>
+          )}
+
+          {etiquettes.barres.length > 0 && (
+            <Bloc titre="Étiquettes les plus utilisées">
+              <Barres barres={etiquettes.barres} onOuvrir={onOuvrir} />
+              {etiquettes.total > etiquettes.barres.length && (
+                <p className="stats__note">{etiquettes.barres.length} sur {etiquettes.total} étiquettes.</p>
+              )}
+            </Bloc>
+          )}
+
+          {sousThemes && (
+            <Bloc titre="Par sous-thème">
+              <Barres barres={sousThemes.barres} onOuvrir={onOuvrir} />
+              <p className="stats__note">
+                {sousThemes.barres.length} sur {pluriel(sousThemes.distincts, 'sous-thème')}
+                {sousThemes.sans > 0 && ` · ${pluriel(sousThemes.sans, 'set')} sans sous-thème connu`}.
+              </p>
+            </Bloc>
+          )}
+
+          {extremes && (
+            <Bloc titre="Les plus gros et les plus petits">
+              <h3 className="bloc__sous">Les plus gros</h3>
+              <Lignes lignes={extremes.gros.map((x) => ({ cle: `g-${x.id}`, libelle: x.nom, valeur: `${nombre(x.pieces)} pièces`, onClick: () => onOuvrirSet(x.id) }))} />
+              <h3 className="bloc__sous">Les plus petits</h3>
+              <Lignes lignes={extremes.petits.map((x) => ({ cle: `p-${x.id}`, libelle: x.nom, valeur: `${nombre(x.pieces)} pièces`, onClick: () => onOuvrirSet(x.id) }))} />
+            </Bloc>
+          )}
+          </>
+        )}
+        {onglet === 'suivi' && (
+          <>
+          {avancement && (
+            <Bloc titre="Avancement et pile à monter">
+              <Avancement avancement={avancement} onOuvrir={onOuvrir} />
+            </Bloc>
+          )}
+
+          {(mensuel || delai || activite) && (
+            <Bloc titre="Activité">
+              {activite && (
+                <p className="stats__note">
+                  En {activite.annee} : {pluriel(activite.achetes, 'set')} {activite.achetes > 1 ? 'achetés' : 'acheté'}, {pluriel(activite.montes, 'set')} {activite.montes > 1 ? 'montés' : 'monté'}.
+                </p>
+              )}
+              {mensuel && (mensuel.achetes > 0 || mensuel.montes > 0) && (
+                <>
+                  <h3 className="bloc__sous">Achats et montages, 12 mois</h3>
+                  <Mensuel nom="Achats et montages par mois" mois={mensuel.mois}
+                    mesures={[{ cle: 'achetes', libelle: 'Achats', couleur: 'var(--serie-1)' }, { cle: 'montes', libelle: 'Montages', couleur: 'var(--serie-2)' }]} />
+                </>
+              )}
+              {delai && (
+                <p className="stats__note">
+                  Délai moyen entre achat et montage : {pluriel(delai.jours, 'jour')} (sur {pluriel(delai.sets, 'set')}).
+                </p>
+              )}
+              {mensuel && mensuel.ajoutes > 0 && (
+                <>
+                  <h3 className="bloc__sous">Sets ajoutés, 12 mois</h3>
+                  <Mensuel nom="Sets ajoutés par mois" mois={mensuel.mois} mesures={[{ cle: 'ajoutes', libelle: 'Ajoutés', couleur: 'var(--serie-3)' }]} />
+                </>
+              )}
+            </Bloc>
+          )}
+
+          {emplacements.length > 0 && (
+            <Bloc titre="Par emplacement">
+              <Barres barres={emplacements} onOuvrir={onOuvrir} />
+            </Bloc>
+          )}
+
+          {boiteNotice && (
+            <Bloc titre="Boîte et notice">
+              <h3 className="bloc__sous">Boîte</h3>
+              <Barres barres={boiteNotice.boite} onOuvrir={onOuvrir} />
+              <h3 className="bloc__sous">Notice</h3>
+              <Barres barres={boiteNotice.notice} onOuvrir={onOuvrir} />
+            </Bloc>
+          )}
+
+          {pileAncienne && (
+            <Bloc titre="À monter depuis le plus longtemps">
+              <Lignes
+                lignes={pileAncienne.liste.map((x) => ({ cle: x.id, libelle: x.nom, valeur: `depuis ${ecartEntre(x.dateAchat, aujourdhuiISO()) || 'aujourd\'hui'}`, onClick: () => onOuvrirSet(x.id) }))}
+              />
+              {pileAncienne.sansDate > 0 && (
+                <p className="stats__note">{pluriel(pileAncienne.sansDate, 'set')} à monter sans date d'achat, non {pileAncienne.sansDate > 1 ? 'classés' : 'classé'}.</p>
+              )}
+            </Bloc>
+          )}
+          </>
+        )}
+        {onglet === 'wishlist' && (
+          <>
+          <Bloc titre="Wishlist">
+            {wishlist.sets === 0 ? (
+              <p className="stats__note">Aucun set souhaité.</p>
+            ) : (
+              <>
+                <div className={`kpis ${1 + (wishlist.pieces > 0 ? 1 : 0) + (wishlist.budget ? 1 : 0) === 3 ? 'kpis--trois' : 'kpis--deux'}`}>
+                  <div className="kpi"><span className="kpi__valeur">{nombre(wishlist.sets)}</span><span className="kpi__libelle">set{wishlist.sets > 1 ? 's' : ''} à acquérir</span></div>
+                  {wishlist.pieces > 0 && (
+                    <div className="kpi"><span className="kpi__valeur">{nombre(wishlist.pieces)}</span><span className="kpi__libelle">pièces{wishlist.sansPieces > 0 ? ' connues' : ''}</span></div>
+                  )}
+                  {wishlist.budget && (
+                    <div className="kpi"><span className="kpi__valeur">{formaterPrixRond(wishlist.budget.total)}</span><span className="kpi__libelle">budget</span></div>
+                  )}
+                </div>
+                {wishlist.priorites.length > 0 && (
+                  <div className="wishlist__priorites">
+                    <h3 className="bloc__sous">Par priorité</h3>
+                    <div className="empile" role="img" aria-label={`Par priorité : ${wishlist.priorites.map((p) => `${p.libelle} ${p.sets}`).join(', ')}`}>
+                      {wishlist.priorites.map((p) => (
+                        <span key={p.cle || 'vide'} style={{ flex: p.sets, background: couleurPriorite(p.cle) }} />
+                      ))}
+                    </div>
+                    <ul className="legende-mesures">
+                      {wishlist.priorites.map((p) => (
+                        <li key={p.cle || 'vide'}><span className="anneau__pastille" style={{ background: couleurPriorite(p.cle) }} aria-hidden="true" />{p.libelle} <b>{p.sets}</b></li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {wishlist.budget && wishlist.budget.priorites.some((p) => p.cle !== '') && (
+                  <div className="wishlist__budget">
+                    <h3 className="bloc__sous">Budget par priorité</h3>
+                    <div className="empile" role="img" aria-label={`Budget par priorité : ${wishlist.budget.priorites.map((p) => `${p.libelle} ${formaterPrix(p.montant)}`).join(', ')}`}>
+                      {wishlist.budget.priorites.map((p) => (
+                        <span key={p.cle || 'vide'} style={{ flex: p.montant, background: couleurPriorite(p.cle) }} />
+                      ))}
+                    </div>
+                    {/* Les montants sur une seule ligne : une colonne par priorité (quatre au plus, la quatrième s'appelle « Autre »). */}
+                    <ul className={`budget__colonnes${wishlist.budget.priorites.length > 3 ? ' budget__colonnes--serre' : ''}`} style={{ '--n': wishlist.budget.priorites.length }}>
+                      {wishlist.budget.priorites.map((p) => (
+                        <li key={p.cle || 'vide'}>
+                          <span className="budget__nom"><span className="anneau__pastille" style={{ background: couleurPriorite(p.cle) }} aria-hidden="true" />{p.cle === '' && wishlist.budget.priorites.length > 3 ? 'Autre' : p.libelle}</span>
+                          <b>{formaterPrix(p.montant)}</b>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {wishlist.budget && (wishlist.budget.sansPrix > 0 || wishlist.budget.prixDE) && (
+                  <p className="stats__note">
+                    {wishlist.budget.sansPrix > 0 && `${wishlist.budget.sansPrix} set${wishlist.budget.sansPrix > 1 ? 's' : ''} sans prix, non compté${wishlist.budget.sansPrix > 1 ? 's' : ''}. `}
+                    {wishlist.budget.prixDE && 'Certains prix sont des prix allemands.'}
+                  </p>
+                )}
+                <button type="button" className="bouton" onClick={onVoirWishlist}>Voir la wishlist</button>
+              </>
+            )}
+          </Bloc>
+
+          {wishlist.urgent && (
+            <Bloc titre="À acheter vite">
+              <Lignes
+                lignes={[
+                  { cle: 'bientot', libelle: 'Retrait dans les 6 mois', valeur: wishlist.urgent.bientot.sets === 0 ? 'aucun set' : `${pluriel(wishlist.urgent.bientot.sets, 'set')}${wishlist.urgent.bientot.avecPrix > 0 ? ` · ${formaterPrix(wishlist.urgent.bientot.montant)}` : ''}` },
+                  ...(wishlist.urgent.retires.length > 0 ? [{ cle: 'retires', libelle: 'Déjà retirés', valeur: pluriel(wishlist.urgent.retires.length, 'set') }] : []),
+                ]}
+              />
+              {wishlist.urgent.bientot.sansPrix > 0 && (
+                <p className="stats__note">{pluriel(wishlist.urgent.bientot.sansPrix, 'set')} sans prix, non {wishlist.urgent.bientot.sansPrix > 1 ? 'comptés' : 'compté'}.</p>
+              )}
+              {wishlist.urgent.retires.length > 0 && (
+                <p className="stats__note">Plus à la vente : {wishlist.urgent.retires.slice(0, 5).map((x) => x.nom).join(', ')}{wishlist.urgent.retires.length > 5 ? '…' : ''}.</p>
+              )}
+            </Bloc>
+          )}
+
+          {wishlist.prixPiece && (
+            <Bloc titre="Prix par pièce">
+              <Lignes lignes={[{ cle: 'moyen', libelle: 'Prix moyen', valeur: formaterCentimes(wishlist.prixPiece.moyen) }]} />
+              <h3 className="bloc__sous">Les moins chers la pièce</h3>
+              <Lignes lignes={wishlist.prixPiece.meilleurs.map((x) => ({ cle: `m-${x.id}`, libelle: x.nom, valeur: formaterCentimes(x.ct), onClick: () => onOuvrirSet(x.id) }))} />
+              <h3 className="bloc__sous">Les plus chers la pièce</h3>
+              <Lignes lignes={wishlist.prixPiece.pires.map((x) => ({ cle: `c-${x.id}`, libelle: x.nom, valeur: formaterCentimes(x.ct), onClick: () => onOuvrirSet(x.id) }))} />
+              <p className="stats__note">Sur {pluriel(wishlist.prixPiece.sets, 'set')} qui ont un prix et un nombre de pièces.</p>
+            </Bloc>
+          )}
+
+          {wishlist.budgetThemes && (
+            <Bloc titre="Budget par thème">
+              <Lignes lignes={wishlist.budgetThemes.map((t) => ({ cle: t.cle || 'sans', libelle: `${t.libelle} · ${pluriel(t.sets, 'set')}`, valeur: formaterPrix(t.montant) }))} />
+            </Bloc>
+          )}
+
+          {wishlist.avenir.length > 0 && (
+            <Bloc titre="À venir">
+              <ol className="avenir">
+                {wishlist.avenir.map((m) => (
+                  <Fragment key={m.cle}>
+                    <li className="avenir__mois">{m.libelle}</li>
+                    {m.evenements.map((e) => (
+                      <li key={`${e.id}-${e.type}`} className={`avenir__evt avenir__evt--${e.type}`}>
+                        <span className="avenir__jour" aria-hidden="true"><b>{e.jour}</b><span>{e.moisCourt}</span></span>
+                        <button type="button" className="avenir__bloc" onClick={() => onOuvrirSet(e.id)}>
+                          <span className="avenir__nom">{e.nom}</span>
+                          <span className="avenir__det">
+                            <span className={`avenir__chip avenir__chip--${e.type}`}>{e.type === 'retrait' ? 'Retrait' : 'Sortie'}</span>
+                            {`le ${e.jour} ${e.moisCourt} · ${relatif(e.jours)}`}
+                            {e.prix != null && ` · ${formaterPrix(e.prix)}`}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </Fragment>
                 ))}
-              </Fragment>
-            ))}
-          </ol>
-        </Bloc>
-      )}
+              </ol>
+            </Bloc>
+          )}
+          </>
+        )}
+      </div>
     </div>
   )
 }

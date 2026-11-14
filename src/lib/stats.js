@@ -5,6 +5,7 @@ import { TAILLES, cleAnnee, cleTaille, libelleAnnee, manquants, modeAnnees } fro
 import { cleEtiquette } from './etiquettes.js';
 import { prixValide } from './prix.js';
 import { evenementsAVenir } from './avenir.js';
+import { budgetThemes, donnees, extremes, mediane, pileAncienne, prixPieceWishlist, sousThemes, urgentWishlist } from './statsPlus.js';
 
 // Chaque barre porte le filtre qui retrouve exactement ses sets. Le chiffre
 // affiché et la liste obtenue en la touchant utilisent donc les mêmes prédicats
@@ -217,6 +218,7 @@ export function calculerStats(sets, maintenant = new Date()) {
       sansPieces: possedes.length - avecPieces.length,
       // La moyenne ne porte que sur les sets dont on connaît les pièces : compter les autres comme zéro la tirerait vers le bas.
       moyennePieces: avecPieces.length > 0 ? Math.round(total(avecPieces) / avecPieces.length) : null,
+      medianePieces: mediane(avecPieces.map((s) => s.pieces)),
       themes: new Set(possedes.map((s) => s.theme).filter(Boolean)).size,
       plusGros: plusGros ? { nom: plusGros.nom, pieces: plusGros.pieces } : null,
     },
@@ -236,6 +238,11 @@ export function calculerStats(sets, maintenant = new Date()) {
     tailles: repartir(possedes, (s) => cleTaille(s.pieces), (c) => TAILLES.find((t) => t.cle === c).libelle, (c) => ({ taille: c }), 'pieces',
       (a, b) => TAILLES.findIndex((t) => t.cle === a.cle) - TAILLES.findIndex((t) => t.cle === b.cle)),
     etiquettes: repartirEtiquettes(possedes, 8),
+    // Ajoutés avec les sous-onglets : sous-thèmes, plus gros et plus petits, pile à monter depuis le plus longtemps, état des données.
+    sousThemes: sousThemes(possedes),
+    extremes: extremes(possedes),
+    pileAncienne: pileAncienne(possedes, A_MONTER, maintenant),
+    donnees: donnees(possedes),
     records: records(possedes, themesBarres, emplacementsBarres),
     aCompleter: manquants(possedes),
     // Seulement si au moins une date est saisie : sinon « 0 achetés, 0 montés » ferait
@@ -258,6 +265,10 @@ export function calculerStats(sets, maintenant = new Date()) {
       budget: budgetWishlist(souhaites),
       // Les sorties et retraits à venir, par mois (bloc « À venir » des Stats).
       avenir: evenementsAVenir(souhaites, maintenant),
+      // Retraits proches et sets déjà retirés, prix par pièce, budget par thème (onglet Wishlist).
+      urgent: urgentWishlist(souhaites, maintenant),
+      prixPiece: prixPieceWishlist(souhaites),
+      budgetThemes: budgetThemes(souhaites),
       // Seulement si la fonction sert : sinon une seule ligne « non précisée » = le total.
       priorites: souhaites.some((s) => s.priorite)
         ? [...PRIORITES.map((p) => ({ cle: p, libelle: LIBELLES_PRIORITE[p], sets: souhaites.filter((s) => s.priorite === p).length })),
