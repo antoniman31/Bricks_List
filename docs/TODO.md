@@ -4,7 +4,7 @@ Ce fichier dit **où on s'est arrêtés** et **quoi faire ensuite**, dans l'ordr
 complet du projet, décisions, limites) et `CLAUDE.md` (règles de travail). Lire les trois avant de commencer.
 
 Dernière PR fusionnée : **#73** (TODO) ; en cours : Réglages réorganisés et wishlist allégée. Branche de travail unique :
-`ccr-bf63eeba-887je4`. Qualité : lint OK, 423 tests, `verif:ui` 560 écrans.
+`ccr-bf63eeba-887je4`. Qualité : lint OK, 425 tests, `verif:ui` 576 écrans.
 
 Depuis la PR #66 : transfert collection ↔ wishlist (#67), boîtes BrickLink gardées sur l'appareil (#68), rendus
 Rebrickable gardés via la route `/image` du relais (#69), sauvegarde complète avec toutes les images (#70), prix officiel
@@ -61,6 +61,12 @@ Connexions > Relais. **Vérifié avec une vraie réponse de Brickset** pour le F
 - **Fichier d'export lourd** : si le partage vers Drive ou Messages traîne, ajouter un bouton « sans les images ».
 
 ## 4. Idées retenues, pas commencées (ordre à choisir par Antoni)
+
+Proposées le 14 novembre : (1) **sets bientôt retirés** (la date de retrait de Brickset, déjà renvoyée par le relais dans `retrait`, n'est pas encore
+utilisée : affichage « Retrait le … », filtre « Bientôt retirés », tri ; seuil à décider, 6 mois recommandé) ; (3) **notice LEGO** : faite ; (4) **budget de la
+wishlist par priorité** dans les statistiques. Antoni n'a retenu que la notice pour l'instant. À vérifier par lui : que le lien « Notice LEGO » ouvre
+bien la bonne page sur son téléphone.
+
 
 - **« Quoi monter ? »** : tirage au sort parmi les scellés, neufs et en cours, avec filtre de taille.
 - **Export CSV** de la collection (séparateur point-virgule, BOM UTF-8 pour l'Excel français ; lecture seule).

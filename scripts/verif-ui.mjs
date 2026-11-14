@@ -627,6 +627,22 @@ const ECRANS = {
     });
     await p.waitForSelector('.maj');
   },
+  // Notice officielle : un lien vers lego.com déduit du numéro (sans suffixe de version), ouvert dans un nouvel onglet, pour un
+  // set possédé seulement ; il n'apparaît pas pour un set de la wishlist.
+  'fiche (notice LEGO)': async (p) => {
+    await p.locator('.carte').first().click();
+    const lien = p.locator('a.fiche__lien');
+    await lien.waitFor();
+    const [href, cible, rel] = await Promise.all([lien.getAttribute('href'), lien.getAttribute('target'), lien.getAttribute('rel')]);
+    exiger(/^https:\/\/www\.lego\.com\/fr-fr\/service\/building-instructions\/\d{3,7}$/.test(href), `adresse de notice inattendue : ${href}`);
+    exiger(cible === '_blank' && /noopener/.test(rel) && /noreferrer/.test(rel), 'le lien doit s\'ouvrir dans un nouvel onglet, sans accès à l\'appli (noopener noreferrer)');
+  },
+  'fiche wishlist : pas de notice LEGO': async (p) => {
+    await p.click('.nav__item:has-text("Wishlist")');
+    await p.locator('.carte').first().click();
+    await p.waitForSelector('dialog[open] .fiche, .fiche');
+    exiger(await p.locator('a.fiche__lien').count() === 0, 'un set de la wishlist ne doit pas proposer la notice');
+  },
   // Réglages en quatre groupes, une ligne d'état par section, UNE SEULE section ouverte à la fois (Apparence au départ).
   'réglages (groupes et états)': async (p) => {
     await p.click(REGLAGES);

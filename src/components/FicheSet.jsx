@@ -7,6 +7,7 @@ import { aEtiquette, ajouterEtiquettes, basculerEtiquette } from '../lib/etiquet
 import { champsPerdus } from '../lib/collection.js'
 import { aujourdhuiISO, dateSortieValide, dateValide, finSortiePossible, formaterDate } from '../lib/dates.js'
 import { etatSortie, relatif } from '../lib/sortie.js'
+import { urlNotice } from '../lib/notice.js'
 import { PRIX_MAX, formaterPrix, lirePrixSaisi, prixPourSaisie } from '../lib/prix.js'
 
 function Ligne({ libelle, valeur }) {
@@ -199,6 +200,16 @@ export function FicheContenu({ set, lectureSeule, lieux = [], lieuRecent = '', e
           <>
             <LigneOuiNon libelle="Boîte" champ="boite" set={set} ouvert={edition === 'boite'} desactive={lectureSeule} onBasculer={() => basculer('boite')} onChoisir={(v) => { if (changer({ boite: v })) setEdition('') }} />
             <LigneOuiNon libelle="Notice" champ="notice" set={set} ouvert={edition === 'notice'} desactive={lectureSeule} onBasculer={() => basculer('notice')} onChoisir={(v) => { if (changer({ notice: v })) setEdition('') }} />
+            {urlNotice(set.numero) && (
+              <div className="fiche__ligne fiche__ligne--edit">
+                <dt>Notice LEGO</dt>
+                <dd>
+                  <a className="fiche__valeur fiche__lien" href={urlNotice(set.numero)} target="_blank" rel="noopener noreferrer">
+                    Ouvrir sur lego.com<span className="visuellement-cache"> (nouvel onglet)</span>
+                  </a>
+                </dd>
+              </div>
+            )}
           </>
         )}
         <LigneEditable libelle="Étiquettes" valeur={etiquettes.length > 0 ? etiquettes.join(', ') : 'Ajouter'} ouvert={edition === 'etiquettes'} desactive={lectureSeule} onBasculer={() => basculer('etiquettes')}>

@@ -151,6 +151,11 @@ testé avec sa vraie collection, tout fonctionne.
   fois** (Apparence est ouverte au départ). Aucune fonction ne change ; « Dates de sortie » devient « Relais (dates et prix) » car il sert
   aussi aux rendus. Sur la wishlist, les deux gros boutons sont retirés : « Mettre à jour dates et prix » vit dans Réglages > Relais,
   « Copier la liste » devient un bouton-icône à côté de la ligne « Total ». Parcours `verif:ui` : groupes, états, une seule section ouverte.
+- **Notice LEGO** (novembre 2026) : sur la fiche d'un set **possédé**, une ligne « Notice LEGO » avec un lien « Ouvrir sur lego.com » (nouvel onglet,
+  `noopener noreferrer`). L'adresse se déduit du numéro, sans suffixe de version : `https://www.lego.com/fr-fr/service/building-instructions/<numéro>`
+  (`src/lib/notice.js`, testé ; format constaté sur des dizaines de pages indexées, **jamais ouvert depuis l'environnement de développement** : LEGO.com
+  répond 403 aux clients automatiques). Rien n'est stocké ni exporté. Si LEGO change ses adresses, le lien mène à une page vide sans rien casser ; repli
+  possible : l'appel `getInstructions` de l'API Brickset (URL de PDF), via le relais.
 - **Prix officiel** (novembre 2026, demandé par Antoni ; exception au cadrage « pas de prix ») : wishlist seulement, en
   euros. Champs `prix` (0,01 à 10 000, arrondi au centime) et `prixSource` (`manuelle` ou `brickset-de`), validés dans le modèle
   comme la date de sortie (sans prix pas de source, un prix sans source est réputé manuel), pour les deux statuts mais affichés
@@ -216,10 +221,10 @@ testé avec sa vraie collection, tout fonctionne.
   au rechargement (`bl_filtres`, hors export, `src/lib/filtresMemo.js`, entrée validée ; l'ancien format à un
   seul jeu est lu). La recherche texte n'est pas retenue et se vide au changement d'onglet. Un raccourci des
   Stats remplace les filtres de la collection.
-- **Qualité** : `npm run lint`, `npm test` (423 tests, dont ceux du relais), `npm run verif:ui` (axe-core, cibles de
+- **Qualité** : `npm run lint`, `npm test` (425 tests, dont ceux du relais), `npm run verif:ui` (axe-core, cibles de
   48 px, débordements, navigation, recherche visible clavier ouvert, et quatre parcours qui vérifient un
   comportement : filtres conservés au rechargement, onglets indépendants, import d'un `.txt`, repli des
-  boîtes, photo personnelle (enregistrée, relue, retirée), image de la liste (fiche et règle), dates de sortie (affichage, filtre, saisie, relais), remise en wishlist (fiche et sélection, avec annulation), boîtes gardées (sauvegarde, service hors BrickLink, arrêt en maintenance), rendus gardés par le relais, sauvegarde complète avec images (export, vidage, restauration) ; 70 écrans × 2 thèmes × 4
+  boîtes, photo personnelle (enregistrée, relue, retirée), image de la liste (fiche et règle), dates de sortie (affichage, filtre, saisie, relais), remise en wishlist (fiche et sélection, avec annulation), boîtes gardées (sauvegarde, service hors BrickLink, arrêt en maintenance), rendus gardés par le relais, sauvegarde complète avec images (export, vidage, restauration) ; 72 écrans × 2 thèmes × 4
   largeurs : 360, 412, 900, 1280). Les trois tournent dans le CI avant le déploiement.
 
 ## Décisions de cadrage (ne pas rouvrir sans raison)

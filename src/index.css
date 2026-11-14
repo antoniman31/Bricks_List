@@ -731,6 +731,8 @@ button:not(:disabled):active, .champ:active { box-shadow: inset 0 0 0 999px var(
 .fiche__ligne--edit dt { padding: 8px 0; }
 .fiche__valeur { padding: 0 8px; border: 0; border-radius: var(--rayon); background: transparent; color: var(--accent); font: inherit; text-align: right; overflow-wrap: anywhere; }
 .fiche__valeur:disabled { color: var(--texte); }
+/* Lien externe (notice LEGO) : même gabarit que les valeurs de la fiche, cible de 48 px, souligné pour se distinguer d'un bouton. */
+.fiche__lien { min-height: var(--cible-min); text-decoration: underline; text-underline-offset: 3px; }
 .fiche__edition { flex-basis: 100%; text-align: left; padding-bottom: 12px; display: grid; gap: 8px; }
 
 /* Formulaire complet : toute la hauteur, le clavier ne le recouvre pas à moitié. */
