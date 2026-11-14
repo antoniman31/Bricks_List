@@ -3,8 +3,8 @@
 Ce fichier dit **où on s'est arrêtés** et **quoi faire ensuite**, dans l'ordre. Il complète `docs/SUITE.md` (état
 complet du projet, décisions, limites) et `CLAUDE.md` (règles de travail). Lire les trois avant de commencer.
 
-Dernière PR fusionnée : **#78** (fiche de set refaite) ; en cours : budget de la wishlist, vérifier une sauvegarde, espace utilisé. Branche de travail unique :
-`ccr-bf63eeba-887je4`. Qualité : lint OK, 444 tests, `verif:ui` 624 écrans.
+Dernière PR fusionnée : **#79** (budget de la wishlist, vérifier une sauvegarde, espace utilisé) ; en cours : retrait, sous-thème et notices PDF (PR suivante). Branche de travail unique :
+`ccr-bf63eeba-887je4`. Qualité : lint OK, 461 tests, `verif:ui` 720 écrans.
 
 Depuis la PR #66 : transfert collection ↔ wishlist (#67), boîtes BrickLink gardées sur l'appareil (#68), rendus
 Rebrickable gardés via la route `/image` du relais (#69), sauvegarde complète avec toutes les images (#70), prix officiel
@@ -62,10 +62,12 @@ Connexions > Relais. **Vérifié avec une vraie réponse de Brickset** pour le F
 
 ## 4. Idées retenues, pas commencées (ordre à choisir par Antoni)
 
-Proposées le 14 novembre : (1) **sets bientôt retirés** (la date de retrait de Brickset, déjà renvoyée par le relais dans `retrait`, n'est pas encore
-utilisée : affichage « Retrait le … », filtre « Bientôt retirés », tri ; seuil à décider, 6 mois recommandé) ; (3) **notice LEGO** : faite ; (4) **budget de la
-wishlist par priorité** dans les statistiques. Antoni n'a retenu que la notice pour l'instant. À vérifier par lui : que le lien « Notice LEGO » ouvre
-bien la bonne page sur son téléphone.
+Faites (PR #79 et suivante) : notice LEGO, budget de la wishlist par priorité, vérifier une sauvegarde, espace utilisé, retrait, sous-thème, notices PDF.
+**À vérifier par Antoni après déploiement** : (a) le lien « Notice LEGO » ouvre la bonne page ; (b) « Mettre à jour dates et prix » : la première fois il
+rattrape le sous-thème de tous les sets (près de 100 appels Brickset, limite du jour : relancer le lendemain si le message dit « limite ») ; (c) « Notices
+PDF » sur la fiche d'un set possédé : si « Aucune notice chez Brickset » alors que LEGO en a une, ouvrir `<relais>/notices?numero=75192-1` dans le navigateur
+et coller le JSON (les noms de champs de `getInstructions2` n'ont jamais été vus) ; (d) la date de retrait des sets de la wishlist (Faucon : 2026-12-31).
+Refusées pour l'instant : dimensions de la boîte, variantes Rebrickable (MOC).
 
 
 - **« Quoi monter ? »** : tirage au sort parmi les scellés, neufs et en cours, avec filtre de taille.

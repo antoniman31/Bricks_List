@@ -50,3 +50,15 @@ test('etapesFrise : un set souhaité sans date d\'ajout ni de sortie a deux éta
   assert.deepEqual(w.map((x) => x.etat), ['vide', 'vide']);
   assert.ok(!etapesFrise({ statut: 'possédé' }, MAINTENANT).some((x) => x.libelle === 'Ajouté le'));
 });
+
+test('etapesFrise : le retrait de LEGO s\'ajoute à une wishlist quand il est connu, jamais éditable, jamais pour un set possédé', () => {
+  const base = { statut: 'souhaité', dateSortie: '2020-01-01', dateAjout: '2026-11-03T09:00:00.000Z' };
+  assert.equal(etapesFrise(base, MAINTENANT).length, 2);
+  const futur = etapesFrise({ ...base, dateRetrait: '2027-01-01' }, MAINTENANT);
+  assert.deepEqual(futur.map((e) => e.libelle), ['Ajouté le', 'Sortie', 'Retrait']);
+  assert.deepEqual([futur[2].cle, futur[2].etat, futur[2].date], [null, 'futur', '2027-01-01']);
+  assert.match(futur[2].sous, /^dans /);
+  const passe = etapesFrise({ ...base, dateRetrait: '2026-01-01' }, MAINTENANT)[2];
+  assert.deepEqual([passe.etat, passe.sous], ['fait', 'retiré']);
+  assert.equal(etapesFrise({ ...base, statut: 'possédé', dateRetrait: '2027-01-01' }, MAINTENANT).some((e) => e.libelle === 'Retrait'), false);
+});

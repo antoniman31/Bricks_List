@@ -5,7 +5,8 @@
 // directement. Le relais l'appelle à sa place, avec la clé Brickset gardée en secret côté Cloudflare
 // (jamais dans l'application, jamais dans le dépôt), et ne renvoie que ce dont l'app a besoin.
 //
-//   GET /sortie?numero=75192-1  ->  { numero, trouve, lancement, retrait, disponibilite, prixDE }
+//   GET /sortie?numero=75192-1  ->  { numero, trouve, lancement, retrait, disponibilite, prixDE, sousTheme }
+//   GET /notices?numero=75192-1  ->  { numero, trouve, notices: [{ url, description }] }  (notices PDF de Brickset)
 //   GET /image?url=https://cdn.rebrickable.com/media/sets/75192-1.jpg  ->  l'image elle-même, avec CORS
 //     (le CDN de Rebrickable n'en envoie pas : sans relais, l'app ne peut pas copier le rendu sur l'appareil).
 //     Route volontairement étroite : un seul hôte, un seul dossier, des images, une taille maximale.
@@ -16,6 +17,8 @@
 //   ORIGINE       (variable)             sites autorisés à appeler depuis un navigateur, séparés par des virgules
 
 const BRICKSET = 'https://brickset.com/api/v3.asmx/getSets';
+const BRICKSET_NOTICES = 'https://brickset.com/api/v3.asmx/getInstructions2';
+const MAX_NOTICES = 12;
 const NUMERO = /^\d{3,7}-\d{1,2}$/;
 const ORIGINE_PAR_DEFAUT = 'https://antoniman31.github.io';
 const DELAI_MS = 8000;
@@ -52,6 +55,46 @@ export function prixPropre(v) {
   return typeof v === 'number' && Number.isFinite(v) && v > 0 && v <= 10000 ? Math.round(v * 100) / 100 : null;
 }
 
+// Un libellé court venu de Brickset (sous-thème) : du texte sans retour à la ligne, 60 caractères au plus, ou null.
+// Un sous-thème vide est une vraie réponse (« Brickset n'en a pas ») : on renvoie '' pour que l'app ne le redemande pas.
+export function libellePropre(v) {
+  if (typeof v !== 'string') return null;
+  return v.replace(/\p{Cc}+/gu, ' ').trim().slice(0, 60);
+}
+
+// Une adresse de notice renvoyée par Brickset : https, sans identifiants, chez Brickset ou LEGO seulement. Sans cette
+// liste blanche, le relais ferait suivre à l'app n'importe quelle adresse qu'une réponse altérée lui glisserait.
+export function urlNoticeValide(v) {
+  if (typeof v !== 'string' || v.length > 300) return null;
+  let u;
+  try { u = new URL(v.trim()); } catch { return null; }
+  if (u.protocol !== 'https:' || u.username || u.password || u.port !== '') return null;
+  const hote = u.hostname.toLowerCase();
+  const permis = ['lego.com', 'brickset.com'].some((d) => hote === d || hote.endsWith(`.${d}`));
+  return permis ? u.href : null;
+}
+
+// La liste de notices de `getInstructions2`, lue sans lui faire confiance. Les noms de champs (`URL`, `description`)
+// suivent la documentation de l'API et n'ont pas été vus dans une vraie réponse : on accepte `url` aussi.
+export function lireNotices(donnees, numero) {
+  if (!donnees || typeof donnees !== 'object') return { ok: false, statut: 502, code: 'reponse' };
+  if (donnees.status === 'success') {
+    const liste = Array.isArray(donnees.instructions) ? donnees.instructions : [];
+    const notices = [];
+    for (const n of liste) {
+      const url = urlNoticeValide(n?.URL ?? n?.url);
+      if (!url || notices.some((x) => x.url === url)) continue;
+      notices.push({ url, description: libellePropre(n?.description) ?? '' });
+      if (notices.length >= MAX_NOTICES) break;
+    }
+    return { ok: true, valeur: { numero, trouve: notices.length > 0, notices } };
+  }
+  const message = String(donnees.message ?? '').toLowerCase();
+  if (message.includes('limit')) return { ok: false, statut: 429, code: 'limite' };
+  if (message.includes('key') || message.includes('invalid')) return { ok: false, statut: 502, code: 'cle' };
+  return { ok: false, statut: 502, code: 'brickset' };
+}
+
 // La réponse de Brickset, lue sans lui faire confiance. Renvoie { ok: true, valeur } ou
 // { ok: false, statut, code } : un code court pour l'app, jamais le texte brut de Brickset.
 export function lireBrickset(donnees, numero) {
@@ -59,7 +102,7 @@ export function lireBrickset(donnees, numero) {
   if (donnees.status === 'success') {
     const sets = Array.isArray(donnees.sets) ? donnees.sets : [];
     const set = sets.find((s) => s && `${s.number}-${s.numberVariant}` === numero);
-    if (!set) return { ok: true, valeur: { numero, trouve: false, lancement: null, retrait: null, disponibilite: null, prixDE: null } };
+    if (!set) return { ok: true, valeur: { numero, trouve: false, lancement: null, retrait: null, disponibilite: null, prixDE: null, sousTheme: null } };
     return {
       ok: true,
       valeur: {
@@ -69,6 +112,7 @@ export function lireBrickset(donnees, numero) {
         retrait: datePropre(set.exitDate),
         disponibilite: typeof set.availability === 'string' ? set.availability.slice(0, 60) : null,
         prixDE: prixPropre(set.LEGOCom?.DE?.retailPrice),
+        sousTheme: libellePropre(set.subtheme),
       },
     };
   }
@@ -141,7 +185,7 @@ export async function traiter(request, env, { fetchFn = fetch } = {}) {
   if (request.method === 'OPTIONS') return rep(204, null);
   if (request.method !== 'GET') return rep(405, { erreur: 'methode' });
   const url = new URL(request.url);
-  if (url.pathname !== '/sortie' && url.pathname !== '/image') return rep(404, { erreur: 'introuvable' });
+  if (url.pathname !== '/sortie' && url.pathname !== '/image' && url.pathname !== '/notices') return rep(404, { erreur: 'introuvable' });
   if (env.JETON && request.headers.get('X-Jeton') !== env.JETON) return rep(401, { erreur: 'jeton' });
   if (url.pathname === '/image') return traiterImage(url, h, rep, fetchFn);
 
@@ -154,13 +198,18 @@ export async function traiter(request, env, { fetchFn = fetch } = {}) {
     return rep(500, proches.length > 0 ? { erreur: 'configuration', proches } : { erreur: 'configuration' });
   }
 
+  const notices = url.pathname === '/notices';
   let donnees;
   try {
-    const reponse = await fetchFn(BRICKSET, {
+    const reponse = await fetchFn(notices ? BRICKSET_NOTICES : BRICKSET, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       // Corps de formulaire plutôt qu'adresse : la clé ne finit pas dans un journal d'accès.
-      body: new URLSearchParams({ apiKey: env.BRICKSET_KEY, userHash: '', params: JSON.stringify({ setNumber: numero }) }).toString(),
+      body: new URLSearchParams(
+        notices
+          ? { apiKey: env.BRICKSET_KEY, setNumber: numero }
+          : { apiKey: env.BRICKSET_KEY, userHash: '', params: JSON.stringify({ setNumber: numero }) },
+      ).toString(),
       signal: AbortSignal.timeout(DELAI_MS),
     });
     if (!reponse.ok) return rep(502, { erreur: 'brickset' });
@@ -169,7 +218,7 @@ export async function traiter(request, env, { fetchFn = fetch } = {}) {
     return rep(e?.name === 'TimeoutError' ? 504 : 502, { erreur: e?.name === 'TimeoutError' ? 'delai' : 'brickset' });
   }
 
-  const r = lireBrickset(donnees, numero);
+  const r = notices ? lireNotices(donnees, numero) : lireBrickset(donnees, numero);
   return r.ok ? rep(200, r.valeur) : rep(r.statut, { erreur: r.code });
 }
 

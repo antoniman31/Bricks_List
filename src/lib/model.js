@@ -2,6 +2,7 @@ import { normaliserNumero } from './numero.js';
 import { dateSortieValide, dateValide } from './dates.js';
 import { normaliserEtiquettes } from './etiquettes.js';
 import { SOURCES_PRIX, prixValide } from './prix.js';
+import { libelleCourt } from './libelle.js';
 
 export const STATUTS = ['possédé', 'souhaité'];
 // Du moins avancé au plus avancé : le tri des stats et les puces suivent cet ordre.
@@ -98,6 +99,10 @@ export function normaliserSet(brut, { anneeMax = new Date().getFullYear() + 2, m
   const sortieValide = brut.dateSortie == null || dateSortie !== null;
   const sourceValide = brut.sortieSource == null || SOURCES_SORTIE.includes(brut.sortieSource);
   const sortieSource = dateSortie === null ? null : SOURCES_SORTIE.includes(brut.sortieSource) ? brut.sortieSource : 'manuelle';
+  // Retrait prévu par LEGO (donné par Brickset, jamais saisi à la main : pas de source) et sous-thème Brickset. Le sous-thème
+  // vide ('') veut dire « Brickset n'en a pas » : null veut dire « jamais demandé », ce qui le fait redemander une fois.
+  const dateRetrait = dateSortieValide(brut.dateRetrait);
+  const sousTheme = libelleCourt(brut.sousTheme);
   // Prix officiel (euros) : comme la date de sortie, pour les deux statuts (il survit à « Acheté » et revient si on remet
   // le set en wishlist) ; sans prix, pas de source ; un prix sans source connue est réputé saisi à la main.
   const prix = prixValide(brut.prix);
@@ -127,6 +132,8 @@ export function normaliserSet(brut, { anneeMax = new Date().getFullYear() + 2, m
       imageListe: corriger(imageListeValide, imageListe),
       dateSortie: corriger(sortieValide, dateSortie),
       sortieSource: corriger(sourceValide, sortieSource),
+      dateRetrait: corriger(brut.dateRetrait == null || dateRetrait !== null, dateRetrait),
+      sousTheme: corriger(brut.sousTheme == null || typeof brut.sousTheme === 'string', sousTheme),
       prix: corriger(prixOk, prix),
       prixSource: corriger(prixSourceOk, prixSource),
       etiquettes: corriger(!etiquettes.corrige, etiquettes.liste),

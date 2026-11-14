@@ -1,7 +1,7 @@
 // Toute la carte est un vrai <button> (clavier, lecteur d'écran) et ouvre la fiche.
 import ImageSet from './ImageSet.jsx'
 import { LIBELLES_PRIORITE } from '../lib/model.js'
-import { texteCarte } from '../lib/sortie.js'
+import { texteCarte, texteRetrait } from '../lib/sortie.js'
 import { formaterPrix } from '../lib/prix.js'
 
 export default function CarteSet({ set, onOuvrir, selection, onBasculer, vue = 'liste', courante = false, exemplaires }) {
@@ -15,6 +15,8 @@ export default function CarteSet({ set, onOuvrir, selection, onBasculer, vue = '
   const sortieCourte = texteCarte(set, undefined, true)
   // Le prix officiel ne s'affiche que sur la wishlist. Pas de marque « DE » sur les cartes (choix d'Antoni) : la fiche, elle, dit
   // « prix DE » quand le prix est le prix allemand pré-rempli.
+  // Le retrait prévu (wishlist seulement) : « Retiré », ou « Retrait dans 5 mois » dans les six mois.
+  const retrait = texteRetrait(set)
   const prix = set.statut === 'souhaité' && set.prix != null ? formaterPrix(set.prix) : ''
   const details = [
     set.theme || null,
@@ -55,6 +57,7 @@ export default function CarteSet({ set, onOuvrir, selection, onBasculer, vue = '
               {set.emplacement && ` · ${set.emplacement}`}
             </p>
             {sortieCourte && <p className="carte__details carte__sortie">{sortieCourte}</p>}
+            {retrait && <p className="carte__details carte__sortie">{retrait}</p>}
             {prix && <p className="carte__details carte__prix">{prix}</p>}
             {repere && <span className="tuile__repere">{repere}</span>}
           </div>
@@ -72,6 +75,7 @@ export default function CarteSet({ set, onOuvrir, selection, onBasculer, vue = '
           <p className="carte__nom">{set.nom}{badge}</p>
           <p className="carte__details">{set.numero}{details.length > 0 && ` · ${details.join(' · ')}`}</p>
           {sortieLongue && <p className="carte__etat">{sortieLongue}</p>}
+          {retrait && <p className="carte__etat">{retrait}</p>}
           {prix && <p className="carte__etat">{prix}</p>}
           {set.priorite && <p className="carte__etat">{LIBELLES_PRIORITE[set.priorite]}</p>}
           {set.etiquettes?.length > 0 && <p className="carte__etat">{set.etiquettes.join(' · ')}</p>}

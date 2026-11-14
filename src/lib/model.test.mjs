@@ -225,3 +225,16 @@ test('prix officiel : arrondi au centime, source par défaut « manuelle », éc
   // Le prix survit à l'achat : il n'est lié à aucun statut.
   assert.equal(normaliserSet({ ...base, statut: 'possédé', prix: 120 }).set.prix, 120);
 });
+
+test('retrait et sous-thème : validés comme toute entrée non fiable', () => {
+  const base = { numero: '75192-1', nom: 'Faucon' };
+  const ok = normaliserSet({ ...base, dateRetrait: '2026-12-31', sousTheme: ' Ultimate Collector Series ' });
+  assert.deepEqual([ok.set.dateRetrait, ok.set.sousTheme, ok.corrections], ['2026-12-31', 'Ultimate Collector Series', 0]);
+  const vide = normaliserSet(base).set;
+  assert.deepEqual([vide.dateRetrait, vide.sousTheme], [null, null]);
+  assert.equal(normaliserSet({ ...base, sousTheme: '' }).set.sousTheme, ''); // « Brickset n'en a pas » reste distinct de « jamais demandé »
+  const mauvais = normaliserSet({ ...base, dateRetrait: 'bientôt', sousTheme: 42 });
+  assert.deepEqual([mauvais.set.dateRetrait, mauvais.set.sousTheme, mauvais.corrections], [null, null, 2]);
+  assert.equal(normaliserSet({ ...base, sousTheme: 'a\nb' }).set.sousTheme, 'a b');
+  assert.equal(normaliserSet({ ...base, sousTheme: 'x'.repeat(200) }).set.sousTheme.length, 60);
+});

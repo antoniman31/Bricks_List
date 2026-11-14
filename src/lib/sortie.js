@@ -51,6 +51,40 @@ export function correspondSortie(set, valeur, maintenant = new Date()) {
   return true;
 }
 
+// ---- Retrait ------------------------------------------------------------------------------------------------------
+// La date de retrait est une prévision de LEGO donnée par Brickset (elle bouge souvent) : on ne l'affiche que pour la
+// wishlist, où elle dit « achète avant ». « Bientôt » = dans les six mois.
+export const MOIS_BIENTOT_RETIRE = 6;
+export const JOURS_BIENTOT_RETIRE = 183;
+
+// Où en est le retrait : null sans date ; sinon { date, jours, retire, bientot }. « Aujourd'hui » compte comme encore à la vente.
+export function etatRetrait(set, maintenant = new Date()) {
+  const jours = joursJusque(set?.dateRetrait, maintenant);
+  if (jours === null) return null;
+  return { date: set.dateRetrait, jours, retire: jours < 0, bientot: jours >= 0 && jours <= JOURS_BIENTOT_RETIRE };
+}
+
+// Le texte d'une carte de la wishlist : « Retiré » si c'est fait, « Retrait dans 5 mois » dans les six mois, sinon rien.
+export function texteRetrait(set, maintenant = new Date()) {
+  if (set?.statut !== 'souhaité') return null;
+  const e = etatRetrait(set, maintenant);
+  if (!e) return null;
+  if (e.retire) return 'Retiré';
+  return e.bientot ? `Retrait ${relatif(e.jours)}` : null;
+}
+
+export const FILTRES_RETRAIT = [
+  { valeur: 'bientot', libelle: `Bientôt retirés (${MOIS_BIENTOT_RETIRE} mois)` },
+  { valeur: 'retire', libelle: 'Déjà retirés' },
+];
+
+export function correspondRetrait(set, valeur, maintenant = new Date()) {
+  const e = etatRetrait(set, maintenant);
+  if (valeur === 'bientot') return e !== null && e.bientot;
+  if (valeur === 'retire') return e !== null && e.retire;
+  return true;
+}
+
 // Tri « Date de sortie » : la prochaine sortie d'abord, puis les sets déjà sortis du plus récent au plus
 // ancien, puis ceux sans date. Pour une wishlist, c'est « qu'est-ce qui arrive bientôt ».
 export function comparerSorties(maintenant = new Date()) {
@@ -75,10 +109,14 @@ export function candidats(sets, maintenant = new Date()) {
   });
 }
 
-// Les sets à interroger au total : ceux dont la date manque ou peut bouger (`candidats`) et ceux de la wishlist
-// dont le prix manque ou vient de Brickset (`aPreRemplir`). Une seule demande au relais renvoie les deux, donc un
-// seul appel par set (la limite quotidienne de Brickset est de 100).
+// Les sets à interroger au total, d'une seule demande au relais par set (la limite quotidienne de Brickset est de 100) :
+// - ceux dont la date de sortie manque ou peut bouger (`candidats`) ;
+// - ceux de la wishlist dont le prix manque ou vient de Brickset (`aPreRemplir`) ;
+// - ceux de la wishlist pas encore retirés : le retrait prévu par LEGO bouge, on le relit à chaque mise à jour ;
+// - ceux dont le sous-thème n'a jamais été demandé (null ; '' veut dire « Brickset n'en a pas ») : la première mise à jour
+//   sert de rattrapage, et reprend où elle s'est arrêtée si la limite du jour tombe avant la fin.
 export function aInterroger(sets, maintenant = new Date()) {
   const dates = new Set(candidats(sets, maintenant).map((s) => s.id));
-  return sets.filter((s) => dates.has(s.id) || aPreRemplir(s));
+  const retraitOuvert = (s) => s.statut === 'souhaité' && !etatRetrait(s, maintenant)?.retire;
+  return sets.filter((s) => dates.has(s.id) || aPreRemplir(s) || retraitOuvert(s) || s.sousTheme == null);
 }

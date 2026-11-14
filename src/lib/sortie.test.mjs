@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { candidats, comparerSorties, correspondSortie, dateCourte, etatSortie, relatif, texteCarte } from './sortie.js';
+import { aInterroger, candidats, comparerSorties, correspondRetrait, correspondSortie, dateCourte, etatRetrait, etatSortie, relatif, texteCarte, texteRetrait } from './sortie.js';
 import { dateSortieValide, joursJusque } from './dates.js';
 import { normaliserSet } from './model.js';
 import { filtrer, trier } from './recherche.js';
@@ -93,4 +93,49 @@ test('modifier : la date de sortie se pose et se retire, pour la wishlist comme 
   assert.deepEqual([avec[0].dateSortie, avec[0].sortieSource], ['2027-03-01', 'manuelle']);
   const sans = modifier(avec, 'a', { dateSortie: null, sortieSource: null });
   assert.deepEqual([sans[0].dateSortie, sans[0].sortieSource], [null, null]);
+});
+
+const retrait = (id, dateRetrait, extra = {}) => set(id, '2020-01-01', { dateRetrait, ...extra });
+
+test('retrait : retiré, bientôt (6 mois, bornes comprises) ou loin', () => {
+  const e = (d) => etatRetrait(retrait('a', d), AUJOURDHUI);
+  assert.equal(etatRetrait(set('a', null), AUJOURDHUI), null);
+  assert.deepEqual([e('2026-11-04').retire, e('2026-11-04').bientot], [true, false]);
+  assert.deepEqual([e('2026-11-05').retire, e('2026-11-05').bientot], [false, true]); // aujourd'hui : encore à la vente
+  assert.equal(e('2027-05-07').bientot, true); // 183 jours
+  assert.equal(e('2027-05-08').bientot, false); // 184 jours
+});
+
+test('texteRetrait : seulement pour la wishlist, seulement retiré ou dans les six mois', () => {
+  const t = (d, extra) => texteRetrait(retrait('a', d, extra), AUJOURDHUI);
+  assert.equal(t('2026-01-01'), 'Retiré');
+  assert.equal(t('2027-01-01'), 'Retrait dans 57 jours');
+  assert.equal(t('2026-11-06'), 'Retrait demain');
+  assert.equal(t('2028-01-01'), null);
+  assert.equal(t(null), null);
+  assert.equal(t('2027-01-01', { statut: 'possédé' }), null);
+});
+
+test('filtre « retrait » : bientôt retirés, déjà retirés, sans date jamais retenu', () => {
+  const sets = [retrait('a', '2027-01-01'), retrait('b', '2026-01-01'), retrait('c', '2030-01-01'), retrait('d', null)];
+  const ids = (v) => sets.filter((s) => correspondRetrait(s, v, AUJOURDHUI)).map((s) => s.id);
+  assert.deepEqual(ids('bientot'), ['a']);
+  assert.deepEqual(ids('retire'), ['b']);
+  assert.deepEqual(filtrer(sets, { statut: 'souhaité', retrait: 'bientot', maintenant: AUJOURDHUI }).map((s) => s.id), ['a']);
+});
+
+test('filtre « sous-thème » : valeur exacte', () => {
+  const sets = [set('a', null, { sousTheme: 'UCS' }), set('b', null, { sousTheme: 'Mario Kart' }), set('c', null, { sousTheme: '' }), set('d', null)];
+  assert.deepEqual(filtrer(sets, { statut: 'souhaité', sousTheme: 'UCS' }).map((s) => s.id), ['a']);
+  assert.equal(filtrer(sets, { statut: 'souhaité', sousTheme: '' }).length, 4);
+});
+
+test('aInterroger : sous-thème jamais demandé (null) redemandé, vide (\'\') non ; wishlist pas retirée relue', () => {
+  const sortiDeja = { dateSortie: '2020-01-01', sortieSource: 'brickset' };
+  const id = (liste) => aInterroger(liste, AUJOURDHUI).map((s) => s.id);
+  assert.deepEqual(id([set('a', null, { ...sortiDeja, statut: 'possédé', sousTheme: null })]), ['a']);
+  assert.deepEqual(id([set('a', null, { ...sortiDeja, statut: 'possédé', sousTheme: '' })]), []);
+  assert.deepEqual(id([set('a', null, { ...sortiDeja, statut: 'possédé', sousTheme: 'UCS' })]), []);
+  assert.deepEqual(id([set('a', null, { ...sortiDeja, prix: 50, prixSource: 'manuelle', sousTheme: 'UCS' })]), ['a']);
+  assert.deepEqual(id([set('a', null, { ...sortiDeja, prix: 50, prixSource: 'manuelle', sousTheme: 'UCS', dateRetrait: '2026-01-01' })]), []);
 });
