@@ -13,13 +13,13 @@ de la wishlist (#71), correctif de la copie des rendus (#72).
 ## 1. Tout de suite
 
 1. ~~Réorganiser les Réglages~~ : fait (quatre groupes, états en une ligne, une section ouverte à la fois ; voir `docs/SUITE.md`). La wishlist
-   n'a plus que le total et un bouton-icône « Copier la liste » (la mise à jour dates et prix est dans Réglages > Relais).
-2. **Antoni, sur son S26** : relancer Réglages > Images sur l'appareil > « Sauvegarder toutes les images » (avant #72, la
+   n'a plus que le total et un bouton-icône « Copier la liste » (la mise à jour dates et prix est dans Réglages > Brickset).
+2. **Antoni, sur son S26** : relancer Réglages > Images gardées > « Garder toutes les images » (avant #72, la
    copie des rendus s'était arrêtée après 8 images sur un « image trop grosse » ; on ne sait pas quel set) et coller le
    message, qui nomme maintenant les sets refusés. Puis faire un **export complet** (Réglages > Sauvegarde) : il contient
    photos, boîtes, rendus et prix, et pèse des dizaines de Mo.
 3. **BrickLink est hors ligne** (« activité inhabituelle », déclaration du 11 novembre 2026, aucune date de retour). 51 boîtes
-   sont déjà gardées sur l'appareil ; à son retour, relancer « Sauvegarder toutes les images » pour les autres.
+   sont déjà gardées sur l'appareil ; à son retour, relancer « Garder toutes les images » pour les autres.
 
 **Images Brickset (PR suivante)** : faites (liste sur appui, planche, garder, image de la liste, boîte). **À vérifier par Antoni** : sur la fiche d'un set, « Chercher les images Brickset » (2 appels sur les 100 du jour), puis « Toutes les images », « Garder sur l'appareil » et
 l'étoile ; sur un set sans boîte BrickLink (Mario Kart 72054-1, 75467-1), une image « Box » → « Définir comme boîte » ; vérifier que l'export complet reste raisonnable. Le Chrome Beta de son téléphone
@@ -30,7 +30,7 @@ affiche `ERR_ECH_FALLBACK_CERTIFICATE_INVALID` sur le relais (Encrypted Client H
 Worker `bricks-relais` (code dans `relais/`), adresse `https://bricks-relais.antoniman31.workers.dev`, saisie dans Réglages >
 Connexions > Relais. **Vérifié avec une vraie réponse de Brickset** pour le Faucon (75192-1) : `lancement` 2017-10-01, `retrait`
 2026-12-31, `disponibilite` « LEGO exclusive », `prixDE` 849.99. Donc `LEGOCom.DE.retailPrice` est le bon champ. Antoni a lancé
-« Mettre à jour dates et prix » : 53 dates et 33 prix DE enregistrés (wishlist de 34 sets, un seul sans prix).
+« Récupérer dates et prix » : 53 dates et 33 prix DE enregistrés (wishlist de 34 sets, un seul sans prix).
 
 - Les deux routes : `GET /sortie?numero=` (dates et prix DE), `GET /image?url=` (rendus Rebrickable, seulement `cdn.rebrickable.com/media/sets/…`,
   6 Mo au plus). CORS limité à `https://antoniman31.github.io`.
@@ -41,7 +41,7 @@ Connexions > Relais. **Vérifié avec une vraie réponse de Brickset** pour le F
   type Secret. Pièges rencontrés : la section « Variables et secrets » de **Builds** n'est pas lue par le relais (réponse
   `{"erreur":"configuration"}`) ; une entrée saisie sous le nom `ORIGINE` (au lieu de `BRICKSET_KEY`) masque la vraie origine
   autorisée. **Jamais la clé dans une conversation, un fichier ou le dépôt.**
-- **Limite Brickset : 100 appels `getSets` par jour et par clé.** « Mettre à jour dates et prix » fait un appel par set
+- **Limite Brickset : 100 appels `getSets` par jour et par clé.** « Récupérer dates et prix » fait un appel par set
   (dates manquantes ou à venir, prix vides ou pré-remplis) : une première mise à jour en consomme environ 55, ne pas la relancer
   le même jour. Le prix et la limite exacts de la clé restent à confirmer sur la page de Brickset, puis à consigner dans `docs/SUITE.md`.
 - Les prix sont des **prix allemands** (la France n'a pas de prix chez Brickset), marqués « DE » ; un prix saisi à la main n'est
@@ -67,7 +67,7 @@ Connexions > Relais. **Vérifié avec une vraie réponse de Brickset** pour le F
 ## 4. Idées retenues, pas commencées (ordre à choisir par Antoni)
 
 Faites (PR #79 et suivante) : notice LEGO, budget de la wishlist par priorité, vérifier une sauvegarde, espace utilisé, retrait, sous-thème, notices PDF.
-**À vérifier par Antoni après déploiement** : (a) le lien « Notice LEGO » ouvre la bonne page ; (b) « Mettre à jour dates et prix » : la première fois il
+**À vérifier par Antoni après déploiement** : (a) le lien « Notice LEGO » ouvre la bonne page ; (b) « Récupérer dates et prix » : la première fois il
 rattrape le sous-thème de tous les sets (près de 100 appels Brickset, limite du jour : relancer le lendemain si le message dit « limite ») ; (c) « Notices
 PDF » sur la fiche d'un set possédé : si « Aucune notice chez Brickset » alors que LEGO en a une, ouvrir `<relais>/notices?numero=75192-1` dans le navigateur
 et coller le JSON (les noms de champs de `getInstructions2` n'ont jamais été vus) ; (d) la date de retrait des sets de la wishlist (Faucon : 2026-12-31).
@@ -77,7 +77,7 @@ Refusées pour l'instant : dimensions de la boîte, variantes Rebrickable (MOC).
 - **« Quoi monter ? »** : tirage au sort parmi les scellés, neufs et en cours, avec filtre de taille.
 - **Export CSV** de la collection (séparateur point-virgule, BOM UTF-8 pour l'Excel français ; lecture seule).
 - **Transfert téléphone ↔ PC** : le fichier d'export complet suffit pour l'instant (Partager > Partage rapide, puis Réglages >
-  Importer un fichier ; l'import accepte `.txt`). Si le geste pèse : lien (données compressées après le `#`) et QR allégé ;
+  Restaurer un fichier ; l'import accepte `.txt`). Si le geste pèse : lien (données compressées après le `#`) et QR allégé ;
   détails dans `docs/SUITE.md`. Les images, elles, ne tiennent ni dans un lien ni dans un QR.
 - **Choix de l'image en sélection multiple** (idée D de la page de maquettes) : seulement si Antoni doit changer des dizaines de
   sets d'un coup. **Plusieurs photos par set** (idée E) : seulement s'il le demande.

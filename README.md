@@ -13,7 +13,7 @@ dans le navigateur et s'exportent en JSON.
   l'état repris du dernier ajout. *Plus d'options* ouvre le formulaire complet ; *Plusieurs* ajoute
   une liste de numéros d'un coup.
 - **Photos de boîte** : affichées partout, déduites du numéro (BrickLink). Chaque boîte vue est gardée sur
-  l'appareil : une panne de BrickLink ne la fait plus disparaître. Réglages > Données > Images sur l'appareil les
+  l'appareil : une panne de BrickLink ne la fait plus disparaître. Réglages > Données > Images gardées les
   sauvegarde toutes (boîtes, et rendus Rebrickable via le relais). Repli sur le rendu Rebrickable puis sur le numéro.
 - **Images d'un set** : le haut de la fiche est un carrousel (boîte, rendu, jusqu'à six photos à toi, et les images de Brickset sur appui) qu'on fait défiler en glissant ; une planche de miniatures permet de sauter à une image ; un appui l'ouvre en plein écran (zoom, partage) ; une image de Brickset se garde sur l'appareil pour être l'image de la liste ou la boîte du set. Photo de l'appareil ou de la galerie,
   recadrée en 4:3 et gardée sur l'appareil (dans l'export complet, voir Sauvegarde). Un bouton choisit l'image du set dans la liste ;
@@ -59,7 +59,7 @@ ni envoyée ailleurs qu'à Rebrickable. Sans clé, tout fonctionne à la main (l
 ### Installation et mises à jour
 
 « Installer l'application » depuis Chrome. Une nouvelle version s'applique en rechargeant la page ; un
-bandeau le propose si l'app est restée ouverte, et Réglages a un bouton *Vérifier les mises à jour*.
+bandeau le propose si l'app est restée ouverte, et Réglages a un bouton *Chercher une version*.
 La version affichée en bas des Réglages est le commit déployé.
 
 ## Données locales

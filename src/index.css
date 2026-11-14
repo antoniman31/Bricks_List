@@ -742,7 +742,8 @@ button:not(:disabled):active, .champ:active { box-shadow: inset 0 0 0 999px var(
 .fiche__valeur:disabled { color: var(--texte); }
 /* Lien externe (notice LEGO) : même gabarit que les valeurs de la fiche, cible de 48 px, souligné pour se distinguer d'un bouton. */
 .fiche__lien { min-height: var(--cible-min); text-decoration: underline; text-underline-offset: 3px; }
-.fiche__edition { flex-basis: 100%; text-align: left; padding-bottom: 12px; display: grid; gap: 8px; }
+/* Colonne `minmax(0, 1fr)` : sans elle, la piste prend la largeur minimale du plus large contenu (le champ de saisie des étiquettes, 330 px) et dépasse la cellule à 360 px. */
+.fiche__edition { flex-basis: 100%; text-align: left; padding-bottom: 12px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
 
 /* Formulaire complet : toute la hauteur, le clavier ne le recouvre pas à moitié. */
 .sheet--plein { height: 100dvh; max-height: 100dvh; margin: 0 auto; border: 0; border-radius: 0; }
@@ -767,7 +768,9 @@ button:not(:disabled):active, .champ:active { box-shadow: inset 0 0 0 999px var(
 .bandeau--panneau { margin: -20px -20px 12px; padding: 20px; }
 .chiffres { display: grid; grid-template-columns: repeat(3, 1fr); text-align: center; margin-bottom: 4px; }
 .chiffres > *, .chiffres__cle { display: grid; align-content: center; justify-items: center; min-height: 64px; padding: 4px; border: 0; background: transparent; color: inherit; font: inherit; }
-.chiffres b { font-family: var(--police-titre); font-weight: 600; font-size: 1.375rem; text-transform: capitalize; }
+.chiffres b { font-family: var(--police-titre); font-weight: 600; font-size: 1.375rem; }
+/* Seule la première lettre en majuscule (« Un jour »), pas chaque mot : `capitalize` donnait « Un Jour ». */
+.chiffres b::first-letter { text-transform: uppercase; }
 .chiffres small { color: var(--texte-doux); font-size: 0.75rem; }
 .chiffres__cle:not(:disabled) b { color: var(--accent); }
 .fiche__edition--libre { padding-bottom: 8px; }
@@ -947,7 +950,9 @@ div.anneau__ligne { padding: 6px 0; }
 /* Grille d'infos : deux colonnes, libellé au-dessus de la valeur. Une valeur longue, ou une cellule ouverte, prend toute la
    largeur. La valeur reste un bouton de 48 px ; le libellé passe derrière elle par une marge négative, pour une cellule de 60 px. */
 .fiche__grille { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.fiche__grille > .fiche__ligne { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 0; min-height: 64px; padding: 8px 12px 4px; border: 0; border-radius: 14px; background: var(--surface-haute); }
+/* En colonne, jamais de retour à la ligne : avec `flex-wrap: wrap` (hérité des lignes de formulaire), une cellule ouverte (prix, étiquettes) rejetait son champ dans une
+   deuxième colonne, hors de l'écran, et la fiche défilait en largeur au premier appui dans le champ. */
+.fiche__grille > .fiche__ligne { flex-wrap: nowrap; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 0; min-height: 64px; padding: 8px 12px 4px; border: 0; border-radius: 14px; background: var(--surface-haute); }
 .fiche__grille > .fiche__ligne > dt { padding: 0; font-size: 0.6875rem; letter-spacing: 0.04em; text-transform: uppercase; }
 .fiche__grille > .fiche__ligne > dd { width: 100%; text-align: left; }
 .fiche__grille > .fiche__ligne > dt + dd { margin-top: -8px; }
@@ -1084,3 +1089,7 @@ div.anneau__ligne { padding: 6px 0; }
 .stats__panneau > * { min-width: 0; }
 /* Lignes dont le libellé est un nom de set (long) : il passe à la ligne au lieu de pousser la page en largeur. Les « Records » gardent leur libellé fixe. */
 .records__libelle--souple { flex: 0 1 auto; min-width: 0; overflow-wrap: anywhere; }
+
+/* Le prix et sa pastille restent côte à côte (la cellule répartit son contenu : texte, chevron). */
+.fiche__prixval { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; min-width: 0; }
+.fiche__prixval .pastille-pp { margin-left: 0; }

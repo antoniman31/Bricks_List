@@ -36,7 +36,7 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
   const [ouverte, setOuverte] = useState('apparence')
   const basculer = (id) => setOuverte((o) => (o === id ? '' : id))
   const [apercu, setApercu] = useState(null)
-  // Vérifier un fichier de sauvegarde : lecture seule, rien n'est importé ni écrit.
+  // Comparer un fichier : lecture seule, rien n'est importé ni écrit.
   const [verif, setVerif] = useState({ etat: '', message: '', resultat: null })
   // L'espace pris sur l'appareil : estimation du navigateur pour le site entier, taille mesurée pour les images.
   const [espace, setEspace] = useState(null)
@@ -169,7 +169,7 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
         ecrirePartageTexte(true)
         return setResultatExport(`Partage refusé (${r.erreur}). Réessaie : envoi en .txt.`)
       }
-      return setResultatExport(`Partage refusé (${r.erreur}). Utilise « Exporter la collection ».`)
+      return setResultatExport(`Partage refusé (${r.erreur}). Utilise « Enregistrer le fichier ».`)
     }
     noter((r.mode === 'partage' ? `Sauvegarde partagée (${r.nom}).` : `Partage indisponible : ${nom} téléchargé.`) + avertir(e))
   }
@@ -248,8 +248,8 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
             </button>
           ))}
         </div>
-        <p className="reglage__aide">Image des sets dans la liste, quand tu n'en as pas choisi une sur leur fiche.</p>
-        <div className="stats__puces" role="group" aria-label="Image de la liste">
+        <p className="reglage__aide">Image des cartes sans choix sur leur fiche.</p>
+        <div className="stats__puces" role="group" aria-label="Image des cartes">
           {REGLES.map((r) => (
             <button key={r.cle} type="button" className="puce" aria-pressed={regleImage === r.cle} onClick={() => onRegleImage(r.cle)}>
               {r.libelle}
@@ -261,9 +261,9 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
 
       <div role="group" aria-labelledby="reglages-connexions">
         <h3 className="reglages__groupe" id="reglages-connexions">Connexions</h3>
-        <Section id="rebrickable" titre="Rebrickable" etat={resumeCle(cle)} ouverte={ouverte} onBasculer={basculer}>
+        <Section id="rebrickable" titre="Rebrickable · recherche de sets" etat={resumeCle(cle)} ouverte={ouverte} onBasculer={basculer}>
         <p className="reglage__aide">
-          Remplit un set depuis son numéro. Reste sur cet appareil, jamais exportée.
+          Remplit un set depuis son numéro. Reste sur cet appareil.
         </p>
         {cle && <p className="reglage__aide">Clé enregistrée (…{cle.slice(-4)}).</p>}
         <label className="formulaire__champ">
@@ -292,9 +292,9 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
           <p className={`avis${etatCle.type === 'erreur' ? ' avis--erreur' : ''}`} role={etatCle.type === 'erreur' ? 'alert' : 'status'}>{etatCle.message}</p>
         )}
         </Section>
-        <Section id="relais" titre="Relais (dates et prix)" etat={resumeRelais(relais.url)} ouverte={ouverte} onBasculer={basculer}>
+        <Section id="relais" titre="Brickset · dates, prix, images" etat={resumeRelais(relais.url)} ouverte={ouverte} onBasculer={basculer}>
         <p className="reglage__aide">
-          Dates, prix et rendus passent par ton relais Brickset (dossier <code>relais</code> du dépôt). Adresse gardée sur cet appareil, jamais exportée.
+          Dates, prix et images de Brickset. Adresse gardée sur cet appareil. Jeton : seulement si ton relais en exige un.
         </p>
         <label className="formulaire__champ">
           Adresse du relais
@@ -312,7 +312,7 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
         </label>
         {saisieUrl !== '' && !urlPropre && <p className="reglage__aide reglage__aide--erreur">Adresse invalide (https, sans identifiants ni paramètres).</p>}
         <label className="formulaire__champ">
-          Jeton (facultatif)
+          Jeton
           <input
             className="champ"
             type="password"
@@ -328,11 +328,11 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
           <button type="button" className="bouton" disabled={testRelais || !relaisSaisi} onClick={testerLeRelais}>{testRelais ? 'Test…' : 'Tester'}</button>
           <button type="button" className="bouton bouton--plein" disabled={!relaisSaisi} onClick={enregistrerLeRelais}>Enregistrer</button>
         </div>
-        {relais.url && <button type="button" className="bouton bouton--danger" onClick={supprimerLeRelais}>Supprimer le relais</button>}
+        {relais.url && <button type="button" className="bouton bouton--danger" onClick={supprimerLeRelais}>Supprimer l'adresse</button>}
         {etatRelais.message && (
           <p className={`avis${etatRelais.type === 'erreur' ? ' avis--erreur' : ''}`} role={etatRelais.type === 'erreur' ? 'alert' : 'status'}>{etatRelais.message}</p>
         )}
-        <button type="button" className="bouton" disabled={lectureSeule || !relais.url || majDates.etat === 'charge'} onClick={onMajDates}>Mettre à jour dates et prix</button>
+        <button type="button" className="bouton" disabled={lectureSeule || !relais.url || majDates.etat === 'charge'} onClick={onMajDates}>Récupérer dates et prix</button>
         {majDates.message && (
           <p className={`avis${majDates.etat === 'erreur' ? ' avis--erreur' : ''}`} role={majDates.etat === 'erreur' ? 'alert' : 'status'}>{majDates.message}</p>
         )}
@@ -341,8 +341,8 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
 
       <div role="group" aria-labelledby="reglages-donnees">
         <h3 className="reglages__groupe" id="reglages-donnees">Données</h3>
-        <Section id="sauvegarde" titre="Sauvegarde" etat={resumeSauvegarde(libelleDelai(etatSauvegarde({ nbSets: sets.length, derniere: derniereSauvegarde }).jours), persistance)} ouverte={ouverte} onBasculer={basculer}>
-        <p className="reglage__aide">Données stockées sur cet appareil. Le fichier exporté contient aussi toutes les images (photos, boîtes, rendus) : il peut peser des dizaines de Mo.</p>
+        <Section id="sauvegarde" titre="Exporter" etat={resumeSauvegarde(libelleDelai(etatSauvegarde({ nbSets: sets.length, derniere: derniereSauvegarde }).jours), persistance)} ouverte={ouverte} onBasculer={basculer}>
+        <p className="reglage__aide">Le fichier contient tout, images comprises : il peut peser des dizaines de Mo.</p>
         <p className="reglage__aide">
           Dernière sauvegarde : {libelleDelai(etatSauvegarde({ nbSets: sets.length, derniere: derniereSauvegarde }).jours)}.
         </p>
@@ -352,15 +352,15 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
           {persistance === 'inconnu' && 'Protection inconnue : sauvegarde régulièrement.'}
         </p>
         <div className="sheet__pied">
-          <button type="button" className="bouton" onClick={exporterMaintenant} disabled={sets.length === 0 || preparation}>Exporter la collection</button>
+          <button type="button" className="bouton" onClick={exporterMaintenant} disabled={sets.length === 0 || preparation}>Enregistrer le fichier</button>
           {partageDisponible(undefined, { texte: lirePartageTexte() }) && (
-            <button type="button" className="bouton bouton--plein" onClick={partagerMaintenant} disabled={sets.length === 0 || preparation}>Partager la sauvegarde</button>
+            <button type="button" className="bouton bouton--plein" onClick={partagerMaintenant} disabled={sets.length === 0 || preparation}>Envoyer le fichier</button>
           )}
         </div>
         {preparation && <p className="avis" role="status">Préparation des images…</p>}
         {resultatExport && <p className="avis" role="status">{resultatExport}</p>}
         <label className="bouton bouton--fichier">
-          Vérifier un fichier de sauvegarde
+          Comparer un fichier
           <input type="file" accept=".json,.txt,application/json,text/plain" onChange={verifierFichier} className="visuellement-cache" />
         </label>
         {verif.etat === 'charge' && <p className="avis" role="status">{verif.message}</p>}
@@ -373,7 +373,7 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
           </div>
         )}
         </Section>
-        <Section id="import" titre="Importer un fichier" etat="JSON ou .txt, images comprises" ouverte={ouverte} onBasculer={basculer}>
+        <Section id="import" titre="Restaurer un fichier" etat="JSON ou .txt, images comprises" ouverte={ouverte} onBasculer={basculer}>
         <label className="bouton bouton--fichier">
           Choisir un fichier JSON
           <input type="file" accept=".json,.txt,application/json,text/plain" onChange={choisirFichier} className="visuellement-cache" />
@@ -414,12 +414,12 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
 
         {resultat && <p className="avis" role="status">{resultat}</p>}
         </Section>
-        <Section id="images" titre="Images sur l'appareil" etat={resumeImages(nbBoites, nbRendus)} ouverte={ouverte} onBasculer={basculer}>
+        <Section id="images" titre="Images gardées" etat={resumeImages(nbBoites, nbRendus)} ouverte={ouverte} onBasculer={basculer}>
         <p className="reglage__aide">
-          Les boîtes vues sont gardées ici (elles restent si BrickLink tombe), les rendus Rebrickable passent par le relais. Tout part dans l'export complet.
+          Boîtes, rendus et images Brickset, dans l'export complet.
         </p>
         <p className="reglage__aide">{espace ? phraseEspace(espace) : 'Calcul de l\'espace utilisé…'}</p>
-        <button type="button" className="bouton" disabled={majBoites.etat === 'charge'} onClick={onSauvegarderBoites}>Sauvegarder toutes les images</button>
+        <button type="button" className="bouton" disabled={majBoites.etat === 'charge'} onClick={onSauvegarderBoites}>Garder toutes les images</button>
         {majBoites.message && (
           <p className={`avis${majBoites.etat === 'erreur' ? ' avis--erreur' : ''}`} role={majBoites.etat === 'erreur' ? 'alert' : 'status'}>{majBoites.message}</p>
         )}
@@ -428,9 +428,9 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
 
       <div role="group" aria-labelledby="reglages-apropos">
         <h3 className="reglages__groupe" id="reglages-apropos">À propos</h3>
-        <Section id="maj" titre="Mise à jour" etat={`Version ${__COMMIT__}`} ouverte={ouverte} onBasculer={basculer}>
+        <Section id="maj" titre="Version de l'appli" etat={`Version ${__COMMIT__}`} ouverte={ouverte} onBasculer={basculer}>
         <button type="button" className="bouton" disabled={maj.etat === 'charge'} onClick={verifierMaj}>
-          {maj.etat === 'charge' ? 'Vérification…' : 'Vérifier les mises à jour'}
+          {maj.etat === 'charge' ? 'Vérification…' : 'Chercher une version'}
         </button>
         {maj.message && maj.etat !== 'charge' && (
           <p className={`avis${maj.etat === 'erreur' ? ' avis--erreur' : ''}`} role={maj.etat === 'erreur' ? 'alert' : 'status'}>{maj.message}</p>
