@@ -131,6 +131,7 @@ async function filtrerTheme(p, theme) {
 }
 // Choisit une « photo de téléphone » (1 600 × 1 200, dessinée à la volée) dans le champ galerie de la fiche.
 async function choisirPhoto(p) {
+  await ouvrirImages(p);
   await p.evaluate(async () => {
     const c = document.createElement('canvas'); c.width = 1600; c.height = 1200;
     const x = c.getContext('2d'); const g = x.createLinearGradient(0, 0, 1600, 1200);
@@ -157,6 +158,11 @@ const tailleEnStock = (p) => p.evaluate(() => new Promise((res) => {
   o.onsuccess = () => { const g = o.result.transaction('photos').objectStore('photos').getAll(); g.onsuccess = () => res(g.result[0] ? g.result[0].size : 0); g.onerror = () => res(-1); };
   o.onerror = () => res(-1);
 }));
+// Les boutons d'images de la fiche (planche, chercher, garder, boîte, photo) sont repliés sous le chevron « Images et photos » : on l'ouvre.
+async function ouvrirImages(p) {
+  const b = p.locator('.photo-menu__bouton');
+  if ((await b.getAttribute('aria-expanded')) === 'false') await b.click();
+}
 // Dans le carrousel de la fiche, avance jusqu'à la diapositive dont la légende contient `texte` (« Ajouter une photo », « Ma photo »…).
 async function allerA(p, texte) {
   for (let i = 0; i < 9; i += 1) {
@@ -568,6 +574,19 @@ const ECRANS = {
     const manuel = sets.find((x) => x.nom === 'Souhait 0');
     exiger(manuel.sortieSource === 'manuelle' && manuel.dateSortie.endsWith('-03-01'), 'une date saisie à la main a été écrasée');
   },
+  // Les boutons d'images (planche, chercher, garder, boîte, photo) sont repliés sous le chevron « Images et photos » : fermé au départ.
+  'fiche (images repliées)': async (p) => {
+    await p.locator('.carte:has-text("Set numéro 1 avec")').click();
+    await p.waitForSelector('.photo-menu__bouton');
+    exiger(await p.locator('.photo-menu__bouton').getAttribute('aria-expanded') === 'false', 'le chevron des images doit être fermé au départ');
+    exiger(await p.locator('.photo-actions').count() === 0 && await p.locator('button:has-text("Toutes les images")').count() === 0, 'aucun bouton d\'images ne doit rester sous l\'image quand le chevron est fermé');
+  },
+  'fiche (images dépliées)': async (p) => {
+    await p.locator('.carte:has-text("Set numéro 1 avec")').click();
+    await p.click('.photo-menu__bouton');
+    await p.waitForSelector('.photo-menu__corps button:has-text("Toutes les images")');
+    exiger(await p.locator('.photo-menu__bouton').getAttribute('aria-expanded') === 'true', 'le chevron doit être ouvert après l\'appui');
+  },
   // Carrousel de la fiche : boîte, rendu, photos personnelles (jusqu'à six), puis « ajouter ». Glisser ou flèches pour passer de l'une à l'autre,
   // un appui ouvre l'image en plein écran. La fiche s'ouvre sur l'image choisie pour la liste.
   'fiche (carrousel)': async (p) => {
@@ -640,7 +659,7 @@ const ECRANS = {
     await p.locator('.carte').first().click();
     await p.waitForSelector('.heros__legende:has-text("Ma photo 2")');
     // Retirer la photo choisie remet le set en automatique.
-    await p.click('.photo-actions button:has-text("Retirer")');
+    await ouvrirImages(p); await p.click('.photo-actions button:has-text("Retirer")');
     await p.click('[role=alertdialog] button:has-text("Retirer")');
     await p.waitForSelector('.heros__legende:has-text("Boîte")');
     exiger(await p.evaluate(() => JSON.parse(localStorage.getItem('bl_v1')).sets.filter((x) => x.imageListe).length) === 0, 'retirer l\'image de la liste doit remettre le set en automatique');
@@ -663,11 +682,11 @@ const ECRANS = {
     await p.locator('.carte:has-text("Set numéro 1 avec")').click();
     await p.waitForSelector('.heros__legende');
     exiger(appels === 0, 'la liste Brickset ne doit pas être demandée avant l\'appui');
-    await p.click('button:has-text("Chercher les images Brickset")');
-    await p.waitForSelector('button:has-text("Toutes les images (7)")');
+    await ouvrirImages(p); await p.click('button:has-text("Chercher les images Brickset")');
+    await ouvrirImages(p); await p.waitForSelector('button:has-text("Toutes les images (7)")');
     exiger(appels === 1, `un seul appel attendu (${appels})`);
     exiger(await p.locator('button:has-text("Chercher les images Brickset")').count() === 0, 'le bouton de recherche disparaît une fois la liste reçue');
-    await p.click('button:has-text("Toutes les images (7)")');
+    await ouvrirImages(p); await p.click('button:has-text("Toutes les images (7)")');
     await p.waitForSelector('dialog[open] .planche__cellule');
     exiger(await p.locator('dialog[open] .planche__cellule').count() === 8, 'la planche doit montrer 7 images et la boîte probable en tête (8 cellules)');
     await p.locator('dialog[open] .planche__cellule').nth(3).click();
@@ -675,26 +694,26 @@ const ECRANS = {
     // La liste est gardée : rechargée, la fiche la montre sans nouvel appel.
     await p.reload(); await p.waitForSelector('.carte');
     await p.locator('.carte:has-text("Set numéro 1 avec")').click();
-    await p.waitForSelector('button:has-text("Toutes les images (7)")');
+    await ouvrirImages(p); await p.waitForSelector('button:has-text("Toutes les images (7)")');
     exiger(appels === 1, 'la liste mémorisée ne doit pas être redemandée');
   },
   'planche (images Brickset)': async (p) => {
     await p.evaluate(() => localStorage.setItem('bl_relais', JSON.stringify({ url: 'https://relais.test', jeton: '' })));
     await p.reload(); await p.waitForSelector('.carte');
     await p.locator('.carte:has-text("Set numéro 1 avec")').click();
-    await p.click('button:has-text("Chercher les images Brickset")');
-    await p.click('button:has-text("Toutes les images (7)")');
+    await ouvrirImages(p); await p.click('button:has-text("Chercher les images Brickset")');
+    await ouvrirImages(p); await p.click('button:has-text("Toutes les images (7)")');
     await p.waitForSelector('dialog[open] .planche__cellule');
   },
   'brickset : garder une image, la choisir pour la liste, l\'exporter': async (p) => {
     await p.evaluate(() => localStorage.setItem('bl_relais', JSON.stringify({ url: 'https://relais.test', jeton: '' })));
     await p.reload(); await p.waitForSelector('.carte');
     await p.locator('.carte:has-text("Set numéro 1 avec")').click();
-    await p.click('button:has-text("Chercher les images Brickset")');
-    await p.waitForSelector('button:has-text("Toutes les images (7)")');
+    await ouvrirImages(p); await p.click('button:has-text("Chercher les images Brickset")');
+    await ouvrirImages(p); await p.waitForSelector('button:has-text("Toutes les images (7)")');
     await allerA(p, 'Brickset');
     exiger(await nbBoitesStock(p, 'extras') === 0, 'rien ne doit être copié avant d\'avoir choisi de garder');
-    await p.click('button:has-text("Garder sur l\'appareil")');
+    await ouvrirImages(p); await p.click('button:has-text("Garder sur l\'appareil")');
     await p.waitForSelector('.heros__legende:has-text("gardée")');
     exiger(await nbBoitesStock(p, 'extras') === 1, 'l\'image gardée doit être dans le stockage');
     await p.waitForSelector('img[data-origine="extra"]');
@@ -702,7 +721,7 @@ const ECRANS = {
     await p.waitForFunction(() => document.querySelectorAll('.carte img.vignette[data-origine="extra"]').length === 1);
     exiger(await p.evaluate(() => JSON.parse(localStorage.getItem('bl_v1')).sets.filter((x) => x.imageListe === 'extra:a1.jpg').length) === 1, 'l\'image gardée doit être l\'image de la liste');
     // Retirée de l'appareil, elle ne peut plus représenter le set.
-    await p.click('button:has-text("Retirer de l\'appareil")');
+    await ouvrirImages(p); await p.click('button:has-text("Retirer de l\'appareil")');
     await p.waitForFunction(() => document.querySelectorAll('.carte img.vignette[data-origine="extra"]').length === 0);
     exiger(await nbBoitesStock(p, 'extras') === 0 && await p.evaluate(() => JSON.parse(localStorage.getItem('bl_v1')).sets.filter((x) => x.imageListe).length) === 0, 'retirer l\'image doit aussi retirer son choix pour la liste');
   },
@@ -710,8 +729,8 @@ const ECRANS = {
     await p.evaluate(() => localStorage.setItem('bl_relais', JSON.stringify({ url: 'https://relais.test', jeton: '' })));
     await p.reload(); await p.waitForSelector('.carte');
     await p.locator('.carte:has-text("Set numéro 1 avec")').click();
-    await p.click('button:has-text("Chercher les images Brickset")');
-    await p.waitForSelector('button:has-text("Toutes les images (7)")');
+    await ouvrirImages(p); await p.click('button:has-text("Chercher les images Brickset")');
+    await ouvrirImages(p); await p.waitForSelector('button:has-text("Toutes les images (7)")');
     await allerA(p, 'Brickset');
     await p.click('.heros__ouvrir');
     await p.click('dialog.visionneuse button:has-text("Pour la liste")');
@@ -722,11 +741,11 @@ const ECRANS = {
     await p.evaluate(() => localStorage.setItem('bl_relais', JSON.stringify({ url: 'https://relais.test', jeton: '' })));
     await p.reload(); await p.waitForSelector('.carte');
     await p.locator('.carte:has-text("Set numéro 2 avec")').click(); // numéro pair : BrickLink n'a pas de boîte
-    await p.click('button:has-text("Chercher les images Brickset")');
-    await p.waitForSelector('button:has-text("Toutes les images")');
-    await p.click('button:has-text("Toutes les images")');
+    await ouvrirImages(p); await p.click('button:has-text("Chercher les images Brickset")');
+    await ouvrirImages(p); await p.waitForSelector('button:has-text("Toutes les images")');
+    await ouvrirImages(p); await p.click('button:has-text("Toutes les images")');
     await p.locator('dialog[open] .planche__cellule').first().click(); // la boîte probable est en tête
-    await p.click('button:has-text("Définir comme boîte")');
+    await ouvrirImages(p); await p.click('button:has-text("Définir comme boîte")');
     for (let i = 0; i < 30 && await p.evaluate(() => new Promise((res) => { const o = indexedDB.open('bl_photos'); o.onsuccess = () => { const g = o.result.transaction('boites').objectStore('boites').getAllKeys(); g.onsuccess = () => res(g.result.includes('10002-1')); }; })) === false; i += 1) await p.waitForTimeout(150);
     exiger(await p.evaluate(() => new Promise((res) => { const o = indexedDB.open('bl_photos'); o.onsuccess = () => { const g = o.result.transaction('boites').objectStore('boites').getAllKeys(); g.onsuccess = () => res(g.result.includes('10002-1')); }; })), 'l\'image « Box » doit devenir la boîte du set');
     await p.waitForSelector('.heros__legende:has-text("Boîte")');
@@ -778,7 +797,7 @@ const ECRANS = {
     await p.locator('.carte').first().click();
     await allerA(p, 'Ma photo');
     await p.waitForSelector('img.vignette--fiche[alt^="Ma photo"]');
-    await p.click('.photo-actions button:has-text("Retirer")');
+    await ouvrirImages(p); await p.click('.photo-actions button:has-text("Retirer")');
     await p.click('[role=alertdialog] button:has-text("Retirer")');
     await p.waitForSelector('.heros__legende:has-text("Boîte")');
     exiger(await tailleEnStock(p) === 0, 'la photo retirée est encore en stock');

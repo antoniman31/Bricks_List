@@ -59,6 +59,7 @@ export default function PhotoFiche({ set, lectureSeule, relais = null, onChanger
   const [probleme, setProbleme] = useState('')
   const [plein, setPlein] = useState(false)
   const [planche, setPlanche] = useState(false)
+  const [menu, setMenu] = useState(false)
   const [occupe, setOccupe] = useState('')
   const [confirmeBoite, setConfirmeBoite] = useState(false)
   const depart = useRef(null)
@@ -229,7 +230,7 @@ export default function PhotoFiche({ set, lectureSeule, relais = null, onChanger
     <div className="photo-fiche heros" role="group" aria-roledescription="carrousel" aria-label="Images du set">
       <div className="heros__image">
         {diapo.cle === 'ajout' ? (
-          <div className="photo-vide">{nPhoto === null && !diapos.some((d) => d.n) ? 'Pas encore de photo pour ce set.' : 'Ajoute une autre photo de ce set.'}</div>
+          <div className="photo-vide">{!diapos.some((d) => d.n) ? 'Pas encore de photo pour ce set.' : 'Ajoute une autre photo de ce set.'}<span>Ouvre « Images et photos » ci-dessous.</span></div>
         ) : (
           <ImageDiapo key={diapo.cle} set={set} diapo={diapo} variante="fiche" />
         )}
@@ -285,56 +286,66 @@ export default function PhotoFiche({ set, lectureSeule, relais = null, onChanger
         </div>
       </div>
 
-      {(nPhoto !== null || diapo.cle === 'ajout') && !retrait && (
-        <div className="photo-actions">
-          <ChoixFichier libelle={nPhoto !== null ? 'Reprendre' : 'Prendre une photo'} camera desactive={lectureSeule} onChoisi={setFichier} />
-          <ChoixFichier libelle={nPhoto !== null ? 'Galerie' : 'Choisir dans la galerie'} desactive={lectureSeule} onChoisi={setFichier} />
-          {nPhoto !== null && <button type="button" className="bouton bouton--danger" disabled={lectureSeule} onClick={() => setRetrait(true)}>Retirer</button>}
-        </div>
-      )}
-
-      {diapo.extra && (
-        <div className="photo-actions">
-          {diapo.gardee
-            ? <button type="button" className="bouton" disabled={lectureSeule || Boolean(occupe)} onClick={() => retirerExtra(diapo.extra)}>Retirer de l'appareil</button>
-            : <button type="button" className="bouton" disabled={lectureSeule || Boolean(occupe)} onClick={async () => { const m = await garderExtra(diapo.extra); setProbleme(m) }}>Garder sur l'appareil</button>}
-          {diapo.extra.boite && (
-            <button type="button" className="bouton" disabled={lectureSeule || Boolean(occupe)} onClick={() => definirBoite(diapo.extra)}>
-              {boites.has(numero) ? 'Remplacer la boîte' : 'Définir comme boîte'}
-            </button>
+      {/* Tous les boutons d'images (planche, chercher, garder, boîte, photo) sont repliés sous un chevron : la fiche reste compacte. */}
+      <div className="photo-menu">
+        <button type="button" className="fiche__valeur photo-menu__bouton" aria-expanded={menu} onClick={() => setMenu((m) => !m)}>
+          Images et photos<span className="photo-menu__nombre">{reelles} image{reelles > 1 ? 's' : ''}</span>
+        </button>
+        {menu && (
+          <div className="photo-menu__corps">
+          {(nPhoto !== null || diapo.cle === 'ajout') && !retrait && (
+            <div className="photo-actions">
+              <ChoixFichier libelle={nPhoto !== null ? 'Reprendre' : 'Prendre une photo'} camera desactive={lectureSeule} onChoisi={setFichier} />
+              <ChoixFichier libelle={nPhoto !== null ? 'Galerie' : 'Choisir dans la galerie'} desactive={lectureSeule} onChoisi={setFichier} />
+              {nPhoto !== null && <button type="button" className="bouton bouton--danger" disabled={lectureSeule} onClick={() => setRetrait(true)}>Retirer</button>}
+            </div>
           )}
-        </div>
-      )}
 
-      {confirmeBoite && diapo.extra && (
-        <div className="avis avis--erreur" role="alertdialog" aria-label="Confirmer le remplacement de la boîte">
-          <p>Une boîte est déjà gardée pour ce set (celle de BrickLink, en général). La remplacer par cette image ?</p>
-          <div className="sheet__pied">
-            <button type="button" className="bouton" onClick={() => setConfirmeBoite(false)}>Annuler</button>
-            <button type="button" className="bouton bouton--plein" onClick={() => definirBoite(diapo.extra)}>Remplacer</button>
+          {diapo.extra && (
+            <div className="photo-actions">
+              {diapo.gardee
+                ? <button type="button" className="bouton" disabled={lectureSeule || Boolean(occupe)} onClick={() => retirerExtra(diapo.extra)}>Retirer de l'appareil</button>
+                : <button type="button" className="bouton" disabled={lectureSeule || Boolean(occupe)} onClick={async () => { const m = await garderExtra(diapo.extra); setProbleme(m) }}>Garder sur l'appareil</button>}
+              {diapo.extra.boite && (
+                <button type="button" className="bouton" disabled={lectureSeule || Boolean(occupe)} onClick={() => definirBoite(diapo.extra)}>
+                  {boites.has(numero) ? 'Remplacer la boîte' : 'Définir comme boîte'}
+                </button>
+              )}
+            </div>
+          )}
+
+          {confirmeBoite && diapo.extra && (
+            <div className="avis avis--erreur" role="alertdialog" aria-label="Confirmer le remplacement de la boîte">
+              <p>Une boîte est déjà gardée pour ce set (celle de BrickLink, en général). La remplacer par cette image ?</p>
+              <div className="sheet__pied">
+                <button type="button" className="bouton" onClick={() => setConfirmeBoite(false)}>Annuler</button>
+                <button type="button" className="bouton bouton--plein" onClick={() => definirBoite(diapo.extra)}>Remplacer</button>
+              </div>
+            </div>
+          )}
+
+          {(reelles >= 2 || (relais?.url && !galerie.connue)) && (
+            <div className="photo-actions">
+              {reelles >= 2 && <button type="button" className="bouton" onClick={() => setPlanche(true)}>Toutes les images ({reelles})</button>}
+              {relais?.url && !galerie.connue && (
+                <button type="button" className="bouton" disabled={Boolean(occupe)} onClick={chercherGalerie}>Chercher les images Brickset</button>
+              )}
+            </div>
+          )}
+
+          {retrait && (
+            <div className="avis avis--erreur" role="alertdialog" aria-label="Confirmer le retrait de la photo">
+              <p>Retirer cette photo ? Retire-la seulement si tu as une sauvegarde : elle serait perdue.</p>
+              <div className="sheet__pied">
+                <button type="button" className="bouton" onClick={() => setRetrait(false)}>Annuler</button>
+                <button type="button" className="bouton bouton--danger" onClick={retirer}>Retirer</button>
+              </div>
+            </div>
+          )}
           </div>
-        </div>
-      )}
-
-      {(reelles >= 2 || (relais?.url && !galerie.connue)) && (
-        <div className="photo-actions">
-          {reelles >= 2 && <button type="button" className="bouton" onClick={() => setPlanche(true)}>Toutes les images ({reelles})</button>}
-          {relais?.url && !galerie.connue && (
-            <button type="button" className="bouton" disabled={Boolean(occupe)} onClick={chercherGalerie}>Chercher les images Brickset</button>
-          )}
-        </div>
-      )}
+        )}
+      </div>
       {occupe && <p className="avis" role="status">{occupe}</p>}
-
-      {retrait && (
-        <div className="avis avis--erreur" role="alertdialog" aria-label="Confirmer le retrait de la photo">
-          <p>Retirer cette photo ? Retire-la seulement si tu as une sauvegarde : elle serait perdue.</p>
-          <div className="sheet__pied">
-            <button type="button" className="bouton" onClick={() => setRetrait(false)}>Annuler</button>
-            <button type="button" className="bouton bouton--danger" onClick={retirer}>Retirer</button>
-          </div>
-        </div>
-      )}
       {probleme && <p className="avis avis--erreur" role="alert">{probleme}</p>}
 
       {fichier && <PhotoSheet fichier={fichier} onFermer={() => setFichier(null)} onEnregistrer={enregistrer} />}
