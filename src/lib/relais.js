@@ -5,6 +5,7 @@ import { dateSortieValide } from './dates.js';
 import { urlRenduValide } from './boite.js';
 import { normaliserNumero } from './numero.js';
 import { prixValide } from './prix.js';
+import { libelleCourt } from './libelle.js';
 
 const CLE = 'bl_relais';
 const FORME_JETON = /^[\x21-\x7E]{8,100}$/;
@@ -71,7 +72,7 @@ const MESSAGES = {
 };
 export const messageRelais = (code) => MESSAGES[code] ?? MESSAGES.reponse;
 
-// Demande la date de sortie (et le prix allemand) d'un set au relais. Renvoie { ok: true, trouve, lancement, prixDE }
+// Demande la date de sortie (et le prix allemand) d'un set au relais. Renvoie { ok: true, trouve, lancement, retrait, prixDE, sousTheme }
 // (lancement et prixDE null si Brickset n'en a pas) ou { ok: false, code }. Ne lève jamais : un échec réseau est un code comme un autre.
 export async function recupererSortie(relais, numero, fetchFn = globalThis.fetch) {
   const n = normaliserNumero(numero);
@@ -90,7 +91,9 @@ export async function recupererSortie(relais, numero, fetchFn = globalThis.fetch
   try { corps = await reponse.json(); } catch { return { ok: false, code: 'reponse' }; }
   if (!reponse.ok) return { ok: false, code: typeof corps?.erreur === 'string' && corps.erreur in MESSAGES ? corps.erreur : 'reponse' };
   if (!corps || typeof corps !== 'object' || typeof corps.trouve !== 'boolean') return { ok: false, code: 'reponse' };
-  return { ok: true, trouve: corps.trouve, lancement: dateSortieValide(corps.lancement), prixDE: prixValide(corps.prixDE) };
+  // Le sous-thème : '' veut dire « Brickset n'en a pas » (à ne pas redemander), null « pas de réponse sur ce point ».
+  const sousTheme = libelleCourt(corps.sousTheme);
+  return { ok: true, trouve: corps.trouve, lancement: dateSortieValide(corps.lancement), retrait: dateSortieValide(corps.retrait), prixDE: prixValide(corps.prixDE), sousTheme };
 }
 
 const TAILLE_IMAGE_MAX = 6 * 1024 * 1024; // comme le relais ; l'image est réduite à 1 024 px avant d'être gardée
@@ -130,4 +133,44 @@ export const DELAIS_AVANT_ARRET = 3;
 export function arretRelais(code, delaisDeSuite = 0) {
   if (code === 'jeton' || code === 'reseau' || code === 'configuration') return true;
   return code === 'delai' && delaisDeSuite >= DELAIS_AVANT_ARRET;
+}
+
+// Les notices PDF d'un set, d'après Brickset (route `/notices`, un appel Brickset par demande : à ne faire qu'à la
+// demande, jamais en masse). Renvoie { ok: true, notices: [{ url, description }] } ou { ok: false, code }. Ne lève jamais.
+// Les adresses sont revérifiées ici (https, chez LEGO ou Brickset) : elles finissent dans un lien cliquable.
+const HOTES_NOTICE = ['lego.com', 'brickset.com'];
+export function urlNoticeSure(v) {
+  if (typeof v !== 'string' || v.length > 300) return null;
+  let u;
+  try { u = new URL(v); } catch { return null; }
+  if (u.protocol !== 'https:' || u.username || u.password || u.port !== '') return null;
+  const h = u.hostname.toLowerCase();
+  return HOTES_NOTICE.some((d) => h === d || h.endsWith(`.${d}`)) ? u.href : null;
+}
+
+export async function recupererNotices(relais, numero, fetchFn = globalThis.fetch) {
+  const n = normaliserNumero(numero);
+  const base = urlRelaisValide(relais?.url);
+  if (!n || !base) return { ok: false, code: 'numero' };
+  let reponse;
+  try {
+    reponse = await fetchFn(`${base}/notices?numero=${encodeURIComponent(n)}`, {
+      headers: relais.jeton ? { 'X-Jeton': relais.jeton } : {},
+      signal: AbortSignal.timeout(DELAI_MS),
+    });
+  } catch (e) {
+    return { ok: false, code: e?.name === 'TimeoutError' ? 'delai' : 'reseau' };
+  }
+  let corps;
+  try { corps = await reponse.json(); } catch { return { ok: false, code: 'reponse' }; }
+  if (!reponse.ok) return { ok: false, code: typeof corps?.erreur === 'string' && corps.erreur in MESSAGES ? corps.erreur : 'reponse' };
+  if (!corps || typeof corps !== 'object' || !Array.isArray(corps.notices)) return { ok: false, code: 'reponse' };
+  const notices = [];
+  for (const x of corps.notices.slice(0, 12)) {
+    const url = urlNoticeSure(x?.url);
+    if (!url || notices.some((y) => y.url === url)) continue;
+    const description = libelleCourt(x.description) ?? '';
+    notices.push({ url, description });
+  }
+  return { ok: true, notices };
 }

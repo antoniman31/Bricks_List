@@ -22,6 +22,8 @@ const LARGEURS = [360, 412, 900, 1280];
 // Une collection qui exerce les cas difficiles : textes longs, données absentes,
 // états variés, wishlist, image absente et image présente.
 const THEMES_SETS = ['Star Wars', 'Icons', 'Technic', 'Ideas', 'City'];
+// Une date « AAAA-MM-JJ » à `n` jours d'aujourd'hui (négatif : passée).
+const dansJours = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 const SETS = [];
 for (let i = 0; i < 16; i += 1) {
   SETS.push({
@@ -32,11 +34,12 @@ for (let i = 0; i < 16; i += 1) {
     emplacement: i % 3 === 0 ? 'étagère 2' : '', boite: ['oui', 'non', null][i % 3], notice: [null, 'oui', 'non'][i % 3],
     etiquettes: i % 3 === 1 ? ['cadeau', 'à revendre'] : [],
     dateAchat: i % 4 === 0 ? '2026-03-01' : null, dateMontage: i % 8 === 0 ? '2026-03-15' : null,
+    sousTheme: [null, 'Mario Kart', 'Mario Kart', 'Technic Supercars'][i] ?? null, // null : jamais demandé à Brickset
     notes: 'une note', image: i % 2 ? 'https://cdn.rebrickable.com/media/sets/test.png' : null, dateAjout: `2026-0${1 + (i % 9)}-10T00:00:00.000Z`,
   });
 }
 for (let k = 0; k < 3; k += 1) {
-  SETS.push({ id: `w${k}`, numero: `${20000 + k}-1`, nom: `Souhait ${k}`, theme: 'Icons', annee: 2024, pieces: 1500 * (k + 1), statut: 'souhaité', priorite: ['forte', 'un-jour', 'pas-presse', null][k % 4], etat: null, notes: '', image: null, dateSortie: [`${new Date().getFullYear() + 1}-03-01`, '2020-05-05', null][k], sortieSource: ['manuelle', 'brickset', null][k], prix: [249, null, 59.99][k], prixSource: ['manuelle', null, 'brickset-de'][k], dateAjout: '2026-10-10T00:00:00.000Z' });
+  SETS.push({ id: `w${k}`, numero: `${20000 + k}-1`, nom: `Souhait ${k}`, theme: 'Icons', annee: 2024, pieces: 1500 * (k + 1), statut: 'souhaité', priorite: ['forte', 'un-jour', 'pas-presse', null][k % 4], etat: null, notes: '', image: null, dateSortie: [`${new Date().getFullYear() + 1}-03-01`, '2020-05-05', null][k], sortieSource: ['manuelle', 'brickset', null][k], prix: [249, null, 59.99][k], prixSource: ['manuelle', null, 'brickset-de'][k], dateRetrait: [dansJours(90), dansJours(-30), null][k], dateAjout: '2026-10-10T00:00:00.000Z' });
 }
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
 
@@ -665,7 +668,110 @@ const ECRANS = {
     await p.locator('.carte').first().click();
     await p.waitForSelector('dialog[open] .fiche, .fiche');
     exiger(await p.locator('a.fiche__lien').count() === 0, 'un set de la wishlist ne doit pas proposer la notice');
-    exiger(await p.locator('.frise .etape').count() === 2 && await p.locator('.frise dt:text-is("Acheté le")').count() === 0, 'un set de la wishlist a deux étapes (ajouté, sortie), jamais « Acheté le »');
+    const nbEtapes = await p.locator('.frise .etape').count();
+    exiger((nbEtapes === 2 || nbEtapes === 3) && await p.locator('.frise dt:text-is("Acheté le")').count() === 0, 'un set de la wishlist a deux étapes (ajouté, sortie) ou trois avec le retrait, jamais « Acheté le »');
+  },
+  // Retrait prévu par LEGO (wishlist) : texte sur la carte (« Retiré », « Retrait dans … » dans les six mois, rien au-delà), filtre,
+  // frise de la fiche. Départ : Souhait 0 retiré dans 90 jours, Souhait 1 retiré depuis 30 jours, Souhait 2 sans retrait.
+  'wishlist (retrait)': async (p) => {
+    await p.click('.nav__item:has-text("Wishlist")');
+    await p.waitForSelector('.carte:has-text("Retiré")');
+    exiger(await p.locator('.carte:has-text("Souhait 0")').innerText().then((t) => /Retrait dans 3 mois|Retrait dans 9\d jours|Retrait dans 8\d jours/.test(t)), 'un retrait dans trois mois doit s\'afficher sur la carte');
+    exiger(!/Retrait|Retiré/.test(await p.locator('.carte:has-text("Souhait 2")').innerText()), 'un set sans retrait ne doit rien afficher');
+  },
+  'wishlist grille (retrait)': async (p) => {
+    await p.click(GRILLE);
+    await p.click('.nav__item:has-text("Wishlist")');
+    await p.waitForSelector('.carte--tuile .carte__sortie:has-text("Retiré")');
+  },
+  'filtres (retrait)': async (p) => {
+    await p.click('.nav__item:has-text("Wishlist")');
+    await p.click(FILTRES);
+    await p.click('dialog[open] .groupe__ligne:has-text("Retrait")');
+    await p.waitForSelector('dialog[open] .puce:has-text("Bientôt retirés")');
+  },
+  'retrait : filtre bientôt et déjà retirés': async (p) => {
+    await p.click('.nav__item:has-text("Wishlist")');
+    // Le groupe se déplie au premier passage ; il reste ouvert à la réouverture de la feuille.
+    const choisir = async (libelle, deplier) => {
+      await p.click(FILTRES);
+      if (deplier) await p.click('dialog[open] .groupe:has(.groupe__ligne:has-text("Retrait")) .groupe__ligne');
+      await p.click(`dialog[open] .groupe:has(.groupe__ligne:has-text("Retrait")) .puce:has-text("${libelle}")`);
+      await p.click('dialog[open] .bouton--plein');
+    };
+    await choisir('Bientôt retirés', true);
+    exiger(await p.locator('.carte').count() === 1 && await p.locator('.carte:has-text("Souhait 0")').count() === 1, 'le filtre « Bientôt retirés » doit garder seulement Souhait 0');
+    await choisir('Déjà retirés');
+    exiger(await p.locator('.carte').count() === 1 && await p.locator('.carte:has-text("Souhait 1")').count() === 1, 'le filtre « Déjà retirés » doit garder seulement Souhait 1');
+  },
+  'fiche (retrait dans la frise)': async (p) => {
+    await p.click('.nav__item:has-text("Wishlist")');
+    await p.locator('.carte:has-text("Souhait 0")').click();
+    await p.locator('.frise .etape').first().waitFor();
+    const etapes = await p.locator('.frise .etape').allInnerTexts();
+    exiger(etapes.length === 3 && /retrait[\s\S]*dans/i.test(etapes[2]), `la frise doit finir par le retrait à venir : ${etapes.join(' | ').replace(/\n/g, ' ')}`);
+    exiger(await p.locator('.frise .etape:has(dt:text-is("Retrait")) button').count() === 0, 'le retrait ne se modifie pas à la main');
+  },
+  // Sous-thème (Brickset) : affiché sur la fiche, filtre sur la collection. Départ : deux sets « Mario Kart », un « Technic Supercars ».
+  'fiche (sous-thème)': async (p) => {
+    await p.locator('.carte:has-text("Set numéro 1 avec")').click();
+    await p.waitForSelector('.fiche__ligne:has(dt:text-is("Sous-thème")) dd:text-is("Mario Kart")');
+  },
+  'filtres (sous-thème)': async (p) => {
+    await p.click(FILTRES);
+    await p.click('dialog[open] .groupe__ligne:has-text("Sous-thème")');
+    await p.waitForSelector('dialog[open] .puce:has-text("Mario Kart")');
+  },
+  'sous-thème : filtre': async (p) => {
+    await p.click(FILTRES);
+    await p.click('dialog[open] .groupe:has(.groupe__ligne:has-text("Sous-thème")) .groupe__ligne');
+    await p.click('dialog[open] .groupe:has(.groupe__ligne:has-text("Sous-thème")) .puce:has-text("Mario Kart")');
+    await p.click('dialog[open] .bouton--plein');
+    exiger(await p.locator('.carte').count() === 2, 'le filtre « Mario Kart » doit garder exactement deux sets');
+  },
+  // Mise à jour par le relais : le sous-thème jamais demandé est rattrapé (vide si Brickset n'en a pas, jamais redemandé), le retrait
+  // s'ajoute au set de la wishlist qui n'en avait pas, un sous-thème déjà connu n'est pas écrasé sans nouvelle réponse.
+  'retrait et sous-thème : mise à jour par le relais': async (p) => {
+    await p.evaluate(() => localStorage.setItem('bl_relais', JSON.stringify({ url: 'https://relais.test', jeton: '' })));
+    await p.reload(); await p.waitForSelector('.carte');
+    await mettreAJourParLesReglages(p);
+    await p.waitForSelector('dialog[open] .avis:has-text("sous-thème")', { timeout: 20000 });
+    await p.click('dialog[open] button[aria-label="Fermer"]');
+    const sets = await p.evaluate(() => JSON.parse(localStorage.getItem('bl_v1')).sets);
+    exiger(sets.every((x) => typeof x.sousTheme === 'string'), 'tous les sets doivent avoir un sous-thème (vide si Brickset n\'en a pas)');
+    exiger(sets.filter((x) => x.sousTheme === 'Sous-thème test').length > 0, 'aucun sous-thème du relais n\'a été enregistré');
+    exiger(sets.find((x) => x.nom === 'Souhait 2').dateRetrait?.endsWith('-01-15'), 'le retrait du relais n\'a pas été enregistré');
+  },
+  // Notices PDF : sur appui seulement, jamais à l'ouverture de la fiche ; sans relais la ligne n'existe pas.
+  'fiche (notices PDF)': async (p) => {
+    await p.evaluate(() => localStorage.setItem('bl_relais', JSON.stringify({ url: 'https://relais.test', jeton: '' })));
+    await p.reload(); await p.waitForSelector('.carte');
+    let appels = 0;
+    p.on('request', (r) => { if (r.url().includes('/notices')) appels += 1; });
+    await p.locator('.carte').first().click();
+    await p.waitForSelector('.fiche__ligne:has(dt:text-is("Notices PDF"))');
+    exiger(appels === 0, 'les notices ne doivent pas être demandées avant l\'appui');
+    await p.click('.fiche__ligne:has(dt:text-is("Notices PDF")) button');
+    await p.waitForSelector('.fiche__ligne:has(dt:text-is("Notices PDF")) a[href$="a.pdf"]');
+    const liens = await p.locator('.fiche__ligne:has(dt:text-is("Notices PDF")) a').evaluateAll((l) => l.map((a) => [a.getAttribute('href'), a.getAttribute('target'), a.getAttribute('rel'), a.textContent]));
+    exiger(liens.length === 2 && liens.every(([, cible, rel]) => cible === '_blank' && /noopener/.test(rel)), 'les notices doivent s\'ouvrir dans un nouvel onglet, sans accès à l\'appli');
+    exiger(/Notice 1/.test(liens[0][3]) && /Notice 2/.test(liens[1][3]), 'sans description, la notice est numérotée');
+    exiger(appels === 1, `un seul appel attendu (${appels})`);
+  },
+  'fiche (notices PDF, refusées)': async (p) => {
+    await p.evaluate(() => localStorage.setItem('bl_relais', JSON.stringify({ url: 'https://relais.test', jeton: '' })));
+    await p.route('https://relais.test/notices**', (r) => r.fulfill({ status: 429, headers: { 'access-control-allow-origin': '*', 'content-type': 'application/json' }, body: JSON.stringify({ erreur: 'limite' }) }));
+    await p.reload(); await p.waitForSelector('.carte');
+    await p.locator('.carte').first().click();
+    await p.click('.fiche__ligne:has(dt:text-is("Notices PDF")) button');
+    await p.waitForSelector('.fiche__ligne:has(dt:text-is("Notices PDF")) [role=alert]:has-text("Limite quotidienne")');
+  },
+  'fiche (sans relais : pas de notices PDF)': async (p) => {
+    await p.evaluate(() => localStorage.removeItem('bl_relais'));
+    await p.reload(); await p.waitForSelector('.carte');
+    await p.locator('.carte').first().click();
+    await p.waitForSelector('.fiche__ligne:has(dt:text-is("Notice LEGO"))');
+    exiger(await p.locator('.fiche__ligne:has(dt:text-is("Notices PDF"))').count() === 0, 'sans relais, la ligne « Notices PDF » ne doit pas apparaître');
   },
   // Réglages en quatre groupes, une ligne d'état par section, UNE SEULE section ouverte à la fois (Apparence au départ).
   'réglages (groupes et états)': async (p) => {
@@ -882,9 +988,11 @@ try {
       await ctx.route('https://relais.test/**', (r) => {
         const entetes = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'X-Jeton', 'content-type': 'application/json' };
         if (r.request().method() === 'OPTIONS') return r.fulfill({ status: 204, headers: entetes });
-        const numero = new globalThis.URL(r.request().url()).searchParams.get('numero');
+        const adresse = new globalThis.URL(r.request().url());
+        const numero = adresse.searchParams.get('numero');
+        if (adresse.pathname === '/notices') return r.fulfill({ status: 200, headers: entetes, body: JSON.stringify({ numero, trouve: true, notices: [{ url: 'https://www.lego.com/cdn/product-assets/a.pdf', description: 'Notice 1' }, { url: 'https://www.lego.com/cdn/product-assets/b.pdf', description: '' }] }) });
         const lancement = parseInt(numero, 10) % 3 === 0 ? null : `${new Date().getFullYear() + 1}-06-01`;
-        return r.fulfill({ status: 200, headers: entetes, body: JSON.stringify({ numero, trouve: true, lancement, retrait: null, disponibilite: null, prixDE: 129.99 }) });
+        return r.fulfill({ status: 200, headers: entetes, body: JSON.stringify({ numero, trouve: true, lancement, retrait: numero === '20002-1' ? `${new Date().getFullYear() + 1}-01-15` : null, disponibilite: null, prixDE: 129.99, sousTheme: parseInt(numero, 10) % 2 === 0 ? 'Sous-thème test' : '' }) });
       });
       // Un Rebrickable de test : une recherche par nom paginée, et un thème.
       await ctx.route('https://rebrickable.com/api/v3/lego/**', (r) => {

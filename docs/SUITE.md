@@ -178,6 +178,19 @@ testé avec sa vraie collection, tout fonctionne.
   (`src/lib/notice.js`, testé ; format constaté sur des dizaines de pages indexées, **jamais ouvert depuis l'environnement de développement** : LEGO.com
   répond 403 aux clients automatiques). Rien n'est stocké ni exporté. Si LEGO change ses adresses, le lien mène à une page vide sans rien casser ; repli
   possible : l'appel `getInstructions` de l'API Brickset (URL de PDF), via le relais.
+- **Retrait, sous-thème, notices PDF** (14 novembre 2026, choisis par Antoni dans le tableau « données utilisées / inutilisées ») :
+  - **Retrait prévu par LEGO** : champ `dateRetrait` (même validation que `dateSortie`, jamais saisi à la main, donc sans source), donné par
+    Brickset via `/sortie` (`retrait`). Affiché pour la **wishlist** seulement : « Retiré » ou « Retrait dans 5 mois » sur la carte (dans les six
+    mois, `JOURS_BIENTOT_RETIRE` = 183 dans `src/lib/sortie.js`), étape « Retrait » de la frise (non modifiable), filtre « Retrait » (« Bientôt
+    retirés (6 mois) », « Déjà retirés »). C'est une prévision de LEGO, qui bouge souvent. Pas de tri dédié.
+  - **Sous-thème** : champ `sousTheme` (texte de 60 caractères au plus, `src/lib/libelle.js`) ; `null` = jamais demandé, `''` = « Brickset n'en a pas »
+    (ne se redemande pas). Ligne « Sous-thème » sur la fiche, filtre « Sous-thème » (collection et wishlist). **Rattrapage** : « Mettre à jour dates et
+    prix » interroge aussi les sets dont le sous-thème vaut `null` ; la première fois, c'est un appel par set (près de la limite de 100 par jour, la
+    mise à jour s'arrête sur « limite » et reprend le lendemain là où elle s'était arrêtée). Elle relit aussi, à chaque fois, les sets de la wishlist pas
+    encore retirés (le retrait bouge).
+  - **Notices PDF** : route `/notices` du relais (`getInstructions2`, **réponse jamais vue en vrai**, voir `relais/README.md`) et ligne « Notices PDF » sur la
+    fiche d'un set possédé, seulement si un relais est configuré : un appui sur « Chercher chez Brickset » fait UN appel (rien en masse, rien à
+    l'ouverture), les adresses (https, lego.com ou brickset.com) sont revérifiées côté relais et côté appli. Rien n'est stocké ni exporté.
 - **Prix officiel** (novembre 2026, demandé par Antoni ; exception au cadrage « pas de prix ») : wishlist seulement, en
   euros. Champs `prix` (0,01 à 10 000, arrondi au centime) et `prixSource` (`manuelle` ou `brickset-de`), validés dans le modèle
   comme la date de sortie (sans prix pas de source, un prix sans source est réputé manuel), pour les deux statuts mais affichés
@@ -242,10 +255,10 @@ testé avec sa vraie collection, tout fonctionne.
   au rechargement (`bl_filtres`, hors export, `src/lib/filtresMemo.js`, entrée validée ; l'ancien format à un
   seul jeu est lu). La recherche texte n'est pas retenue et se vide au changement d'onglet. Un raccourci des
   Stats remplace les filtres de la collection.
-- **Qualité** : `npm run lint`, `npm test` (444 tests, dont ceux du relais), `npm run verif:ui` (axe-core, cibles de
+- **Qualité** : `npm run lint`, `npm test` (461 tests, dont ceux du relais), `npm run verif:ui` (axe-core, cibles de
   48 px, débordements, navigation, recherche visible clavier ouvert, et quatre parcours qui vérifient un
   comportement : filtres conservés au rechargement, onglets indépendants, import d'un `.txt`, repli des
-  boîtes, photo personnelle (enregistrée, relue, retirée), image de la liste (fiche et règle), dates de sortie (affichage, filtre, saisie, relais), remise en wishlist (fiche et sélection, avec annulation), boîtes gardées (sauvegarde, service hors BrickLink, arrêt en maintenance), rendus gardés par le relais, sauvegarde complète avec images (export, vidage, restauration) ; 78 écrans × 2 thèmes × 4
+  boîtes, photo personnelle (enregistrée, relue, retirée), image de la liste (fiche et règle), dates de sortie (affichage, filtre, saisie, relais), remise en wishlist (fiche et sélection, avec annulation), retrait (carte, filtre, frise), sous-thème (fiche, filtre, rattrapage), notices PDF, boîtes gardées (sauvegarde, service hors BrickLink, arrêt en maintenance), rendus gardés par le relais, sauvegarde complète avec images (export, vidage, restauration) ; 90 écrans × 2 thèmes × 4
   largeurs : 360, 412, 900, 1280). Les trois tournent dans le CI avant le déploiement.
 
 ## Décisions de cadrage (ne pas rouvrir sans raison)

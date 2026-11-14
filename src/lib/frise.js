@@ -44,10 +44,14 @@ export function etapesFrise(set, maintenant = new Date()) {
 
   if (set.statut === 'souhaité') {
     const ajout = jourDAjout(set.dateAjout);
-    return [
+    const etapes = [
       { cle: null, libelle: 'Ajouté le', date: ajout, etat: etat(ajout), sous: '' },
       { cle: 'dateSortie', libelle: 'Sortie', date: sortie, etat: etat(sortie), sous: sousSortie },
     ];
+    // Le retrait prévu par LEGO (donné par Brickset, pas modifiable) : une étape de plus seulement s'il est connu.
+    const retrait = set.dateRetrait ?? null;
+    if (retrait) etapes.push({ cle: null, libelle: 'Retrait', date: retrait, etat: etat(retrait), sous: etat(retrait) === 'futur' ? relatif(joursJusque(retrait, maintenant)) : 'retiré' });
+    return etapes;
   }
   const achat = set.dateAchat ?? null;
   const montage = set.dateMontage ?? null;

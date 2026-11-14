@@ -1,10 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { datePropre, lireBrickset, prixPropre, traiter, urlImageValide } from './worker.js';
+import { datePropre, libellePropre, lireBrickset, lireNotices, prixPropre, traiter, urlImageValide, urlNoticeValide } from './worker.js';
 
 const ENV = { BRICKSET_KEY: 'cle-secrete-de-test', ORIGINE: 'https://antoniman31.github.io' };
 const SUCCES = (sets) => ({ status: 'success', matches: sets.length, sets });
-const FALCON = { number: '75192', numberVariant: 1, launchDate: '2017-10-01T00:00:00Z', exitDate: '2023-12-31T00:00:00Z', availability: 'Retired', name: 'Millennium Falcon', pieces: 7541, LEGOCom: { US: { retailPrice: 799.99 }, DE: { retailPrice: 849.99 } } };
+const FALCON = { number: '75192', numberVariant: 1, launchDate: '2017-10-01T00:00:00Z', exitDate: '2023-12-31T00:00:00Z', availability: 'Retired', subtheme: 'Ultimate Collector Series', name: 'Millennium Falcon', pieces: 7541, LEGOCom: { US: { retailPrice: 799.99 }, DE: { retailPrice: 849.99 } } };
 const reponseJson = (corps, statut = 200) => new Response(JSON.stringify(corps), { status: statut });
 const appel = (chemin, { env = ENV, fetchFn, init } = {}) => traiter(new Request(`https://relais.example${chemin}`, init), env, { fetchFn });
 
@@ -16,7 +16,7 @@ test('datePropre : garde le jour, écarte l\'absurde', () => {
 
 test('lireBrickset : un set trouvé donne ses dates, sans rien d\'autre', () => {
   const r = lireBrickset(SUCCES([FALCON]), '75192-1');
-  assert.deepEqual(r, { ok: true, valeur: { numero: '75192-1', trouve: true, lancement: '2017-10-01', retrait: '2023-12-31', disponibilite: 'Retired', prixDE: 849.99 } });
+  assert.deepEqual(r, { ok: true, valeur: { numero: '75192-1', trouve: true, lancement: '2017-10-01', retrait: '2023-12-31', disponibilite: 'Retired', prixDE: 849.99, sousTheme: 'Ultimate Collector Series' } });
   assert.ok(!('pieces' in r.valeur) && !('name' in r.valeur));
 });
 
@@ -39,7 +39,7 @@ test('appel nominal : Brickset reçoit la clé en corps de formulaire, la répon
   const fetchFn = async (url, init) => { vu = { url, init }; return reponseJson(SUCCES([FALCON])); };
   const r = await appel('/sortie?numero=75192-1', { fetchFn });
   assert.equal(r.status, 200);
-  assert.deepEqual(await r.json(), { numero: '75192-1', trouve: true, lancement: '2017-10-01', retrait: '2023-12-31', disponibilite: 'Retired', prixDE: 849.99 });
+  assert.deepEqual(await r.json(), { numero: '75192-1', trouve: true, lancement: '2017-10-01', retrait: '2023-12-31', disponibilite: 'Retired', prixDE: 849.99, sousTheme: 'Ultimate Collector Series' });
   assert.equal(vu.url, 'https://brickset.com/api/v3.asmx/getSets');
   assert.equal(vu.init.method, 'POST');
   const corps = new URLSearchParams(vu.init.body);
@@ -196,4 +196,58 @@ test('/image : une image de 3 Mo (refusée avec l\'ancien plafond de 2 Mo) passe
   const r = await appelImage(BONNE, { fetchFn: async () => imageRep(new Uint8Array(3 * 1024 * 1024)) });
   assert.equal(r.status, 200);
   assert.equal((await r.arrayBuffer()).byteLength, 3 * 1024 * 1024);
+});
+
+test('libellePropre : texte court sans retour à la ligne ; vide reste vide, autre chose est null', () => {
+  assert.equal(libellePropre('Ultimate Collector Series'), 'Ultimate Collector Series');
+  assert.equal(libellePropre('  Mario\n\tKart  '), 'Mario Kart');
+  assert.equal(libellePropre(''), '');
+  assert.equal(libellePropre('x'.repeat(200)).length, 60);
+  for (const v of [null, undefined, 12, {}, []]) assert.equal(libellePropre(v), null);
+});
+
+test('lireBrickset : sous-thème renvoyé, vide si Brickset n\'en a pas, null si le champ manque', () => {
+  assert.equal(lireBrickset(SUCCES([FALCON]), '75192-1').valeur.sousTheme, 'Ultimate Collector Series');
+  assert.equal(lireBrickset(SUCCES([{ ...FALCON, subtheme: '' }]), '75192-1').valeur.sousTheme, '');
+  assert.equal(lireBrickset(SUCCES([{ ...FALCON, subtheme: undefined }]), '75192-1').valeur.sousTheme, null);
+  assert.equal(lireBrickset(SUCCES([]), '75192-1').valeur.sousTheme, null);
+});
+
+test('urlNoticeValide : https chez LEGO ou Brickset seulement', () => {
+  assert.ok(urlNoticeValide('https://www.lego.com/cdn/product-assets/product.bi.core.pdf/6339446.pdf'));
+  assert.ok(urlNoticeValide('https://brickset.com/instructions/x.pdf'));
+  for (const v of ['http://www.lego.com/a.pdf', 'https://evil.example/a.pdf', 'https://lego.com.evil.example/a.pdf', 'https://user:mdp@www.lego.com/a.pdf', 'https://www.lego.com:8443/a.pdf', 'javascript:alert(1)', '', null, 42, `https://www.lego.com/${'a'.repeat(400)}`]) assert.equal(urlNoticeValide(v), null, String(v));
+});
+
+test('lireNotices : garde les bonnes adresses, sans doublon, avec une description courte', () => {
+  const ok = { status: 'success', matches: 3, instructions: [
+    { URL: 'https://www.lego.com/a.pdf', description: 'Notice 1' },
+    { URL: 'https://www.lego.com/a.pdf', description: 'doublon' },
+    { URL: 'https://evil.example/b.pdf', description: 'refusée' },
+    { url: 'https://www.lego.com/c.pdf' },
+  ] };
+  assert.deepEqual(lireNotices(ok, '75192-1'), { ok: true, valeur: { numero: '75192-1', trouve: true, notices: [{ url: 'https://www.lego.com/a.pdf', description: 'Notice 1' }, { url: 'https://www.lego.com/c.pdf', description: '' }] } });
+  assert.deepEqual(lireNotices({ status: 'success', instructions: [] }, 'x').valeur, { numero: 'x', trouve: false, notices: [] });
+  assert.equal(lireNotices({ status: 'error', message: 'API limit exceeded' }, 'x').code, 'limite');
+  for (const v of [null, 'texte', 42]) assert.equal(lireNotices(v, 'x').ok, false);
+  const beaucoup = { status: 'success', instructions: Array.from({ length: 50 }, (_, i) => ({ URL: `https://www.lego.com/${i}.pdf` })) };
+  assert.equal(lireNotices(beaucoup, 'x').valeur.notices.length, 12);
+});
+
+test('/notices : appelle getInstructions2 avec la clé en corps de formulaire, mêmes protections que /sortie', async () => {
+  let vu;
+  const fetchFn = async (url, init) => { vu = { url, init }; return reponseJson({ status: 'success', instructions: [{ URL: 'https://www.lego.com/a.pdf', description: 'Notice 1' }] }); };
+  const r = await appel('/notices?numero=75192-1', { fetchFn });
+  assert.equal(r.status, 200);
+  assert.deepEqual(await r.json(), { numero: '75192-1', trouve: true, notices: [{ url: 'https://www.lego.com/a.pdf', description: 'Notice 1' }] });
+  assert.equal(vu.url, 'https://brickset.com/api/v3.asmx/getInstructions2');
+  const corps = new URLSearchParams(vu.init.body);
+  assert.equal(corps.get('apiKey'), 'cle-secrete-de-test');
+  assert.equal(corps.get('setNumber'), '75192-1');
+  assert.ok(!vu.url.includes('cle-secrete'));
+  assert.equal((await appel('/notices?numero=abc', { fetchFn })).status, 400);
+  assert.equal((await appel('/notices?numero=75192-1', { fetchFn, env: { ORIGINE: ENV.ORIGINE } })).status, 500);
+  assert.equal((await appel('/notices?numero=75192-1', { fetchFn, env: { ...ENV, JETON: 'secret-jeton-123' } })).status, 401);
+  assert.equal((await appel('/notices?numero=75192-1', { fetchFn, init: { method: 'POST' } })).status, 405);
+  assert.equal((await appel('/notices?numero=75192-1', { fetchFn: async () => reponseJson({ status: 'error', message: 'API limit exceeded' }) })).status, 429);
 });

@@ -29,7 +29,7 @@ import { normaliserNumero } from './lib/numero.js'
 import ImagesContext from './ImagesContext.js'
 import { ecrireRegle, lireRegle } from './lib/imageListe.js'
 import { arretRelais, ecrireRelais, lireRelais, messageRelais, recupererImage, recupererSortie } from './lib/relais.js'
-import { FILTRES_SORTIE, aInterroger, candidats, dateCourte } from './lib/sortie.js'
+import { FILTRES_RETRAIT, FILTRES_SORTIE, aInterroger, candidats, dateCourte } from './lib/sortie.js'
 import { TRANCHES_PRIX, aPreRemplir, libelleTotal, totalPrix } from './lib/prix.js'
 import { ajouter, ajouterPlusieurs, acheter, compterExemplaires, exemplairesPossedes, modifier, modifierPlusieurs, remettreEnWishlist, supprimer, supprimerPlusieurs } from './lib/collection.js'
 import { ETATS, LIBELLES_PRIORITE, PRIORITES } from './lib/model.js'
@@ -242,6 +242,8 @@ export default function App() {
     const pourDate = new Set(candidats(setsRef.current).map((s) => s.id))
     const dates = new Map()
     const prix = new Map()
+    const retraits = new Map()
+    const sousThemes = new Map()
     let sansDate = 0
     let arret = null
     for (const [i, s] of aFaire.entries()) {
@@ -253,19 +255,27 @@ export default function App() {
         else sansDate += 1
       }
       if (aPreRemplir(s) && r.prixDE !== null) prix.set(s.id, r.prixDE)
+      if (r.retrait && r.retrait !== s.dateRetrait) retraits.set(s.id, r.retrait)
+      // Sous-thème : une réponse sans sous-thème (set inconnu, champ vide) s'enregistre vide, pour ne pas être redemandée.
+      if (s.sousTheme == null || (r.sousTheme !== null && r.sousTheme !== s.sousTheme)) sousThemes.set(s.id, r.sousTheme ?? '')
       await new Promise((fin) => setTimeout(fin, 120))
     }
     let courant = setsRef.current
     for (const [id, date] of dates) courant = modifier(courant, id, { dateSortie: date, sortieSource: 'brickset' })
     for (const [id, p] of prix) courant = modifier(courant, id, { prix: p, prixSource: 'brickset-de' })
-    if (dates.size > 0 || prix.size > 0) appliquer(courant)
+    for (const [id, date] of retraits) courant = modifier(courant, id, { dateRetrait: date })
+    for (const [id, st] of sousThemes) courant = modifier(courant, id, { sousTheme: st })
+    if (dates.size > 0 || prix.size > 0 || retraits.size > 0 || sousThemes.size > 0) appliquer(courant)
     const pluriel = (n, mot) => `${n} ${mot}${n > 1 ? 's' : ''}`
     const morceaux = []
     if (dates.size > 0) morceaux.push(`${pluriel(dates.size, 'date')} enregistrée${dates.size > 1 ? 's' : ''}`)
     if (prix.size > 0) morceaux.push(`${pluriel(prix.size, 'prix')} (prix DE) enregistré${prix.size > 1 ? 's' : ''}`)
+    if (retraits.size > 0) morceaux.push(`${pluriel(retraits.size, 'date')} de retrait`)
+    const nbSousThemes = [...sousThemes.values()].filter((v) => v !== '').length
+    if (nbSousThemes > 0) morceaux.push(`${pluriel(nbSousThemes, 'sous-thème')}`)
     if (morceaux.length === 0) morceaux.push('rien de nouveau')
     const resume = `${morceaux.join(', ')}${sansDate > 0 ? `, ${sansDate} sans date chez Brickset` : ''}.`
-    const n = dates.size + prix.size
+    const n = dates.size + prix.size + retraits.size + sousThemes.size
     setMajDates(arret
       ? { etat: 'erreur', message: `${messageRelais(arret)}${n > 0 ? ` ${resume}` : ''}` }
       : { etat: 'ok', message: resume.charAt(0).toUpperCase() + resume.slice(1) })
@@ -507,6 +517,11 @@ export default function App() {
     { cle: 'annee', libelle: 'Année', options: groupesAnnees(duOnglet) },
   ]
   if (filtres.sortie !== '' || duOnglet.some((x) => x.dateSortie)) groupes.push({ cle: 'sortie', libelle: 'Sortie', options: FILTRES_SORTIE })
+  if (statut === 'souhaité' && (filtres.retrait !== '' || duOnglet.some((x) => x.dateRetrait))) groupes.push({ cle: 'retrait', libelle: 'Retrait', options: FILTRES_RETRAIT })
+  // Comme l'emplacement : un filtre posé dont la dernière fiche vient de changer reste visible.
+  const sousThemes = [...new Set(duOnglet.map((x) => x.sousTheme).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'fr'))
+  if (filtres.sousTheme !== '' && !sousThemes.includes(filtres.sousTheme)) sousThemes.push(filtres.sousTheme)
+  if (sousThemes.length > 0) groupes.splice(2, 0, { cle: 'sousTheme', libelle: 'Sous-thème', options: sousThemes.map((t) => ({ valeur: t, libelle: t })) })
   if (statut === 'souhaité' && (filtres.prix !== '' || duOnglet.some((x) => x.prix != null))) groupes.push({ cle: 'prix', libelle: 'Prix', options: TRANCHES_PRIX.map((t) => ({ valeur: t.cle, libelle: t.libelle })) })
   if (filtres.taille !== '' || duOnglet.some((x) => x.pieces != null)) groupes.push({ cle: 'taille', libelle: 'Taille', options: TAILLES.map((t) => ({ valeur: t.cle, libelle: t.libelle })) })
   if (aCompleter.length > 0) groupes.unshift({ cle: 'manque', libelle: 'À compléter', options: aCompleter })
@@ -794,6 +809,7 @@ export default function App() {
                 key={detail.id}
                 set={detail}
                 lectureSeule={lectureSeule}
+                relais={relais}
                 lieux={emplacementsConnus}
                 lieuRecent={lieuRecent}
                 etiquettesConnues={etiquettesUtilisees}
@@ -828,6 +844,7 @@ export default function App() {
           key={fiche.id}
           set={fiche}
           lectureSeule={lectureSeule}
+          relais={relais}
           lieux={emplacementsConnus}
           lieuRecent={lieuRecent}
           etiquettesConnues={etiquettesUtilisees}

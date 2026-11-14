@@ -20,7 +20,7 @@ dans le navigateur et s'exportent en JSON.
   une règle dans Réglages décide pour les autres (boîte, ma photo quand elle existe, rendu).
 - **Dates de sortie** : à saisir sur la fiche, ou à récupérer automatiquement de Brickset par un petit relais à toi
   (`relais/`, étapes dans son README). Un set pas encore sorti dit quand (« Sort dans 57 jours ») ; tri et filtre
-  « À venir ».
+  « À venir ». Le même relais donne aussi le retrait prévu par LEGO (wishlist : « Bientôt retirés »), le sous-thème (filtre) et, sur appui, les notices PDF d'un set possédé.
 - **Fiche** : bandeau jaune avec le numéro et le nom, puis pièces, année et état en gros. Emplacement,
   boîte, notice, dates d'achat et de montage, étiquettes se modifient sur place, d'un appui.
   Un « ×2 » signale un set possédé en plusieurs exemplaires.

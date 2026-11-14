@@ -9,6 +9,7 @@ import { aujourdhuiISO, dateSortieValide, dateValide, finSortiePossible, formate
 import { urlNotice } from '../lib/notice.js'
 import { etapesFrise } from '../lib/frise.js'
 import { PRIX_MAX, formaterPrix, lirePrixSaisi, prixPourSaisie } from '../lib/prix.js'
+import { messageRelais, recupererNotices } from '../lib/relais.js'
 
 // Une info en lecture seule : une cellule de la grille, sur toute la largeur.
 function Ligne({ libelle, valeur }) {
@@ -50,9 +51,39 @@ function LigneOuiNon({ libelle, champ, set, ouvert, desactive, onBasculer, onCho
   )
 }
 
+// Les notices PDF d'un set possédé, demandées à Brickset par le relais seulement sur appui : un appel à chaque fois, donc jamais
+// en masse ni à l'ouverture de la fiche (la limite est de 100 appels par jour). Sans relais configuré, la ligne n'existe pas.
+function NoticesPdf({ numero, relais }) {
+  const [etat, setEtat] = useState({ phase: 'repos', notices: [], message: '' })
+  async function chercher() {
+    setEtat({ phase: 'charge', notices: [], message: '' })
+    const r = await recupererNotices(relais, numero)
+    setEtat(r.ok ? { phase: 'fini', notices: r.notices, message: '' } : { phase: 'erreur', notices: [], message: messageRelais(r.code) })
+  }
+  return (
+    <div className="fiche__ligne fiche__ligne--edit cellule--large">
+      <dt>Notices PDF</dt>
+      <dd>
+        {etat.phase !== 'fini' && (
+          <button type="button" className="fiche__valeur" disabled={etat.phase === 'charge'} onClick={chercher}>
+            {etat.phase === 'charge' ? 'Recherche…' : 'Chercher chez Brickset'}
+          </button>
+        )}
+        {etat.phase === 'erreur' && <span className="avis avis--erreur" role="alert">{etat.message}</span>}
+        {etat.phase === 'fini' && etat.notices.length === 0 && <span className="fiche__valeur">Aucune notice chez Brickset.</span>}
+        {etat.phase === 'fini' && etat.notices.map((n, i) => (
+          <a key={n.url} className="fiche__valeur fiche__lien" href={n.url} target="_blank" rel="noopener noreferrer">
+            {n.description || `Notice ${i + 1}`}<span className="visuellement-cache"> (PDF, nouvel onglet)</span>
+          </a>
+        ))}
+      </dd>
+    </div>
+  )
+}
+
 // Le contenu d'une fiche, sans son contenant : la feuille en dessous de 840 px, le panneau de
 // droite au-dessus. Même contenu, mêmes gestes, un seul endroit à tenir à jour.
-export function FicheContenu({ set, lectureSeule, lieux = [], lieuRecent = '', etiquettesConnues = [], onChanger, onModifier, onAcheter, onRemettre, onSupprimer }) {
+export function FicheContenu({ set, lectureSeule, relais = null, lieux = [], lieuRecent = '', etiquettesConnues = [], onChanger, onModifier, onAcheter, onRemettre, onSupprimer }) {
   const [confirmer, setConfirmer] = useState(false)
   // Remise en wishlist (set possédé) : une confirmation qui dit ce qui sera perdu, avec la priorité à donner.
   const [remise, setRemise] = useState(false)
@@ -161,7 +192,10 @@ export function FicheContenu({ set, lectureSeule, lieux = [], lieuRecent = '', e
                       {e.sous && <span className="etape__sous">{e.sous}</span>}
                     </button>
                   ) : (
-                    <span className="etape__fixe">{e.date ? formaterDate(e.date) : '—'}</span>
+                    <>
+                      <span className="etape__fixe">{e.date ? formaterDate(e.date) : '—'}</span>
+                      {e.sous && <span className="etape__sous">{e.sous}</span>}
+                    </>
                   )}
                 </dd>
               </div>
@@ -248,6 +282,8 @@ export function FicheContenu({ set, lectureSeule, lieux = [], lieuRecent = '', e
               </dd>
             </div>
           )}
+          {possede && relais?.url && <NoticesPdf key={set.id} numero={set.numero} relais={relais} />}
+          <Ligne libelle="Sous-thème" valeur={set.sousTheme} />
           {possede && <Ligne libelle="Ajouté le" valeur={set.dateAjout ? new Date(set.dateAjout).toLocaleDateString('fr-FR') : null} />}
           <Ligne libelle="Notes" valeur={set.notes} />
         </dl>
@@ -329,10 +365,10 @@ function sousTitreDe(set) {
   return [set.numero, set.theme || null, set.statut === 'souhaité' ? 'souhaité' : null].filter(Boolean).join(' · ')
 }
 
-export default function FicheSet({ set, lectureSeule, lieux, lieuRecent, etiquettesConnues, onChanger, onModifier, onAcheter, onRemettre, onSupprimer, onFermer }) {
+export default function FicheSet({ set, lectureSeule, relais, lieux, lieuRecent, etiquettesConnues, onChanger, onModifier, onAcheter, onRemettre, onSupprimer, onFermer }) {
   return (
     <Sheet ouvert onFermer={onFermer} titre={set.nom} heros>
-      <FicheContenu set={set} lectureSeule={lectureSeule} lieux={lieux} lieuRecent={lieuRecent} etiquettesConnues={etiquettesConnues} onChanger={onChanger} onModifier={onModifier} onAcheter={onAcheter} onRemettre={onRemettre} onSupprimer={onSupprimer} />
+      <FicheContenu set={set} lectureSeule={lectureSeule} relais={relais} lieux={lieux} lieuRecent={lieuRecent} etiquettesConnues={etiquettesConnues} onChanger={onChanger} onModifier={onModifier} onAcheter={onAcheter} onRemettre={onRemettre} onSupprimer={onSupprimer} />
     </Sheet>
   )
 }

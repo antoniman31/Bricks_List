@@ -7,14 +7,26 @@ l'appeler directement. Le relais l'appelle à sa place, avec ta clé Brickset ga
 
 ```
 GET /sortie?numero=75192-1
--> { "numero": "75192-1", "trouve": true, "lancement": "2017-10-01", "retrait": "2023-12-31", "disponibilite": "Retired", "prixDE": 849.99 }
+-> { "numero": "75192-1", "trouve": true, "lancement": "2017-10-01", "retrait": "2023-12-31", "disponibilite": "Retired", "prixDE": 849.99, "sousTheme": "Ultimate Collector Series" }
 ```
 
 `prixDE` est le prix public allemand en euros (`LEGOCom.DE.retailPrice` chez Brickset), `null` s'il manque ; la France n'a pas de prix chez Brickset.
 
+`sousTheme` : le sous-thème de Brickset ; `""` s'il n'en a pas (à ne pas redemander), `null` si le champ manque.
+
 `lancement` vaut `null` quand Brickset n'a pas de date : l'application affichera alors « date inconnue ».
 
-Deuxième route, sans lien avec Brickset (elle marche même sans `BRICKSET_KEY`) :
+```
+GET /notices?numero=75192-1
+-> { "numero": "75192-1", "trouve": true, "notices": [{ "url": "https://www.lego.com/…pdf", "description": "…" }] }
+```
+
+Les notices PDF de Brickset (`getInstructions2`, un appel par demande, comptés dans la limite de 100 par jour). Seules les adresses https chez
+`lego.com` ou `brickset.com` sont gardées, 12 au plus. **Les noms de champs de la réponse suivent la documentation et n'ont jamais été vus dans une
+vraie réponse** : si la réponse réelle diffère, la fiche affiche « Aucune notice chez Brickset » ; ouvrir `/notices?numero=75192-1` dans le navigateur
+(sans clé à saisir, elle est côté Cloudflare) montre ce que le relais renvoie.
+
+Troisième route, sans lien avec Brickset (elle marche même sans `BRICKSET_KEY`) :
 
 ```
 GET /image?url=https://cdn.rebrickable.com/media/sets/75192-1.jpg   ->  l'image (jpeg, png ou webp, 2 Mo au plus)

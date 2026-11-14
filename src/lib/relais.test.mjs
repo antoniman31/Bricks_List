@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { DELAIS_AVANT_ARRET, arretRelais, ecrireRelais, jetonValide, lireRelais, messageRelais, recupererSortie, urlRelaisValide } from './relais.js';
+import { DELAIS_AVANT_ARRET, arretRelais, ecrireRelais, jetonValide, lireRelais, messageRelais, recupererNotices, recupererSortie, urlNoticeSure, urlRelaisValide } from './relais.js';
 
 const faux = (init = {}) => {
   const m = new Map(Object.entries(init));
@@ -40,7 +40,7 @@ test('réglage : écrire puis lire, une valeur corrompue ou dangereuse retombe s
 test('recupererSortie : date trouvée, jeton envoyé seulement s\'il existe', async () => {
   let vu;
   const fetchFn = async (url, init) => { vu = { url, init }; return json({ numero: '72051-1', trouve: true, lancement: '2027-03-01', retrait: null, disponibilite: 'Coming soon' }); };
-  assert.deepEqual(await recupererSortie(RELAIS, '72051-1', fetchFn), { ok: true, trouve: true, lancement: '2027-03-01', prixDE: null });
+  assert.deepEqual(await recupererSortie(RELAIS, '72051-1', fetchFn), { ok: true, trouve: true, lancement: '2027-03-01', retrait: null, prixDE: null, sousTheme: null });
   assert.equal(vu.url, 'https://bricks-relais.exemple.workers.dev/sortie?numero=72051-1');
   assert.deepEqual(vu.init.headers, {});
   await recupererSortie({ ...RELAIS, jeton: 'abcdefgh12' }, '72051-1', fetchFn);
@@ -48,8 +48,8 @@ test('recupererSortie : date trouvée, jeton envoyé seulement s\'il existe', as
 });
 
 test('recupererSortie : pas de date chez Brickset, ou date absurde, donne lancement null', async () => {
-  assert.deepEqual(await recupererSortie(RELAIS, '72051-1', async () => json({ trouve: true, lancement: null })), { ok: true, trouve: true, lancement: null, prixDE: null });
-  assert.deepEqual(await recupererSortie(RELAIS, '72051-1', async () => json({ trouve: false, lancement: null })), { ok: true, trouve: false, lancement: null, prixDE: null });
+  assert.deepEqual(await recupererSortie(RELAIS, '72051-1', async () => json({ trouve: true, lancement: null })), { ok: true, trouve: true, lancement: null, retrait: null, prixDE: null, sousTheme: null });
+  assert.deepEqual(await recupererSortie(RELAIS, '72051-1', async () => json({ trouve: false, lancement: null })), { ok: true, trouve: false, lancement: null, retrait: null, prixDE: null, sousTheme: null });
   assert.equal((await recupererSortie(RELAIS, '72051-1', async () => json({ trouve: true, lancement: '2999-01-01' }))).lancement, null);
   assert.equal((await recupererSortie(RELAIS, '72051-1', async () => json({ trouve: true, lancement: '<script>' }))).lancement, null);
 });
@@ -108,4 +108,45 @@ test('arretRelais : une image refusée n\'arrête rien, une vraie panne du relai
   for (const code of ['jeton', 'reseau', 'configuration']) assert.equal(arretRelais(code), true, code);
   assert.equal(arretRelais('delai', DELAIS_AVANT_ARRET - 1), false);
   assert.equal(arretRelais('delai', DELAIS_AVANT_ARRET), true);
+});
+
+test('recupererSortie : retrait et sous-thème repris, revalidés (sous-thème vide gardé vide)', async () => {
+  const lu = async (corps) => recupererSortie(RELAIS, '75192-1', async () => json({ trouve: true, lancement: null, ...corps }));
+  const r = await lu({ retrait: '2026-12-31', sousTheme: 'Ultimate Collector Series' });
+  assert.deepEqual([r.retrait, r.sousTheme], ['2026-12-31', 'Ultimate Collector Series']);
+  assert.equal((await lu({ sousTheme: '' })).sousTheme, '');
+  assert.equal((await lu({ sousTheme: 12 })).sousTheme, null);
+  assert.equal((await lu({ sousTheme: 'a\nb' })).sousTheme, 'a b');
+  assert.equal((await lu({ sousTheme: 'x'.repeat(200) })).sousTheme.length, 60);
+  assert.equal((await lu({ retrait: '<script>' })).retrait, null);
+  assert.equal((await lu({ retrait: '2999-01-01' })).retrait, null);
+});
+
+test('urlNoticeSure : https chez LEGO ou Brickset seulement', () => {
+  assert.ok(urlNoticeSure('https://www.lego.com/cdn/a.pdf'));
+  for (const v of ['http://www.lego.com/a.pdf', 'https://evil.example/a.pdf', 'https://lego.com.evil.example/a.pdf', 'https://u:p@www.lego.com/a.pdf', 'javascript:alert(1)', null, 42]) assert.equal(urlNoticeSure(v), null, String(v));
+});
+
+test('recupererNotices : garde les bonnes adresses, jeton envoyé seulement s\'il existe', async () => {
+  let vu;
+  const fetchFn = async (url, init) => { vu = { url, init }; return json({ numero: '75192-1', trouve: true, notices: [{ url: 'https://www.lego.com/a.pdf', description: 'Notice 1' }, { url: 'https://evil.example/b.pdf', description: 'x' }, { url: 'https://www.lego.com/a.pdf', description: 'doublon' }, { url: 'https://www.lego.com/c.pdf' }] }); };
+  assert.deepEqual(await recupererNotices(RELAIS, '75192-1', fetchFn), { ok: true, notices: [{ url: 'https://www.lego.com/a.pdf', description: 'Notice 1' }, { url: 'https://www.lego.com/c.pdf', description: '' }] });
+  assert.equal(vu.url, 'https://bricks-relais.exemple.workers.dev/notices?numero=75192-1');
+  assert.deepEqual(vu.init.headers, {});
+  await recupererNotices({ ...RELAIS, jeton: 'abcdefgh12' }, '75192-1', fetchFn);
+  assert.deepEqual(vu.init.headers, { 'X-Jeton': 'abcdefgh12' });
+});
+
+test('recupererNotices : aucune notice n\'est une réponse valide ; pannes et entrées invalides donnent des codes', async () => {
+  assert.deepEqual(await recupererNotices(RELAIS, '75192-1', async () => json({ trouve: false, notices: [] })), { ok: true, notices: [] });
+  let appels = 0;
+  assert.equal((await recupererNotices(RELAIS, 'abc', async () => { appels += 1; return json({}); })).code, 'numero');
+  assert.equal((await recupererNotices({ url: '', jeton: '' }, '75192-1', async () => { appels += 1; return json({}); })).code, 'numero');
+  assert.equal(appels, 0);
+  const code = async (fetchFn) => (await recupererNotices(RELAIS, '75192-1', fetchFn)).code;
+  assert.equal(await code(async () => json({ erreur: 'limite' }, 429)), 'limite');
+  assert.equal(await code(async () => json({ trouve: true })), 'reponse');
+  assert.equal(await code(async () => new Response('<html>', { status: 200 })), 'reponse');
+  assert.equal(await code(async () => { throw new TypeError('réseau'); }), 'reseau');
+  assert.equal(await code(async () => { throw Object.assign(new Error('t'), { name: 'TimeoutError' }); }), 'delai');
 });
