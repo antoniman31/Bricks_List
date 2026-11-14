@@ -25,11 +25,11 @@ const TRACES = {
   fermer: 'M480-438 270-228q-9 9-21 9t-21-9q-9-9-9-21t9-21l210-210-210-210q-9-9-9-21t9-21q9-9 21-9t21 9l210 210 210-210q9-9 21-9t21 9q9 9 9 21t-9 21L522-480l210 210q9 9 9 21t-9 21q-9 9-21 9t-21-9L480-438Z',  // close
 }
 
-// Icônes au trait (grille 24 × 24), pour la frise des dates : le tracé plein de Material n'a pas de brique ni de calendrier assez lisibles à 16 px.
+// Icônes au trait (grille 24 × 24), pour la frise des dates : le tracé plein de Material n'a pas de calendrier ni de panier assez lisibles à 16 px.
 const CONTOURS = {
   calendrier: <><rect x="3.5" y="5" width="17" height="15.5" rx="2.5" /><path d="M8 3v4M16 3v4M3.5 10h17" /></>,
   panier: <><path d="M5 8h14l-1.2 11.2a1.5 1.5 0 0 1-1.5 1.3H7.7a1.5 1.5 0 0 1-1.5-1.3L5 8Z" /><path d="M9 8V6.5a3 3 0 0 1 6 0V8" /></>,
-  brique: <><path d="M4 11.5l8-3.5 8 3.5v5l-8 3.5-8-3.5v-5Z" /><path d="M4 11.5l8 3.5 8-3.5M12 15v5" /><ellipse cx="9.2" cy="8.3" rx="1.8" ry="1.1" /><ellipse cx="14.8" cy="8.3" rx="1.8" ry="1.1" /></>,
+  coche: <><circle cx="12" cy="12" r="8.5" /><path d="M8 12.5l3 3 5-6" /></>,
 }
 
 export default function Icone({ nom }) {

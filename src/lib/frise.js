@@ -72,4 +72,4 @@ export function dateEnDeux(iso) {
 }
 
 // L'icône de chaque étape (noms de `Icones.jsx`) : parler à l'œil avant de lire le libellé.
-export const ICONES_ETAPE = { 'Sortie': 'calendrier', 'Retrait': 'calendrier', 'Acheté le': 'panier', 'Monté le': 'brique', 'Ajouté le': 'souhaits' };
+export const ICONES_ETAPE = { 'Sortie': 'calendrier', 'Retrait': 'calendrier', 'Acheté le': 'panier', 'Monté le': 'coche', 'Ajouté le': 'souhaits' };
