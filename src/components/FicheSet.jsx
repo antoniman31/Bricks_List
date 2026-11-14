@@ -1,3 +1,4 @@
+import Icone from './Icones.jsx'
 import { useState } from 'react'
 import Sheet from './Sheet.jsx'
 import PhotoFiche from './PhotoFiche.jsx'
@@ -5,9 +6,9 @@ import RangerSheet from './RangerSheet.jsx'
 import { ETATS, LIBELLES_PRIORITE, PRIORITES } from '../lib/model.js'
 import { aEtiquette, ajouterEtiquettes, basculerEtiquette } from '../lib/etiquettes.js'
 import { champsPerdus } from '../lib/collection.js'
-import { aujourdhuiISO, dateSortieValide, dateValide, finSortiePossible, formaterDate } from '../lib/dates.js'
+import { aujourdhuiISO, dateSortieValide, dateValide, finSortiePossible } from '../lib/dates.js'
 import { urlNotice } from '../lib/notice.js'
-import { etapesFrise } from '../lib/frise.js'
+import { etapesFrise, dateEnDeux, ICONES_ETAPE } from '../lib/frise.js'
 import { PRIX_MAX, formaterPrix, lirePrixSaisi, prixPourSaisie } from '../lib/prix.js'
 import { messageRelais, recupererNotices } from '../lib/relais.js'
 import PastillePrixPiece from './PastillePrixPiece.jsx'
@@ -183,24 +184,33 @@ export function FicheContenu({ set, lectureSeule, relais = null, lieux = [], lie
         <div>
           <p className="fiche__titre-bloc">Dates</p>
           <dl className="fiche frise">
-            {etapes.map((e) => (
-              <div key={e.libelle} className={`fiche__ligne fiche__ligne--edit etape etape--${e.etat}`}>
-                <dt>{e.libelle}</dt>
-                <dd>
-                  {e.cle ? (
-                    <button type="button" className="fiche__valeur" aria-expanded={edition === e.cle} disabled={lectureSeule} onClick={() => basculer(e.cle)}>
-                      <span className="etape__date">{e.date ? formaterDate(e.date) : e.cle === 'dateSortie' ? 'Inconnue' : 'Ajouter'}</span>
-                      {e.sous && <span className="etape__sous">{e.sous}</span>}
-                    </button>
-                  ) : (
-                    <>
-                      <span className="etape__fixe">{e.date ? formaterDate(e.date) : '—'}</span>
-                      {e.sous && <span className="etape__sous">{e.sous}</span>}
-                    </>
-                  )}
-                </dd>
-              </div>
-            ))}
+            {etapes.map((e) => {
+              const deux = dateEnDeux(e.date)
+              // L'étape vide propose d'ajouter (« + ») ; une date connue s'écrit sur deux lignes, le jour puis l'année.
+              const contenu = deux ? (
+                <>
+                  <span className="etape__jour">{deux.jour}</span>
+                  <span className="etape__annee">{deux.annee}</span>
+                </>
+              ) : (
+                <span className="etape__jour">{e.cle ? (e.cle === 'dateSortie' ? 'Inconnue' : <><Icone nom="plus" />Ajouter</>) : '—'}</span>
+              )
+              return (
+                <div key={e.libelle} className={`fiche__ligne fiche__ligne--edit etape etape--${e.etat}`}>
+                  <dt><Icone nom={ICONES_ETAPE[e.libelle]} />{e.libelle}</dt>
+                  <dd>
+                    {e.cle ? (
+                      <button type="button" className="fiche__valeur" aria-expanded={edition === e.cle} disabled={lectureSeule} onClick={() => basculer(e.cle)}>
+                        <span className="etape__date">{contenu}</span>
+                      </button>
+                    ) : (
+                      <span className="etape__fixe etape__date">{contenu}</span>
+                    )}
+                    {e.sous && <span className="etape__sous">{e.sous}</span>}
+                  </dd>
+                </div>
+              )
+            })}
           </dl>
           {dateEditee && (
             <div className="fiche__edition fiche__edition--libre">

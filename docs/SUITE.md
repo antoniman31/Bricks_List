@@ -167,8 +167,8 @@ testé avec sa vraie collection, tout fonctionne.
   **frise** « fil sur une ligne ». La boîte (ou le rendu, ou ta photo) occupe toute la largeur du haut de la feuille (ou du panneau de droite sur PC),
   le titre posé dessus sur un dégradé sombre ; les pastilles Boîte / Rendu / Ma photo sont sur l'image (en haut), l'étoile « utiliser dans la liste »
   en bas à droite (icône seule, `aria-label`), la fermeture en haut à droite. Sans image, un fond sombre uni porte le titre. Dessous : chiffres
-  (pièces, année, état ou priorité), puis le bloc « Dates » (`src/lib/frise.js`, testé : `etapesFrise`, `ecartEntre`) : trois blocs reliés, remplis
-  quand l'étape est faite, en pointillés pour une sortie à venir, « Ajouter » quand la date manque (jamais devinée), avec « + 7 ans 5 mois » ou
+  (pièces, année, état ou priorité), puis le bloc « Dates » (`src/lib/frise.js`, testé : `etapesFrise`, `ecartEntre`) : trois cartes séparées (bande d'en-tête
+  avec icône et libellé, date en deux lignes), bande jaune très doux quand l'étape est faite, en pointillés pour une sortie à venir, « + Ajouter » quand la date manque (jamais devinée), avec « + 7 ans 5 mois » ou
   « + 3 semaines » depuis l'étape d'avant ; un set de la wishlist a deux étapes (ajouté le, sortie), jamais « Acheté le ». Toucher une étape ouvre un
   seul sélecteur de date sous la frise. Puis une grille de deux colonnes (libellé au-dessus de la valeur) : emplacement, boîte, notice, étiquettes,
   notice LEGO, ajouté le, notes (prix pour la wishlist) ; une valeur longue ou une cellule ouverte prend toute la largeur. Aucune fonction ne change

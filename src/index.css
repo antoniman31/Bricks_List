@@ -35,6 +35,7 @@
      lui-même y reste lisible (6,4:1). */
   --accent-conteneur: #4a3f0a;
   --sur-accent-conteneur: #ffe88a;
+  --accent-bande: #2a2408;     /* bande d'en-tête d'une étape faite (frise des dates) : l'accent y est à 9,5:1 */
   /* Couches d'état : une teinte posée sur le fond du contrôle, au survol et à l'appui. */
   --survol: rgb(242 243 245 / 0.08);
   --appui: rgb(242 243 245 / 0.14);
@@ -86,6 +87,7 @@ html[data-theme='light'] {
   --danger: #b3261e;           /* 6,5:1 */
   --accent-conteneur: #ffe08a; /* texte dessus --sur-accent-conteneur : 10,4:1 ; l'accent y reste à 5,1:1 */
   --sur-accent-conteneur: #3b2d00;
+  --accent-bande: #fff3cf;     /* bande d'en-tête d'une étape faite : l'accent y est à 5,9:1 */
   --ombre-fab: 0 4px 14px rgb(0 0 0 / 0.25);
   --survol: rgb(20 22 28 / 0.08);
   --appui: rgb(20 22 28 / 0.14);
@@ -961,23 +963,27 @@ div.anneau__ligne { padding: 6px 0; }
 .fiche__grille .fiche__edition { padding: 8px 0; }
 .cellule--large, .cellule--ouverte { grid-column: 1 / -1; }
 
-/* Frise des dates : trois blocs reliés, remplis quand l'étape est faite, en pointillés pour une sortie à venir. */
-.frise { display: flex; align-items: stretch; margin: 0; }
-.frise > .etape { display: flex; flex: 1 1 0; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 0; min-width: 0; min-height: 64px; padding: 10px 10px 6px; border: 1px solid var(--bordure); background: var(--surface-haute); }
-.frise > .etape + .etape { margin-left: -1px; }
-.frise > .etape:first-child { border-radius: 14px 0 0 14px; }
-.frise > .etape:last-child { border-radius: 0 14px 14px 0; }
-.frise > .etape--fait { border-color: transparent; background: var(--accent-conteneur); color: var(--sur-accent-conteneur); }
-.frise > .etape--fait dt { color: inherit; }
-.frise > .etape--futur { border-style: dashed; border-color: var(--bordure-champ); }
-.frise dt { padding: 0; font-size: 0.625rem; letter-spacing: 0.04em; text-transform: uppercase; }
-.frise dd { width: 100%; text-align: left; }
-.frise dt + dd { margin-top: -8px; }
-.frise .fiche__valeur { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; width: 100%; padding: 0; text-align: left; font-weight: 600; font-size: 0.8125rem; line-height: 1.25; color: inherit; }
+/* Frise des dates : une carte par étape, une bande d'en-tête (icône et libellé) et la date dessous. Étape faite : bande jaune très
+   doux et contour discret ; à venir ou à ajouter : pointillés. Pas de trait entre les cartes ni de jaune vif (choix d'Antoni). */
+.frise { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 6px; margin: 0; }
+.frise > .etape { display: flex; flex-wrap: nowrap; align-items: stretch; flex-direction: column; min-width: 0; min-height: 92px; overflow: hidden; border: 1px solid var(--bordure); border-radius: 14px; background: var(--surface); }
+.frise > .etape--fait { border-color: var(--accent-conteneur); }
+.frise > .etape--futur, .frise > .etape--vide { border-style: dashed; border-color: var(--bordure-champ); background: transparent; }
+.frise dt { display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: var(--surface-haute); color: var(--texte-doux); font-size: 0.625rem; letter-spacing: 0.06em; text-transform: uppercase; }
+.frise dt svg { width: 16px; height: 16px; flex: none; }
+.etape--fait dt { background: var(--accent-bande); color: var(--accent); }
+.etape--futur dt, .etape--vide dt { background: transparent; border-bottom: 1px dashed var(--bordure-champ); }
+.frise dd { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; flex: 1; min-width: 0; margin: 0; padding: 0 10px 10px; text-align: left; }
+.frise .fiche__valeur { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; width: calc(100% + 20px); min-height: 48px; margin: 0 -10px; padding: 8px 10px 0; text-align: left; color: inherit; }
 .frise .fiche__valeur::after { display: none; }
-.frise .etape--vide .etape__date { color: var(--accent); font-weight: 500; }
-.etape__sous { font-weight: 400; font-size: 0.6875rem; }
-.etape__fixe { display: block; padding: 6px 0 8px; font-weight: 600; font-size: 0.8125rem; }
+.etape__date { display: flex; flex-direction: column; font-weight: 700; font-size: 1rem; line-height: 1.15; }
+.etape__annee { font-weight: 500; font-size: 0.75rem; color: var(--texte-doux); }
+.etape--vide .etape__date { flex-direction: row; align-items: center; gap: 4px; color: var(--accent); font-weight: 600; font-size: 0.875rem; }
+.etape--vide .etape__date svg { width: 16px; height: 16px; }
+.etape__sous { padding: 2px 8px; border-radius: 12px; background: var(--surface-haute); color: var(--texte-doux); font-weight: 600; font-size: 0.6875rem; line-height: 1.3; }
+.etape--fait .etape__sous { background: var(--accent-bande); color: var(--accent); }
+.etape--futur .etape__sous { background: transparent; border: 1px dashed var(--bordure-champ); }
+.etape__fixe { display: block; padding: 8px 0 0; }
 
 /* Budget de la wishlist : les montants sur une seule ligne, une colonne par priorité (même couleur que la barre au-dessus). */
 .wishlist__budget { margin-top: 12px; }
