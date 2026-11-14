@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ecartEntre, etapesFrise } from './frise.js';
+import { ecartEntre, etapesFrise, dateEnDeux, ICONES_ETAPE } from './frise.js';
 
 test('ecartEntre : des mots courts, au jour, à la semaine, au mois, à l\'année', () => {
   assert.equal(ecartEntre('2025-03-12', '2025-03-12'), 'le même jour');
@@ -61,4 +61,17 @@ test('etapesFrise : le retrait de LEGO s\'ajoute à une wishlist quand il est co
   const passe = etapesFrise({ ...base, dateRetrait: '2026-01-01' }, MAINTENANT)[2];
   assert.deepEqual([passe.etat, passe.sous], ['fait', 'retiré']);
   assert.equal(etapesFrise({ ...base, statut: 'possédé', dateRetrait: '2027-01-01' }, MAINTENANT).some((e) => e.libelle === 'Retrait'), false);
+});
+
+test('dateEnDeux : jour et mois courts, année à part ; rien si la date manque', () => {
+  assert.deepEqual(dateEnDeux('2017-10-01'), { jour: '1 oct.', annee: '2017' });
+  assert.deepEqual(dateEnDeux('2025-03-12'), { jour: '12 mars', annee: '2025' });
+  assert.equal(dateEnDeux(null), null);
+  assert.equal(dateEnDeux('pas une date'), null);
+});
+
+test('chaque étape de la frise a une icône', () => {
+  for (const set of [{ statut: 'possédé' }, { statut: 'souhaité', dateRetrait: '2099-01-01' }]) {
+    for (const e of etapesFrise(set)) assert.ok(ICONES_ETAPE[e.libelle], e.libelle);
+  }
 });

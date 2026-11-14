@@ -25,7 +25,21 @@ const TRACES = {
   fermer: 'M480-438 270-228q-9 9-21 9t-21-9q-9-9-9-21t9-21l210-210-210-210q-9-9-9-21t9-21q9-9 21-9t21 9l210 210 210-210q9-9 21-9t21 9q9 9 9 21t-9 21L522-480l210 210q9 9 9 21t-9 21q-9 9-21 9t-21-9L480-438Z',  // close
 }
 
+// Icônes au trait (grille 24 × 24), pour la frise des dates : le tracé plein de Material n'a pas de calendrier ni de panier assez lisibles à 16 px.
+const CONTOURS = {
+  calendrier: <><rect x="3.5" y="5" width="17" height="15.5" rx="2.5" /><path d="M8 3v4M16 3v4M3.5 10h17" /></>,
+  panier: <><path d="M5 8h14l-1.2 11.2a1.5 1.5 0 0 1-1.5 1.3H7.7a1.5 1.5 0 0 1-1.5-1.3L5 8Z" /><path d="M9 8V6.5a3 3 0 0 1 6 0V8" /></>,
+  coche: <><circle cx="12" cy="12" r="8.5" /><path d="M8 12.5l3 3 5-6" /></>,
+}
+
 export default function Icone({ nom }) {
+  if (CONTOURS[nom]) {
+    return (
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        {CONTOURS[nom]}
+      </svg>
+    )
+  }
   return (
     <svg viewBox="0 -960 960 960" width="24" height="24" fill="currentColor" aria-hidden="true">
       <path d={TRACES[nom]} />

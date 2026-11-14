@@ -677,7 +677,7 @@ const ECRANS = {
     const dans = new Date(); dans.setDate(dans.getDate() + 40);
     const iso = `${dans.getFullYear()}-${String(dans.getMonth() + 1).padStart(2, '0')}-${String(dans.getDate()).padStart(2, '0')}`;
     await p.fill('input[type=date][aria-label="Sortie"]', iso);
-    await p.waitForSelector('.fiche__ligne--edit:has(dt:text-is("Sortie")) .fiche__valeur:has-text("dans 40 jours")');
+    await p.waitForSelector('.fiche__ligne--edit:has(dt:text-is("Sortie")):has-text("dans 40 jours")');
     const stocke = await p.evaluate(() => JSON.parse(localStorage.getItem('bl_v1')).sets.find((x) => x.nom === 'Souhait 2'));
     exiger(stocke.dateSortie === iso && stocke.sortieSource === 'manuelle', 'la date saisie n\'est pas enregistrée comme manuelle');
   },
@@ -974,7 +974,7 @@ const ECRANS = {
     const etapes = await p.locator('.frise .etape').allInnerTexts();
     exiger(etapes.length === 3, `un set possédé doit avoir trois étapes de dates (${etapes.length})`);
     exiger(/sortie[\s\S]*inconnue/i.test(etapes[0]), `la sortie inconnue doit se proposer : ${etapes[0]}`);
-    exiger(/acheté le[\s\S]*mars 2026/i.test(etapes[1]) && /monté le[\s\S]*mars 2026[\s\S]*\+ 2 semaines/i.test(etapes[2]), `dates ou écart faux : ${etapes.slice(1).join(' | ').replace(/\n/g, ' ')}`);
+    exiger(/acheté le[\s\S]*mars\s+2026/i.test(etapes[1]) && /monté le[\s\S]*mars\s+2026[\s\S]*\+ 2 semaines/i.test(etapes[2]), `dates ou écart faux : ${etapes.slice(1).join(' | ').replace(/\n/g, ' ')}`);
   },
   'fiche wishlist : pas de notice LEGO': async (p) => {
     await p.click('.nav__item:has-text("Wishlist")');

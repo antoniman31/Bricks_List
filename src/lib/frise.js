@@ -62,3 +62,14 @@ export function etapesFrise(set, maintenant = new Date()) {
     { cle: 'dateMontage', libelle: 'Monté le', date: montage, etat: etat(montage), sous: ecart(achat, montage) },
   ];
 }
+
+// La date d'une étape en deux lignes : « 1 oct. » et « 2017 » (trois cartes côte à côte sur 360 px n'ont pas la place d'un mois entier).
+export function dateEnDeux(iso) {
+  const p = parties(iso);
+  if (!p) return null;
+  const jour = new Date(p[0], p[1] - 1, p[2]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+  return { jour, annee: String(p[0]) };
+}
+
+// L'icône de chaque étape (noms de `Icones.jsx`) : parler à l'œil avant de lire le libellé.
+export const ICONES_ETAPE = { 'Sortie': 'calendrier', 'Retrait': 'calendrier', 'Acheté le': 'panier', 'Monté le': 'coche', 'Ajouté le': 'souhaits' };
