@@ -189,6 +189,7 @@ testé avec sa vraie collection, tout fonctionne.
     puis `getAdditionalImages` : **deux appels Brickset par set**, 40 images au plus). **La liste se demande sur appui** (« Chercher les images Brickset », jamais en masse) et se
     **mémorise sur l'appareil** (magasin `galeries`, hors sauvegarde : elle se redemande en deux appels). Les images s'affichent **en ligne** dans le carrousel (étiquette
     « Brickset · 4/9 ») et dans la **planche** (« Toutes les images (n) » : miniatures, la boîte probable, c'est-à-dire un nom contenant « box », en tête).
+  - **Chevron « Images et photos »** (demandé par Antoni) : tous les boutons d'images sous l'image de la fiche (planche, chercher, garder, retirer, boîte, reprendre, galerie) sont repliés sous une ligne à chevron, **fermée au départ** ; les messages (copie en cours, erreur) restent visibles dehors.
   - **Garder** : `« Garder sur l'appareil »` copie l'image par le relais (`/image`, étendu à cet hôte et à ce dossier seulement), réduite à 1 024 px comme les rendus, dans le magasin
     `extras` (clé `<numéro>|<nom du fichier>`, **6 par set au plus**). Elles entrent dans l'**export complet** et la restauration (`images.extras`, clé validée : le numéro doit être celui
     d'un set du fichier). **Choix d'Antoni** : garder seulement celles qu'il choisit, pas les ~28 de chaque set (plus de 500 Mo pour la collection, au-delà de la limite d'import de 200 Mo).
@@ -280,7 +281,7 @@ testé avec sa vraie collection, tout fonctionne.
 - **Qualité** : `npm run lint`, `npm test` (482 tests, dont ceux du relais), `npm run verif:ui` (axe-core, cibles de
   48 px, débordements, navigation, recherche visible clavier ouvert, et quatre parcours qui vérifient un
   comportement : filtres conservés au rechargement, onglets indépendants, import d'un `.txt`, repli des
-  boîtes, photo personnelle (enregistrée, relue, retirée), image de la liste (fiche et règle), dates de sortie (affichage, filtre, saisie, relais), remise en wishlist (fiche et sélection, avec annulation), retrait (carte, filtre, frise), sous-thème (fiche, filtre, rattrapage), notices PDF, carrousel, plein écran (zoom, flèches, partage, image de la liste), plusieurs photos par set, images Brickset (chercher, planche, garder, boîte), boîtes gardées (sauvegarde, service hors BrickLink, arrêt en maintenance), rendus gardés par le relais, sauvegarde complète avec images (export, vidage, restauration) ; 102 écrans × 2 thèmes × 4
+  boîtes, photo personnelle (enregistrée, relue, retirée), image de la liste (fiche et règle), dates de sortie (affichage, filtre, saisie, relais), remise en wishlist (fiche et sélection, avec annulation), retrait (carte, filtre, frise), sous-thème (fiche, filtre, rattrapage), notices PDF, carrousel, plein écran (zoom, flèches, partage, image de la liste), plusieurs photos par set, images Brickset (chercher, planche, garder, boîte), boîtes gardées (sauvegarde, service hors BrickLink, arrêt en maintenance), rendus gardés par le relais, sauvegarde complète avec images (export, vidage, restauration) ; 104 écrans × 2 thèmes × 4
   largeurs : 360, 412, 900, 1280). Les trois tournent dans le CI avant le déploiement.
 
 ## Décisions de cadrage (ne pas rouvrir sans raison)
