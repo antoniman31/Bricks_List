@@ -187,6 +187,11 @@ async function sortiesParPaliers(p) {
   await p.reload();
   await p.waitForSelector('.nav__item');
 }
+// Les sous-onglets de l'écran Stats (Aperçu, Répartition, Suivi, Wishlist) : on ouvre celui qu'on veut.
+async function ongletStats(p, cle) {
+  await p.click(`#stats-onglet-${cle}`);
+  await p.waitForSelector(`#stats-onglet-${cle}[aria-selected=true]`);
+}
 // Dans le carrousel de la fiche, avance jusqu'à la diapositive dont la légende contient `texte` (« Ajouter une photo », « Ma photo »…).
 async function allerA(p, texte) {
   for (let i = 0; i < 9; i += 1) {
@@ -558,6 +563,7 @@ const ECRANS = {
   // Départ : Souhait 0 (retrait dans 90 jours, sortie l'an prochain), Souhait 1 (retiré depuis 30 jours : absent), Souhait 2 (sans date).
   'stats (à venir)': async (p) => {
     await p.click('.nav__item:has-text("Stats")');
+    await ongletStats(p, 'wishlist');
     await p.waitForSelector('.avenir');
     const evts = await p.locator('.avenir__evt').allInnerTexts();
     exiger(evts.length === 2 && evts.every((t) => /Souhait 0/.test(t)), `le bloc « À venir » doit montrer les deux événements de Souhait 0 : ${evts.join(' | ')}`);
@@ -566,6 +572,7 @@ const ECRANS = {
   },
   'stats : À venir ouvre la fiche': async (p) => {
     await p.click('.nav__item:has-text("Stats")');
+    await ongletStats(p, 'wishlist');
     await p.waitForSelector('.avenir');
     await p.locator('.avenir__bloc').first().click();
     await p.waitForSelector('.heros__legende');
@@ -1090,6 +1097,7 @@ const ECRANS = {
   // Données : Souhait 0 « Prioritaire » 249 € (saisi), Souhait 1 « Envie » sans prix, Souhait 2 « Un jour » 59,99 € (DE).
   'stats : budget de la wishlist': async (p) => {
     await p.click('.nav__item:has-text("Stats")');
+    await ongletStats(p, 'wishlist');
     await p.waitForSelector('.wishlist__budget');
     const blanc = (t) => t.replace(/[\u202f\u00a0]/g, ' ');
     const tuile = blanc(await p.locator('.kpi:has(.kpi__libelle:text-is("budget"))').innerText());
@@ -1161,8 +1169,64 @@ const ECRANS = {
     await p.click('dialog[open] summary:has-text("Images sur")');
     await p.waitForFunction(() => /\d[\d\s,]* (o|Ko|Mo|Go) (utilisés|d'images)/.test([...document.querySelectorAll('dialog[open] details[open] .reglage__aide')].map((e) => e.textContent).join(' ').replace(/[\u202f\u00a0]/g, ' ')));
   },
+  // Stats en sous-onglets (puces) : Aperçu, Répartition, Suivi, Wishlist. Un seul s'affiche à la fois, l'onglet est retenu au rechargement, la barre
+  // reste collée sous l'en-tête quand on défile. Les blocs d'avant sont rangés tels quels ; les nouveaux (médiane, données, sous-thèmes, plus gros et
+  // plus petits, pile à monter, retraits proches, prix par pièce) y sont dans le même style.
+  'stats (sous-onglets)': async (p) => {
+    await p.click('.nav__item:has-text("Stats")');
+    await p.waitForSelector('.stats__onglets');
+    const titres = () => p.locator('.stats__panneau .bloc__titre').allInnerTexts();
+    exiger(await p.locator('#stats-onglet-apercu[aria-selected=true]').count() === 1, 'l\'écran doit s\'ouvrir sur Aperçu');
+    exiger((await titres()).some((t) => /Records/.test(t)) && !(await titres()).some((t) => /Par thème/.test(t)), 'Aperçu montre les records, pas la répartition');
+    await ongletStats(p, 'repartition');
+    exiger((await titres()).some((t) => /Par thème/.test(t)) && !(await titres()).some((t) => /Records/.test(t)), 'Répartition montre les thèmes, pas les records');
+    await ongletStats(p, 'suivi');
+    exiger((await titres()).some((t) => /Avancement/.test(t)), 'Suivi montre l\'avancement');
+    await ongletStats(p, 'wishlist');
+    exiger((await titres()).some((t) => /^Wishlist$/.test(t)), 'Wishlist montre la wishlist');
+    // L'onglet est retenu.
+    await p.reload(); await p.waitForSelector('.nav__item');
+    await p.click('.nav__item:has-text("Stats")');
+    await p.waitForSelector('#stats-onglet-wishlist[aria-selected=true]');
+    // La barre reste collée sous l'en-tête pendant le défilement.
+    await ongletStats(p, 'repartition');
+    await p.evaluate(() => window.scrollTo(0, 400));
+    await p.waitForTimeout(150);
+    const [haut, bas] = await p.evaluate(() => [document.querySelector('.stats__onglets').getBoundingClientRect().top, document.querySelector('.entete').getBoundingClientRect().bottom]);
+    exiger(Math.abs(haut - bas) < 3, `la barre des sous-onglets doit rester collée sous l'en-tête (barre ${Math.round(haut)}, en-tête ${Math.round(bas)})`);
+  },
+  'stats : clavier (flèches)': async (p) => {
+    await p.click('.nav__item:has-text("Stats")');
+    await p.waitForSelector('.stats__onglets');
+    await p.focus('#stats-onglet-apercu');
+    await p.keyboard.press('ArrowRight');
+    await p.waitForSelector('#stats-onglet-repartition[aria-selected=true]');
+    await p.keyboard.press('ArrowLeft');
+    await p.waitForSelector('#stats-onglet-apercu[aria-selected=true]');
+    exiger(await p.evaluate(() => document.activeElement?.id) === 'stats-onglet-apercu', 'le focus doit suivre l\'onglet');
+  },
+  'stats : nouveaux blocs': async (p) => {
+    await p.click('.nav__item:has-text("Stats")');
+    await p.waitForSelector('.stats__onglets');
+    const titres = () => p.locator('.stats__panneau .bloc__titre').allInnerTexts();
+    exiger(await p.locator('.stats__panneau .stats__note:has-text("Médiane")').count() === 1, 'la médiane des pièces manque dans Aperçu');
+    exiger((await titres()).some((t) => /Données/.test(t)), 'le bloc Données manque dans Aperçu');
+    await p.waitForSelector('.stats__panneau:has-text("Aucune image gardée"), .stats__panneau:has-text("Place prise")');
+    await ongletStats(p, 'repartition');
+    exiger((await titres()).some((t) => /Par sous-thème/.test(t)) && (await titres()).some((t) => /plus gros et les plus petits/.test(t)), 'sous-thèmes ou plus gros et plus petits manquent dans Répartition');
+    await ongletStats(p, 'suivi');
+    exiger((await titres()).some((t) => /À monter depuis le plus longtemps/.test(t)), 'la pile la plus ancienne manque dans Suivi');
+    await ongletStats(p, 'wishlist');
+    exiger((await titres()).some((t) => /À acheter vite/.test(t)) && (await titres()).some((t) => /Prix par pièce/.test(t)), 'À acheter vite ou Prix par pièce manquent dans Wishlist');
+    exiger(!(await titres()).some((t) => /Budget par thème/.test(t)), 'un seul thème : pas de budget par thème');
+  },
+  'stats : Aperçu': async (p) => { await p.click('.nav__item:has-text("Stats")'); await p.waitForSelector('.stats__onglets'); await p.waitForSelector('.stats__panneau .bloc'); },
+  'stats : Répartition': async (p) => { await p.click('.nav__item:has-text("Stats")'); await ongletStats(p, 'repartition'); await p.waitForSelector('.stats__panneau .bloc'); },
+  'stats : Suivi': async (p) => { await p.click('.nav__item:has-text("Stats")'); await ongletStats(p, 'suivi'); await p.waitForSelector('.stats__panneau .bloc'); },
+  'stats : Wishlist': async (p) => { await p.click('.nav__item:has-text("Stats")'); await ongletStats(p, 'wishlist'); await p.waitForSelector('.stats__panneau .bloc'); },
   'stats (détails dépliés)': async (p) => {
     await p.click('.nav__item:has-text("Stats")'); await p.waitForSelector('.stats');
+    await ongletStats(p, 'repartition');
     await p.click('.stats__detail:has-text("thèmes")');
     const annees = p.locator('.stats__detail:has-text("Voir par année")');
     if (await annees.count()) await annees.click();
