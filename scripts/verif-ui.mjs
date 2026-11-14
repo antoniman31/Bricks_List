@@ -175,6 +175,18 @@ async function ouvrirImages(p) {
   const b = p.locator('.photo-menu__bouton');
   if ((await b.getAttribute('aria-expanded')) === 'false') await b.click();
 }
+// Des sorties à venir de délais différents, pour voir le bandeau « Sort dans… » : Souhait 0 dans 200 jours (loin), Souhait 1 dans 60 (mois), Souhait 2 dans
+// 10 (proche), sans retrait (un set qui a le bandeau de retrait n'a pas celui de sortie). Les dates du semis de départ dépendent du jour du contrôle.
+async function sortiesParPaliers(p) {
+  await p.evaluate((dates) => {
+    const d = JSON.parse(localStorage.getItem('bl_v1'));
+    const iso = (n) => { const x = new Date(); x.setDate(x.getDate() + n); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`; };
+    for (const [nom, jours] of Object.entries(dates)) { const s = d.sets.find((x) => x.nom === nom); s.dateSortie = iso(jours); s.sortieSource = 'manuelle'; s.dateRetrait = null; }
+    localStorage.setItem('bl_v1', JSON.stringify(d));
+  }, { 'Souhait 0': 200, 'Souhait 1': 60, 'Souhait 2': 10 });
+  await p.reload();
+  await p.waitForSelector('.nav__item');
+}
 // Dans le carrousel de la fiche, avance jusqu'à la diapositive dont la légende contient `texte` (« Ajouter une photo », « Ma photo »…).
 async function allerA(p, texte) {
   for (let i = 0; i < 9; i += 1) {
@@ -453,16 +465,34 @@ const ECRANS = {
   },
   // Dates de sortie : affichage, filtre, saisie à la main, puis mise à jour par le relais (simulé plus bas).
   'wishlist (dates de sortie)': async (p) => {
+    await sortiesParPaliers(p);
     await p.click('.nav__item:has-text("Wishlist")');
     await p.waitForSelector('.carte:has-text("Sort ")');
     exiger(await p.locator('button:has-text("Mettre à jour dates et prix")').count() === 0, 'le bouton de mise à jour ne doit plus encombrer la wishlist (il est dans Réglages)');
     exiger(await p.locator('button[aria-label="Copier la liste"]').count() === 1, 'le bouton « Copier la liste » manque');
   },
   'wishlist grille (dates de sortie)': async (p) => {
+    await sortiesParPaliers(p);
     await p.click(GRILLE);
     await p.click('.nav__item:has-text("Wishlist")');
-    await p.waitForSelector('.carte--tuile .carte__sortie');
+    await p.waitForSelector('.carte--tuile .badge-sortie');
   },
+  // Bandeau « Sort dans… » en bas de la photo (sets pas encore sortis), couleur selon le délai : loin (plus de 90 jours), mois (31 à 90), proche (30 et
+  // moins). La date exacte reste sur la fiche ; le texte de la carte n'en parle plus ; un set qui a le bandeau de retrait n'a pas celui-ci.
+  'wishlist (bandeau sortie)': async (p) => {
+    await sortiesParPaliers(p);
+    await p.click('.nav__item:has-text("Wishlist")');
+    await p.waitForSelector('.carte .badge-sortie');
+    const palier = (nom) => p.locator(`.carte:has-text("${nom}") .badge-sortie`).getAttribute('class');
+    exiger(/--loin/.test(await palier('Souhait 0')) && /--mois/.test(await palier('Souhait 1')) && /--proche/.test(await palier('Souhait 2')), 'les paliers de couleur du bandeau (loin, mois, proche) sont faux');
+    exiger(await p.locator('.carte:has-text("Souhait 2") .badge-sortie').innerText().then((t) => /Sort dans 10 j/i.test(t)), 'le délai doit être écrit sur le bandeau');
+    exiger(await p.locator('.carte:has-text("Souhait 0") .carte__etat:has-text("Sort le")').count() === 0, 'le texte de la carte ne doit plus donner la date de sortie');
+    exiger(await p.locator('.carte:has-text("Souhait 2") .carte__nom .visuellement-cache').innerText().then((t) => /sort dans 10 jours/.test(t)), 'le lecteur d\'écran doit entendre le délai');
+    const bande = await p.locator('.carte:has-text("Souhait 2") .badge-sortie').boundingBox();
+    const photo = await p.locator('.carte:has-text("Souhait 2") .carte__photo').boundingBox();
+    exiger(bande && photo && bande.width > photo.width * 0.95 && Math.abs((bande.y + bande.height) - (photo.y + photo.height)) < 3, 'le bandeau doit être collé au bas de la photo');
+  },
+
   'filtres (sortie)': async (p) => {
     await p.click('.nav__item:has-text("Wishlist")');
     await p.click(FILTRES);
@@ -926,6 +956,7 @@ const ECRANS = {
     await p.waitForSelector('.carte .badge-retrait--retire:has-text("Retiré")');
     exiger(await p.locator('.carte:has-text("Souhait 0") .badge-retrait--bientot').innerText().then((t) => /Retrait 3 mois/i.test(t)), 'un retrait dans trois mois doit s\'écrire sur la photo');
     exiger(await p.locator('.carte:has-text("Souhait 2") .badge-retrait').count() === 0, 'un set sans retrait ne doit rien afficher');
+    exiger(await p.locator('.carte:has-text("Souhait 0") .badge-sortie').count() === 0, 'un set qui a le bandeau de retrait ne doit pas avoir aussi celui de sortie');
     // Le bandeau est décoratif et hors du texte de la carte : un lecteur d'écran lit la phrase cachée, le texte visible n'en parle plus.
     exiger(await p.locator('.carte:has-text("Souhait 1") .carte__etat:has-text("Retiré")').count() === 0, 'le texte de la carte ne doit plus parler du retrait');
     exiger(await p.locator('.carte:has-text("Souhait 1") .carte__nom .visuellement-cache').innerText().then((t) => /retiré/.test(t)), 'le lecteur d\'écran doit entendre « retiré »');

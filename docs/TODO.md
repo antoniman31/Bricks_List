@@ -3,7 +3,7 @@
 Ce fichier dit **où on s'est arrêtés** et **quoi faire ensuite**, dans l'ordre. Il complète `docs/SUITE.md` (état
 complet du projet, décisions, limites) et `CLAUDE.md` (règles de travail). Lire les trois avant de commencer.
 
-Dernière PR fusionnée : **#86** (`verif:ui` en parallèle) ; en cours : contrôle d'interface allégé (3 largeurs, comportements en 360 et 1280 px) et CI en 4 jobs, puis bandeau « Sortie » (variante 1, paliers 30 et 90 jours, vert dans le mois, toutes les sorties annoncées), puis sous-onglets des Stats (puces, 4 onglets : Aperçu, Répartition, Suivi, Wishlist, plus les blocs ajoutés). Branche de travail unique :
+Dernière PR fusionnée : **#87** (contrôle d'interface allégé et CI en 4 jobs : ~2 min 30 au lieu de 9) ; en cours : bandeau « Sort dans… », puis sous-onglets des Stats (puces, 4 onglets : Aperçu, Répartition, Suivi, Wishlist, plus les blocs ajoutés). Branche de travail unique :
 `ccr-bf63eeba-887je4`. Qualité : lint OK, 492 tests, `verif:ui` 554 écrans (3 largeurs ; comportements en 360 et 1280 px).
 
 Depuis la PR #66 : transfert collection ↔ wishlist (#67), boîtes BrickLink gardées sur l'appareil (#68), rendus

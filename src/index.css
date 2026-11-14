@@ -64,6 +64,8 @@
   --retire: #b3261e; --sur-retire: #ffffff;
   /* Pastille « bon prix par pièce » : blanc dessus, 5,3:1. « Cher » reprend le jaune de la marque (--accent-fond, texte sombre). */
   --bon: #1f7a4d; --sur-bon: #ffffff;
+  /* Bandeau « Sort dans… » sur la photo : bleu foncé (loin), bleu (dans les trois mois), vert (dans le mois). Blanc dessus : 9,2 / 5,2 / 5,3:1. */
+  --sortie-loin: #1d447f; --sortie-mois: #2f6bc2; --sortie-proche: #1f7a4d; --sur-sortie: #ffffff;
   color-scheme: dark;
 }
 
@@ -101,6 +103,7 @@ html[data-theme='light'] {
   --echelle-5: #1b4f96; --sur-echelle-5: #ffffff;
   --retire: #b3261e; --sur-retire: #ffffff; /* 6,5:1 */
   --bon: #1f7a4d; --sur-bon: #ffffff; /* 5,3:1 */
+  --sortie-loin: #17437f; --sortie-mois: #2468c4; --sortie-proche: #1f7a4d; --sur-sortie: #ffffff; /* 9,7 / 5,5 / 5,3:1 */
   color-scheme: light;
 }
 
@@ -1064,3 +1067,10 @@ div.anneau__ligne { padding: 6px 0; }
 .avenir__chip { padding: 0 8px; border-radius: 6px; font-size: 0.6875rem; font-weight: 800; letter-spacing: 0.05em; line-height: 18px; text-transform: uppercase; }
 .avenir__chip--retrait { background: var(--retire); color: var(--sur-retire); }
 .avenir__chip--sortie { background: var(--echelle-3); color: var(--sur-echelle-3); }
+
+/* ---------- Bandeau « Sort dans… » en bas de la photo d'une carte (liste et grille) ---------- */
+.badge-sortie { position: absolute; left: 0; right: 0; bottom: 0; z-index: 1; padding: 3px 4px; color: var(--sur-sortie); font-size: 0.625rem; font-weight: 800; letter-spacing: 0.06em; line-height: 15px; text-align: center; text-transform: uppercase; white-space: nowrap; }
+.badge-sortie--loin { background: var(--sortie-loin); }
+.badge-sortie--mois { background: var(--sortie-mois); }
+.badge-sortie--proche { background: var(--sortie-proche); }
+.carte--tuile .badge-sortie { font-size: 0.75rem; line-height: 18px; }
