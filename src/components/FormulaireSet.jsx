@@ -6,10 +6,12 @@ import { normaliserNumero } from '../lib/numero.js'
 import { normaliserSet, ETATS, LIBELLES_PRIORITE, PRIORITES } from '../lib/model.js'
 import { analyserSaisie, basculerDansSaisie, cleEtiquette, formaterSaisie, preparerSaisie } from '../lib/etiquettes.js'
 import { messageErreur, MESSAGES, MOTS_MIN } from '../lib/rebrickable.js'
+import { changementsOptionnels } from '../lib/champsOptionnels.js'
+import { prixPourSaisie } from '../lib/prix.js'
 
 const RECHERCHE_VIDE = { etat: 'repos', message: '', avertissements: [] }
 const NOM_VIDE = { mots: '', etat: 'repos', message: '', resultats: [], page: 1, suite: false, total: 0 }
-const VIDE = { numero: '', nom: '', theme: '', annee: '', pieces: '', etat: '', notes: '', emplacement: '', boite: '', notice: '', priorite: '', dateAchat: '', dateMontage: '', etiquettes: '' }
+const VIDE = { numero: '', nom: '', theme: '', annee: '', pieces: '', etat: '', notes: '', emplacement: '', boite: '', notice: '', priorite: '', dateAchat: '', dateMontage: '', etiquettes: '', prix: '', dateSortie: '', dateRetrait: '', sousTheme: '' }
 
 function versChamps(set) {
   return {
@@ -27,6 +29,10 @@ function versChamps(set) {
     dateAchat: set.dateAchat ?? '',
     dateMontage: set.dateMontage ?? '',
     etiquettes: formaterSaisie(set.etiquettes ?? []),
+    prix: prixPourSaisie(set.prix),
+    dateSortie: set.dateSortie ?? '',
+    dateRetrait: set.dateRetrait ?? '',
+    sousTheme: set.sousTheme ?? '',
   }
 }
 
@@ -151,7 +157,11 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
     const etiquettes = preparerSaisie(champs.etiquettes)
     if (etiquettes.erreur) return setErreur(etiquettes.erreur)
 
+    const options = changementsOptionnels(depart, champs, statut === 'souhaité')
+    if (options.erreur) return setErreur(options.erreur)
+
     const brut = {
+      ...options.changements,
       numero,
       nom: champs.nom,
       theme: champs.theme,
@@ -283,6 +293,10 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
             {themesConnus.map((t) => <option key={t} value={t} />)}
           </datalist>
         </label>
+        <label className="formulaire__champ">
+          Sous-thème
+          <input className="champ" autoComplete="off" maxLength={60} value={champs.sousTheme} onChange={maj('sousTheme')} />
+        </label>
         <div className="formulaire__ligne">
           <label className="formulaire__champ">
             Année
@@ -355,6 +369,22 @@ export default function FormulaireSet({ initial, statutParDefaut, themesConnus, 
               </label>
             </div>
           </>
+        )}
+        <div className="formulaire__ligne">
+          <label className="formulaire__champ">
+            Sortie le
+            <input className="champ" type="date" min="1949-01-01" value={champs.dateSortie} onChange={maj('dateSortie')} />
+          </label>
+          <label className="formulaire__champ">
+            Retrait prévu le
+            <input className="champ" type="date" min="1949-01-01" value={champs.dateRetrait} onChange={maj('dateRetrait')} />
+          </label>
+        </div>
+        {statut === 'souhaité' && (
+          <label className="formulaire__champ">
+            Prix officiel (€)
+            <input className="champ" inputMode="decimal" autoComplete="off" placeholder="849,99" value={champs.prix} onChange={maj('prix')} />
+          </label>
         )}
         <label className="formulaire__champ">
           Étiquettes
