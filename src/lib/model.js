@@ -21,7 +21,9 @@ export const PRIORITES = ['forte', 'un-jour', 'pas-presse'];
 // D'où vient la date de sortie : saisie à la main (jamais écrasée par une mise à jour) ou donnée par Brickset.
 export const SOURCES_SORTIE = ['manuelle', 'brickset'];
 export const IMAGES_LISTE = ['boite', 'rendu', 'photo'];
-export const LIBELLES_PRIORITE = { forte: 'Envie forte', 'un-jour': 'Un jour', 'pas-presse': 'Pas pressé' };
+// Libellés choisis par Antoni (novembre 2026), du plus pressé au moins pressé. Les clés stockées (et exportées) n'ont pas changé :
+// « un-jour » s'affiche « Envie » et « pas-presse » s'affiche « Un jour », pour ne rien migrer.
+export const LIBELLES_PRIORITE = { forte: 'Prioritaire', 'un-jour': 'Envie', 'pas-presse': 'Un jour' };
 
 function nouvelId() {
   return globalThis.crypto?.randomUUID?.() ?? `id-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;

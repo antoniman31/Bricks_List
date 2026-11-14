@@ -55,8 +55,8 @@ Connexions > Relais. **Vérifié avec une vraie réponse de Brickset** pour le F
   des photos de boîte, **non vérifié**), maintenant faisable puisque la clé marche : tester d'abord sur un set avec une vraie
   réponse (une route d'essai du relais), puis décider. Les images principales de Brickset (`images.brickset.com`) sont des
   rendus, comme Rebrickable ; LEGO.com écarté (adresses non déductibles, pas d'API publique).
-- **Libellés de la wishlist** : Antoni n'a pas tranché. Recommandation : « Prioritaire », « Envie », « Un jour » (à la place de
-  « Envie forte », « Un jour », « Pas pressé »). Ne coder qu'après son « ok ».
+- **Libellés de la wishlist** : faits (novembre 2026) : « Prioritaire », « Envie », « Un jour » (les clés stockées `forte`, `un-jour`, `pas-presse`
+  n'ont pas changé).
 - **Prix** : seulement le prix officiel de la wishlist (exception au cadrage). Pas de prix du marché ni de prix payé.
 - **Fichier d'export lourd** : si le partage vers Drive ou Messages traîne, ajouter un bouton « sans les images ».
 

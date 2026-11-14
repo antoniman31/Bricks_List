@@ -30,7 +30,7 @@ test('avec priorités : groupes dans l\'ordre, « Non précisée » en dernier, 
     W('5-1', 'Delta', { priorite: 'un-jour' }),
   ]);
   const titres = t.split('\n').filter((l) => !l.startsWith('•') && !l.startsWith('  ') && l !== '');
-  assert.deepEqual(titres.slice(1), ['Envie forte', 'Un jour', 'Pas pressé', 'Non précisée']);
+  assert.deepEqual(titres.slice(1), ['Prioritaire', 'Envie', 'Un jour', 'Non précisée']);
   assert.ok(t.indexOf('Alpha') < t.indexOf('Beta'));
   assert.ok(t.indexOf('Beta') < t.indexOf('Delta'));
   assert.ok(t.indexOf('Zèbre') < t.indexOf('Sans'));
@@ -38,7 +38,7 @@ test('avec priorités : groupes dans l\'ordre, « Non précisée » en dernier, 
 
 test('un groupe vide n\'est pas écrit', () => {
   const t = texteWishlist([W('1-1', 'A', { priorite: 'forte' })]);
-  assert.doesNotMatch(t, /Un jour|Pas pressé|Non précisée/);
+  assert.doesNotMatch(t, /Envie|Un jour|Non précisée/);
 });
 
 test('pièces : total des connues, signalé quand certaines manquent', () => {

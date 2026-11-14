@@ -387,7 +387,7 @@ const ECRANS = {
     const avant = await lire();
     await p.locator('.carte').first().click();
     await p.click('button.fiche__remise');
-    await p.click('[role=alertdialog] .puce:text-is("Un jour")');
+    await p.click('[role=alertdialog] .puce:text-is("Envie")');
     await p.click('[role=alertdialog] button:has-text("Remettre en wishlist")');
     await p.waitForSelector('.avis:has-text("remis en wishlist")');
     const apres = await lire();
@@ -412,7 +412,7 @@ const ECRANS = {
     await p.click(SELECTIONNER);
     await p.locator('.carte').nth(0).click(); await p.locator('.carte').nth(1).click();
     await p.click('.nav__item:has-text("Wishlist")');
-    await p.click('dialog[open] .puce:text-is("Envie forte")');
+    await p.click('dialog[open] .puce:text-is("Prioritaire")');
     await p.click('dialog[open] button:has-text("Remettre 2 sets")');
     await p.waitForSelector('.avis:has-text("2 sets remis en wishlist")');
     exiger(await nbSouhaites() === avant + 2, 'deux sets doivent arriver en wishlist');

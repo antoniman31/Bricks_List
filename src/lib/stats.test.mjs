@@ -145,8 +145,8 @@ const SOUHAITS = [wl({ priorite: 'forte' }), wl({ priorite: 'forte' }), wl({ pri
 
 test('wishlist : répartition par priorité, « non précisée » en dernier', () => {
   assert.deepEqual(calculerStats(SOUHAITS).wishlist.priorites, [
-    { cle: 'forte', libelle: 'Envie forte', sets: 2 },
-    { cle: 'un-jour', libelle: 'Un jour', sets: 1 },
+    { cle: 'forte', libelle: 'Prioritaire', sets: 2 },
+    { cle: 'un-jour', libelle: 'Envie', sets: 1 },
     { cle: '', libelle: 'Non précisée', sets: 1 },
   ]);
 });
