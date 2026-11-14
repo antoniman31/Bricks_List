@@ -23,6 +23,9 @@ export function lirePrixSaisi(texte) {
 const EURO_ROND = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
 const EURO = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 });
 export const formaterPrix = (n) => (prixValide(n) === null ? '' : Number.isInteger(n) ? EURO_ROND.format(n) : EURO.format(n));
+// Au euro près, pour un chiffre-clé où les centimes n'apportent rien (« 6 783 € »).
+const EURO_ENTIER = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+export const formaterPrixRond = (n) => (prixValide(n) === null ? '' : EURO_ENTIER.format(Math.round(n)));
 // Dans un champ de saisie : « 849,99 », sans symbole.
 export const prixPourSaisie = (n) => (prixValide(n) === null ? '' : String(n).replace('.', ','));
 

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { TRANCHES_PRIX, aPreRemplir, comparerPrix, correspondPrix, formaterPrix, libelleTotal, lirePrixSaisi, prixPourSaisie, prixValide, totalPrix } from './prix.js';
+import { TRANCHES_PRIX, formaterPrixRond, aPreRemplir, comparerPrix, correspondPrix, formaterPrix, libelleTotal, lirePrixSaisi, prixPourSaisie, prixValide, totalPrix } from './prix.js';
 
 test('prixValide : un montant en euros raisonnable, arrondi au centime', () => {
   assert.equal(prixValide(849.99), 849.99);
@@ -58,4 +58,10 @@ test('aPreRemplir : la wishlist sans prix ou avec un prix DE, jamais un prix sai
   assert.equal(aPreRemplir({ statut: 'souhaité', prix: 100, prixSource: 'manuelle' }), false);
   assert.equal(aPreRemplir({ statut: 'souhaité', prix: 100 }), false); // prix sans source : réputé saisi à la main
   assert.equal(aPreRemplir({ statut: 'possédé' }), false);
+});
+
+test('formaterPrixRond : au euro près', () => {
+  assert.match(formaterPrixRond(6782.67), /^6\s783\s€$/);
+  assert.match(formaterPrixRond(249), /^249\s€$/);
+  assert.equal(formaterPrixRond(null), '');
 });
