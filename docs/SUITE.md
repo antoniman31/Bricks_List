@@ -151,6 +151,16 @@ testé avec sa vraie collection, tout fonctionne.
   fois** (Apparence est ouverte au départ). Aucune fonction ne change ; « Dates de sortie » devient « Relais (dates et prix) » car il sert
   aussi aux rendus. Sur la wishlist, les deux gros boutons sont retirés : « Mettre à jour dates et prix » vit dans Réglages > Relais,
   « Copier la liste » devient un bouton-icône à côté de la ligne « Total ». Parcours `verif:ui` : groupes, états, une seule section ouverte.
+- **Fiche de set refaite** (novembre 2026, au choix d'Antoni parmi quatre propositions de maquette) : **plein cadre**, infos en **une grille**, dates en
+  **frise** « fil sur une ligne ». La boîte (ou le rendu, ou ta photo) occupe toute la largeur du haut de la feuille (ou du panneau de droite sur PC),
+  le titre posé dessus sur un dégradé sombre ; les pastilles Boîte / Rendu / Ma photo sont sur l'image (en haut), l'étoile « utiliser dans la liste »
+  en bas à droite (icône seule, `aria-label`), la fermeture en haut à droite. Sans image, un fond sombre uni porte le titre. Dessous : chiffres
+  (pièces, année, état ou priorité), puis le bloc « Dates » (`src/lib/frise.js`, testé : `etapesFrise`, `ecartEntre`) : trois blocs reliés, remplis
+  quand l'étape est faite, en pointillés pour une sortie à venir, « Ajouter » quand la date manque (jamais devinée), avec « + 7 ans 5 mois » ou
+  « + 3 semaines » depuis l'étape d'avant ; un set de la wishlist a deux étapes (ajouté le, sortie), jamais « Acheté le ». Toucher une étape ouvre un
+  seul sélecteur de date sous la frise. Puis une grille de deux colonnes (libellé au-dessus de la valeur) : emplacement, boîte, notice, étiquettes,
+  notice LEGO, ajouté le, notes (prix pour la wishlist) ; une valeur longue ou une cellule ouverte prend toute la largeur. Aucune fonction ne change
+  (photo perso, image de la liste, édition sur place, remise en wishlist, suppression, achat). Le bandeau jaune (`EnteteFiche`) disparaît.
 - **Notice LEGO** (novembre 2026) : sur la fiche d'un set **possédé**, une ligne « Notice LEGO » avec un lien « Ouvrir sur lego.com » (nouvel onglet,
   `noopener noreferrer`). L'adresse se déduit du numéro, sans suffixe de version : `https://www.lego.com/fr-fr/service/building-instructions/<numéro>`
   (`src/lib/notice.js`, testé ; format constaté sur des dizaines de pages indexées, **jamais ouvert depuis l'environnement de développement** : LEGO.com
@@ -221,10 +231,10 @@ testé avec sa vraie collection, tout fonctionne.
   au rechargement (`bl_filtres`, hors export, `src/lib/filtresMemo.js`, entrée validée ; l'ancien format à un
   seul jeu est lu). La recherche texte n'est pas retenue et se vide au changement d'onglet. Un raccourci des
   Stats remplace les filtres de la collection.
-- **Qualité** : `npm run lint`, `npm test` (425 tests, dont ceux du relais), `npm run verif:ui` (axe-core, cibles de
+- **Qualité** : `npm run lint`, `npm test` (431 tests, dont ceux du relais), `npm run verif:ui` (axe-core, cibles de
   48 px, débordements, navigation, recherche visible clavier ouvert, et quatre parcours qui vérifient un
   comportement : filtres conservés au rechargement, onglets indépendants, import d'un `.txt`, repli des
-  boîtes, photo personnelle (enregistrée, relue, retirée), image de la liste (fiche et règle), dates de sortie (affichage, filtre, saisie, relais), remise en wishlist (fiche et sélection, avec annulation), boîtes gardées (sauvegarde, service hors BrickLink, arrêt en maintenance), rendus gardés par le relais, sauvegarde complète avec images (export, vidage, restauration) ; 72 écrans × 2 thèmes × 4
+  boîtes, photo personnelle (enregistrée, relue, retirée), image de la liste (fiche et règle), dates de sortie (affichage, filtre, saisie, relais), remise en wishlist (fiche et sélection, avec annulation), boîtes gardées (sauvegarde, service hors BrickLink, arrêt en maintenance), rendus gardés par le relais, sauvegarde complète avec images (export, vidage, restauration) ; 73 écrans × 2 thèmes × 4
   largeurs : 360, 412, 900, 1280). Les trois tournent dans le CI avant le déploiement.
 
 ## Décisions de cadrage (ne pas rouvrir sans raison)

@@ -9,7 +9,7 @@ import { autreVue, ecrireVue, lireVue } from './lib/vue.js'
 import { FILTRES_VIDES, ecrireFiltres, lireFiltres } from './lib/filtresMemo.js'
 import { texteWishlist } from './lib/wishlist.js'
 import FiltersSheet from './components/FiltersSheet.jsx'
-import FicheSet, { EnteteFiche, FicheContenu } from './components/FicheSet.jsx'
+import FicheSet, { FicheContenu } from './components/FicheSet.jsx'
 import FormulaireSet from './components/FormulaireSet.jsx'
 import LotSheet from './components/LotSheet.jsx'
 import AjoutRapide from './components/AjoutRapide.jsx'
@@ -790,7 +790,6 @@ export default function App() {
         <aside className="detail" aria-label="Détail du set">
           {detail ? (
             <>
-              <EnteteFiche set={detail} />
               <FicheContenu
                 key={detail.id}
                 set={detail}

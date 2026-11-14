@@ -552,11 +552,11 @@ const ECRANS = {
     await p.click('dialog[open] button:has-text("Enregistrer")');
     await p.waitForSelector('img.vignette--fiche[alt^="Ma photo"]');
     exiger(await cartePhoto() === 0, 'une photo non choisie apparaît déjà dans la liste');
-    await p.click('button:has-text("Utiliser dans la liste")');
-    await p.waitForSelector('.photo-fiche > .bouton[aria-pressed=true]');
+    await p.click('button[aria-label="Utiliser dans la liste"]');
+    await p.waitForSelector('.heros__etoile[aria-pressed=true]');
     await p.waitForFunction(() => document.querySelectorAll('.carte img.vignette[data-origine="photo"]').length === 1);
     exiger(await p.evaluate(() => JSON.parse(localStorage.getItem('bl_v1')).sets.filter((x) => x.imageListe === 'photo').length) === 1, 'le choix n\'est pas enregistré dans la fiche');
-    await p.click('.photo-fiche > .bouton[aria-pressed=true]');
+    await p.click('.heros__etoile[aria-pressed=true]');
     await p.waitForFunction(() => document.querySelectorAll('.carte img.vignette[data-origine="photo"]').length === 0);
   },
   'photo : règle des Réglages': async (p) => {
@@ -637,11 +637,22 @@ const ECRANS = {
     exiger(/^https:\/\/www\.lego\.com\/fr-fr\/service\/building-instructions\/\d{3,7}$/.test(href), `adresse de notice inattendue : ${href}`);
     exiger(cible === '_blank' && /noopener/.test(rel) && /noreferrer/.test(rel), 'le lien doit s\'ouvrir dans un nouvel onglet, sans accès à l\'appli (noopener noreferrer)');
   },
+  // Frise des dates : trois étapes pour un set possédé (la date manquante se propose, l'écart se lit entre deux dates connues),
+  // deux pour un set de la wishlist (jamais d'étape « Acheté »).
+  'fiche (frise des dates)': async (p) => {
+    await p.locator('.carte:has-text("Set numéro 0 avec")').first().click();
+    await p.locator('.frise .etape').first().waitFor();
+    const etapes = await p.locator('.frise .etape').allInnerTexts();
+    exiger(etapes.length === 3, `un set possédé doit avoir trois étapes de dates (${etapes.length})`);
+    exiger(/sortie[\s\S]*inconnue/i.test(etapes[0]), `la sortie inconnue doit se proposer : ${etapes[0]}`);
+    exiger(/acheté le[\s\S]*mars 2026/i.test(etapes[1]) && /monté le[\s\S]*mars 2026[\s\S]*\+ 2 semaines/i.test(etapes[2]), `dates ou écart faux : ${etapes.slice(1).join(' | ').replace(/\n/g, ' ')}`);
+  },
   'fiche wishlist : pas de notice LEGO': async (p) => {
     await p.click('.nav__item:has-text("Wishlist")');
     await p.locator('.carte').first().click();
     await p.waitForSelector('dialog[open] .fiche, .fiche');
     exiger(await p.locator('a.fiche__lien').count() === 0, 'un set de la wishlist ne doit pas proposer la notice');
+    exiger(await p.locator('.frise .etape').count() === 2 && await p.locator('.frise dt:text-is("Acheté le")').count() === 0, 'un set de la wishlist a deux étapes (ajouté, sortie), jamais « Acheté le »');
   },
   // Réglages en quatre groupes, une ligne d'état par section, UNE SEULE section ouverte à la fois (Apparence au départ).
   'réglages (groupes et états)': async (p) => {
