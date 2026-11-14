@@ -14,9 +14,9 @@ de la wishlist (#71), correctif de la copie des rendus (#72).
 
 1. ~~Réorganiser les Réglages~~ : fait (quatre groupes, états en une ligne, une section ouverte à la fois ; voir `docs/SUITE.md`). La wishlist
    n'a plus que le total et un bouton-icône « Copier la liste » (la mise à jour dates et prix est dans Réglages > Brickset).
-1 bis. **Sauvegarde en ligne (Antoni, sur son S26)** : vérifier que le secret `JETON` existe sur le relais et le saisir dans Réglages > Brickset > Jeton (l'espace KV est créé). Puis Réglages >
-   Sauvegarde en ligne > « Envoyer en ligne », « Voir les copies », et essayer une relecture (aperçu, puis Fusionner sans rien casser). Non testé avec le vrai KV : un fichier de plusieurs dizaines
-   de Mo (morceaux de 20 Mo) n'a été éprouvé qu'avec un faux KV.
+1 bis. ~~Sauvegarde en ligne~~ : faite et vérifiée par Antoni le 14 novembre 2026 sur son S26 (PR #93). Premier envoi : 54 sets et 129 images, **17,4 Mo**, un seul morceau dans KV ; « Voir les copies » et
+   la relecture dans l'aperçu (54 sets, 18 photos, 52 boîtes, 54 rendus, 5 images Brickset) fonctionnent. Le secret `JETON` est sur le relais (bloc Exécution, pas le bloc Build) et saisi dans l'appli. Le
+   découpage en morceaux de 20 Mo n'a été éprouvé qu'avec un faux KV (le vrai fichier est en dessous). **Reste** : essayer la restauration réelle sur un autre appareil (PC Windows), en saisissant l'adresse du relais et le jeton.
 2. **Antoni, sur son S26** : relancer Réglages > Images gardées > « Garder toutes les images » (avant #72, la
    copie des rendus s'était arrêtée après 8 images sur un « image trop grosse » ; on ne sait pas quel set) et coller le
    message, qui nomme maintenant les sets refusés. Puis faire un **export complet** (Réglages > Sauvegarde) : il contient

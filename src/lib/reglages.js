@@ -53,7 +53,8 @@ export function ecrireThemes(cache, store) {
 // Une ligne d'état par section fermée des Réglages : on voit d'un coup d'œil ce qui est en place, sans rien ouvrir.
 // Logique pure (testée) : la feuille ne fait que les afficher.
 export const resumeCle = (cle) => (cle ? `Clé enregistrée (…${cle.slice(-4)})` : 'Pas de clé');
-export const resumeRelais = (url) => (url ? 'Adresse enregistrée' : 'Non configuré');
+// Le jeton compte : sans lui, la sauvegarde en ligne est refusée par le relais.
+export const resumeRelais = (url, jeton = '') => (url ? (jeton ? 'Adresse et jeton enregistrés' : 'Adresse enregistrée · pas de jeton') : 'Non configuré');
 export const resumeImages = (nbBoites, nbRendus) => (
   nbBoites + nbRendus === 0
     ? 'Aucune image gardée'
