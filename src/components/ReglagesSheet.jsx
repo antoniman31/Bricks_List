@@ -175,7 +175,7 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
     noter((r.mode === 'partage' ? `Sauvegarde partagée (${r.nom}).` : `Partage indisponible : ${nom} téléchargé.`) + avertir(e))
   }
 
-  // Sauvegarde en ligne : envoyer le même fichier au relais (R2), relire une des copies gardées. Le texte relu passe par `lireImport`
+  // Sauvegarde en ligne : envoyer le même fichier au relais (KV), relire une des copies gardées. Le texte relu passe par `lireImport`
   // comme un fichier choisi : même aperçu, même confirmation avant de remplacer.
   const [enLigne, setEnLigne] = useState({ etat: '', message: '' })
   const [copies, setCopies] = useState(null)

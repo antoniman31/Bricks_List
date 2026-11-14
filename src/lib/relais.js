@@ -71,7 +71,7 @@ const MESSAGES = {
   type: 'Le relais n\'a pas renvoyé une image.',
   taille: 'Image trop grosse pour le relais.',
   protection: 'Le relais n\'a pas de secret JETON : ajoute-le (sauvegarde en ligne).',
-  stockage: 'Le relais n\'a pas son bucket R2 « bricks-sauvegardes ».',
+  stockage: 'Le relais n\'a pas son espace KV « bricks-sauvegardes ».',
   gros: 'Sauvegarde trop grosse pour le relais (100 Mo au plus).',
   vide: 'Aucune sauvegarde en ligne.',
 };
@@ -203,7 +203,7 @@ export async function recupererGalerie(relais, numero, fetchFn = globalThis.fetc
 }
 
 
-// ---- Sauvegarde en ligne (R2, via le relais) -----------------------------------------------------------------------
+// ---- Sauvegarde en ligne (KV, via le relais) -----------------------------------------------------------------------
 // Le fichier est celui de « Enregistrer le fichier » : collection et images. Le relais exige le jeton pour ces trois routes.
 const DELAI_SAUVEGARDE_MS = 120_000; // plusieurs dizaines de Mo : un téléphone en 4G n'est pas en avance
 export const CLE_COPIE = /^sauvegardes\/\d{4}-\d{2}-\d{2}T\d{6}Z\.json$/;

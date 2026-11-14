@@ -145,10 +145,10 @@ testé avec sa vraie collection, tout fonctionne.
   du relais (jeton refusé, relais injoignable, trois délais dépassés de suite) l'arrêtent (`arretRelais`). Aucune
   copie automatique à l'affichage : seulement par ce bouton. Hors export, purgés au démarrage comme les boîtes.
 - **Sauvegarde en ligne** (novembre 2026, demandée par Antoni : « on peut pas faire une sauvegarde en ligne sur Cloudflare ? »). Le fichier de
-  « Enregistrer le fichier » (collection et toutes les images) part dans un bucket R2 (`bricks-sauvegardes`) par le relais, qui garde les 5 dernières copies :
-  `PUT /sauvegarde`, `GET /sauvegardes`, `GET /sauvegarde?v=…` (`relais/worker.js`, testés avec un faux bucket). Les trois routes exigent le secret `JETON`
-  (sans lui, 403 : la collection entière ne passe pas sans protection) et le bucket (liaison `SAUVEGARDES` dans `wrangler.toml` ; sans bucket le déploiement
-  échoue, les aperçus de PR répondent « stockage »). Côté appli (`src/lib/relais.js` : `envoyerSauvegarde`, `listerSauvegardes`, `telechargerSauvegarde`, réponses
+  « Enregistrer le fichier » (collection et toutes les images) part dans un espace KV (`bricks-sauvegardes`, sans carte bancaire : R2 en demande une) par le relais, qui garde les 5 dernières copies :
+  `PUT /sauvegarde`, `GET /sauvegardes`, `GET /sauvegarde?v=…` (`relais/worker.js`, testés avec un faux KV). Les trois routes exigent le secret `JETON`
+  (sans lui, 403 : la collection entière ne passe pas sans protection) et la liaison KV `SAUVEGARDES` (`wrangler.toml` ; les aperçus de PR n'en ont pas et répondent « stockage »).
+  KV refuse plus de 25 Mo par valeur : le fichier est rangé en morceaux de 20 Mo, le registre de la copie s'écrit en dernier (un envoi interrompu ne laisse rien). Côté appli (`src/lib/relais.js` : `envoyerSauvegarde`, `listerSauvegardes`, `telechargerSauvegarde`, réponses
   revérifiées ; `src/lib/sauvegardeEnLigne.js`, testé) : section **Sauvegarde en ligne** des Réglages, groupe Données : « Envoyer en ligne », « Voir les copies » ; une copie
   choisie est relue par `lireImport` et passe par l'aperçu de « Restaurer un fichier » (Remplacer demande d'exporter d'abord). Envoi manuel ; il relance le rappel des
   30 jours comme un export. Limite : 100 Mo par envoi (requête de Workers, offre gratuite) ; le fichier est en base64, un tiers plus gros que les octets.

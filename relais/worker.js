@@ -12,15 +12,15 @@
 //     (ni le CDN de Rebrickable ni les images de Brickset n'en envoient : sans relais, l'app ne peut pas les copier sur l'appareil).
 //     Route volontairement étroite : deux hôtes, un dossier chacun, des images, une taille maximale.
 //
-//   PUT /sauvegarde  (corps : le fichier d'export JSON)  ->  { cle, octets }   range une copie dans R2 et ne garde que les 5 dernières
+//   PUT /sauvegarde  (corps : le fichier d'export JSON)  ->  { cle, octets }   range une copie dans KV (en morceaux de 20 Mo) et ne garde que les 5 dernières
 //   GET /sauvegardes  ->  { versions: [{ cle, octets, date }] }   les copies gardées, la plus récente d'abord
 //   GET /sauvegarde[?v=<cle>]  ->  le fichier JSON de cette copie (par défaut la plus récente)
-//     Ces trois routes exigent le secret JETON (la collection entière passe par là) et le bucket R2 « SAUVEGARDES ».
+//     Ces trois routes exigent le secret JETON (la collection entière passe par là) et l'espace KV « SAUVEGARDES ».
 //
 // Secrets et variables (voir relais/README.md) :
 //   BRICKSET_KEY  (secret, obligatoire)  la clé de l'API Brickset
 //   JETON         (secret, facultatif)   si défini, l'appel doit porter l'en-tête X-Jeton identique
-//   SAUVEGARDES   (R2, liaison)          le bucket des copies en ligne (voir wrangler.toml)
+//   SAUVEGARDES   (KV, liaison)          l'espace des copies en ligne (voir wrangler.toml)
 //   ORIGINE       (variable)             sites autorisés à appeler depuis un navigateur, séparés par des virgules
 
 const BRICKSET = 'https://brickset.com/api/v3.asmx/getSets';
@@ -31,9 +31,11 @@ const MAX_IMAGES = 40;
 const NUMERO = /^\d{3,7}-\d{1,2}$/;
 const ORIGINE_PAR_DEFAUT = 'https://antoniman31.github.io';
 const DELAI_MS = 8000;
-// Sauvegarde en ligne : 5 copies, 100 Mo au plus chacune (la limite d'une requête sur l'offre gratuite de Workers).
+// Sauvegarde en ligne : 5 copies, 100 Mo au plus chacune (la limite d'une requête sur l'offre gratuite de Workers). KV refuse une valeur de plus
+// de 25 Mo : le fichier est rangé en morceaux de 20 Mo, la « copie » n'existant qu'une fois son registre écrit (en dernier).
 const COPIES_GARDEES = 5;
 const SAUVEGARDE_MAX = 100 * 1024 * 1024;
+const MORCEAU = 20 * 1024 * 1024;
 const PREFIXE = 'sauvegardes/';
 const CLE_SAUVEGARDE = /^sauvegardes\/\d{4}-\d{2}-\d{2}T\d{6}Z\.json$/;
 // Deux hôtes seulement, chacun avec son dossier : les rendus de Rebrickable et la galerie de Brickset.
@@ -255,68 +257,144 @@ async function traiterGalerie(numero, env, rep, fetchFn) {
   }
 }
 
-// ---- Sauvegarde en ligne (R2) ------------------------------------------------------------------------------------
-// La clé d'une copie est la date UTC : l'ordre alphabétique est l'ordre du temps, sans base de données.
+// ---- Sauvegarde en ligne (KV) ------------------------------------------------------------------------------------
+// La clé d'une copie est la date UTC : l'ordre alphabétique est l'ordre du temps, sans base de données. Son registre (clé « …json »)
+// porte la taille et le nombre de morceaux en métadonnées ; les morceaux sont à « …json.000 », « …json.001 »…
 export function cleDeSauvegarde(maintenant = new Date()) {
   return `${PREFIXE}${maintenant.toISOString().slice(0, 19).replace(/[-:]/g, '').replace(/^(\d{4})(\d{2})(\d{2})/, '$1-$2-$3')}Z.json`;
 }
+const cleMorceau = (cle, i) => `${cle}.${String(i).padStart(3, '0')}`;
 
-async function copies(bucket) {
+// La date d'une copie, lue dans sa clé (« 2026-11-14T143005Z ») : la clé est la source, pas un champ qu'on pourrait fausser.
+function dateDeCle(cle) {
+  const m = /(\d{4})-(\d{2})-(\d{2})T(\d{2})(\d{2})(\d{2})Z/.exec(cle);
+  return m ? `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}.000Z` : null;
+}
+
+async function copies(kv) {
   const lues = [];
   let curseur;
   do {
-    const page = await bucket.list({ prefix: PREFIXE, cursor: curseur });
-    for (const o of page.objects) if (CLE_SAUVEGARDE.test(o.key)) lues.push({ cle: o.key, octets: o.size, date: new Date(o.uploaded).toISOString() });
-    curseur = page.truncated ? page.cursor : undefined;
+    const page = await kv.list({ prefix: PREFIXE, cursor: curseur });
+    for (const k of page.keys) {
+      if (!CLE_SAUVEGARDE.test(k.name)) continue; // les morceaux ne sont pas des copies
+      const m = k.metadata ?? {};
+      lues.push({ cle: k.name, octets: Number.isFinite(m.octets) ? m.octets : null, morceaux: Number.isInteger(m.morceaux) ? m.morceaux : 0, date: dateDeCle(k.name) });
+    }
+    curseur = page.list_complete ? undefined : page.cursor;
   } while (curseur);
-  return lues.sort((a, b) => (a.cle < b.cle ? 1 : -1));
+  return lues.filter((c) => c.date).sort((a, b) => (a.cle < b.cle ? 1 : -1));
 }
 
-async function traiterSauvegarde(request, url, env, h, rep) {
+async function supprimerCopie(kv, copie) {
+  for (let i = 0; i < copie.morceaux; i += 1) await kv.delete(cleMorceau(copie.cle, i));
+  await kv.delete(copie.cle);
+}
+
+// Lit le corps par morceaux de `taille` octets et range chacun. Renvoie { octets, morceaux } ou { gros: true } si le corps dépasse le
+// maximum (tout ce qui a été rangé est alors retiré). La mémoire ne dépasse pas deux morceaux : le fichier entier n'est jamais en mémoire.
+async function rangerCorps(kv, cle, corps, taille) {
+  const lecteur = corps.getReader();
+  let tampon = new Uint8Array(taille);
+  let rempli = 0;
+  let total = 0;
+  let morceaux = 0;
+  const ecrire = async (octets) => { await kv.put(cleMorceau(cle, morceaux), octets); morceaux += 1; };
+  try {
+    for (;;) {
+      const { done, value } = await lecteur.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > SAUVEGARDE_MAX) throw Object.assign(new Error('gros'), { gros: true });
+      let debut = 0;
+      while (debut < value.byteLength) {
+        const n = Math.min(taille - rempli, value.byteLength - debut);
+        tampon.set(value.subarray(debut, debut + n), rempli);
+        rempli += n;
+        debut += n;
+        if (rempli === taille) { await ecrire(tampon); tampon = new Uint8Array(taille); rempli = 0; }
+      }
+    }
+    if (rempli > 0 || morceaux === 0) await ecrire(tampon.slice(0, rempli));
+    return { octets: total, morceaux };
+  } catch (e) {
+    for (let i = 0; i < morceaux; i += 1) await kv.delete(cleMorceau(cle, i)).catch(() => {});
+    if (e?.gros) return { gros: true };
+    throw e;
+  }
+}
+
+// Les morceaux dans l'ordre, comme un seul flux. Le premier est lu d'avance : si la copie est abîmée dès le début, c'est une vraie erreur
+// plutôt qu'une réponse 200 coupée.
+async function fluxDeCopie(kv, copie) {
+  const premier = await kv.get(cleMorceau(copie.cle, 0), 'stream');
+  if (!premier) return null;
+  const { readable, writable } = new TransformStream();
+  (async () => {
+    try {
+      await premier.pipeTo(writable, { preventClose: true });
+      for (let i = 1; i < copie.morceaux; i += 1) {
+        const suite = await kv.get(cleMorceau(copie.cle, i), 'stream');
+        if (!suite) throw new Error('morceau absent');
+        await suite.pipeTo(writable, { preventClose: true });
+      }
+      await writable.close();
+    } catch (e) {
+      await writable.abort(e).catch(() => {});
+    }
+  })();
+  return readable;
+}
+
+async function traiterSauvegarde(request, url, env, h, rep, morceau) {
   // La collection entière passe par ces routes : sans jeton défini côté relais, on refuse plutôt que d'être ouvert à tous.
   if (!env.JETON) return rep(403, { erreur: 'protection' });
   if (request.headers.get('X-Jeton') !== env.JETON) return rep(401, { erreur: 'jeton' });
   if (!env.SAUVEGARDES) return rep(500, { erreur: 'stockage' });
+  const kv = env.SAUVEGARDES;
 
   if (url.pathname === '/sauvegardes') {
     if (request.method !== 'GET') return rep(405, { erreur: 'methode' });
-    return rep(200, { versions: (await copies(env.SAUVEGARDES)).slice(0, COPIES_GARDEES) });
+    const versions = (await copies(kv)).slice(0, COPIES_GARDEES).map(({ cle, octets, date }) => ({ cle, octets, date }));
+    return rep(200, { versions });
   }
 
   if (request.method === 'GET') {
     const demandee = url.searchParams.get('v');
     if (demandee !== null && !CLE_SAUVEGARDE.test(demandee)) return rep(400, { erreur: 'cle' });
-    const cle = demandee ?? (await copies(env.SAUVEGARDES))[0]?.cle;
-    if (!cle) return rep(404, { erreur: 'vide' });
-    const objet = await env.SAUVEGARDES.get(cle);
-    if (!objet) return rep(404, { erreur: 'vide' });
-    return new Response(objet.body, { status: 200, headers: { ...h, 'Content-Type': 'application/json; charset=utf-8', 'X-Content-Type-Options': 'nosniff' } });
+    const toutes = await copies(kv);
+    const copie = demandee === null ? toutes[0] : toutes.find((c) => c.cle === demandee);
+    if (!copie) return rep(404, { erreur: 'vide' });
+    const flux = await fluxDeCopie(kv, copie);
+    if (!flux) return rep(404, { erreur: 'vide' });
+    return new Response(flux, { status: 200, headers: { ...h, 'Content-Type': 'application/json; charset=utf-8', 'X-Content-Type-Options': 'nosniff' } });
   }
 
   if (request.method !== 'PUT') return rep(405, { erreur: 'methode' });
   const type = (request.headers.get('Content-Type') ?? '').split(';')[0].trim().toLowerCase();
   if (type !== 'application/json') return rep(415, { erreur: 'type' });
-  // Taille annoncée : la plateforme coupe un corps qui en dit plus que son Content-Length, donc on peut s'y fier pour borner.
   const taille = Number(request.headers.get('Content-Length'));
   if (!Number.isInteger(taille) || taille < 2) return rep(411, { erreur: 'taille' });
   if (taille > SAUVEGARDE_MAX) return rep(413, { erreur: 'gros' });
   const cle = cleDeSauvegarde();
-  await env.SAUVEGARDES.put(cle, request.body, { httpMetadata: { contentType: 'application/json' } });
+  const r = await rangerCorps(kv, cle, request.body, morceau);
+  if (r.gros) return rep(413, { erreur: 'gros' });
+  // Le registre s'écrit en dernier : une copie n'existe, et ne remplace les anciennes, qu'une fois tous ses morceaux rangés.
+  await kv.put(cle, JSON.stringify({ octets: r.octets, morceaux: r.morceaux }), { metadata: { octets: r.octets, morceaux: r.morceaux } });
   // Seules les plus récentes restent : une mauvaise copie n'efface pas les bonnes, et l'espace ne grossit pas sans fin.
-  const toutes = await copies(env.SAUVEGARDES);
-  const vieilles = toutes.slice(COPIES_GARDEES).map((c) => c.cle);
-  if (vieilles.length > 0) await env.SAUVEGARDES.delete(vieilles);
-  return rep(200, { cle, octets: taille });
+  const toutes = await copies(kv);
+  for (const vieille of toutes.slice(COPIES_GARDEES)) await supprimerCopie(kv, vieille);
+  return rep(200, { cle, octets: r.octets });
 }
 
-export async function traiter(request, env, { fetchFn = fetch } = {}) {
+export async function traiter(request, env, { fetchFn = fetch, morceau = MORCEAU } = {}) {
   const h = entetes(request, env);
   const rep = (statut, corps) => new Response(corps === null ? null : JSON.stringify(corps), { status: statut, headers: h });
 
   if (request.method === 'OPTIONS') return rep(204, null);
   const url = new URL(request.url);
   if (url.pathname === '/sauvegarde' || url.pathname === '/sauvegardes') {
-    try { return await traiterSauvegarde(request, url, env, h, rep); } catch { return rep(502, { erreur: 'stockage' }); }
+    try { return await traiterSauvegarde(request, url, env, h, rep, morceau); } catch { return rep(502, { erreur: 'stockage' }); }
   }
   if (request.method !== 'GET') return rep(405, { erreur: 'methode' });
   if (url.pathname !== '/sortie' && url.pathname !== '/image' && url.pathname !== '/notices' && url.pathname !== '/galerie') return rep(404, { erreur: 'introuvable' });

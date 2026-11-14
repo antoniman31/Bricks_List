@@ -236,5 +236,5 @@ test('telechargerSauvegarde : le texte tel quel ; clé invalide refusée avant t
   for (const cle of ['../x', 'sauvegardes/x.json', '', null, undefined]) assert.equal((await telechargerSauvegarde(R, cle, g)).code, 'url');
   assert.equal(appels, 0);
   assert.equal((await telechargerSauvegarde(R, COPIE, rep({ erreur: 'vide' }, 404))).code, 'vide');
-  assert.match(messageRelais('stockage'), /bucket/);
+  assert.match(messageRelais('stockage'), /KV/);
 });
