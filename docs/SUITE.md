@@ -201,6 +201,13 @@ testé avec sa vraie collection, tout fonctionne.
   (`src/lib/notice.js`, testé ; format constaté sur des dizaines de pages indexées, **jamais ouvert depuis l'environnement de développement** : LEGO.com
   répond 403 aux clients automatiques). Rien n'est stocké ni exporté. Si LEGO change ses adresses, le lien mène à une page vide sans rien casser ; repli
   possible : l'appel `getInstructions` de l'API Brickset (URL de PDF), via le relais.
+- **Prix par pièce et « À venir »** (14 novembre 2026, variantes P2 et V2 choisies par Antoni sur maquette) :
+  - **Prix par pièce** (`src/lib/prixPiece.js`, testé) : prix officiel ÷ pièces, en **centimes** (« 11 ct/pièce », une décimale sous 10 ct), wishlist seulement. Pastille (`PastillePrixPiece`) sur la carte, la tuile (sa propre ligne) et la
+    fiche : **verte sous 8 ct, jaune au-dessus de 12 ct, neutre entre les deux** (seuils fixes, choix d'Antoni, faux d'un thème à l'autre : le chiffre reste écrit, un lecteur d'écran entend « bon prix » / « prix élevé »).
+    Tokens `--bon` / `--sur-bon`. Tri « Meilleur prix par pièce » (sans prix ou sans pièces en dernier). Rien sans prix ou sans nombre de pièces.
+  - **Bloc « À venir » des Stats** (`src/lib/avenir.js`, testé ; `wishlist.avenir` dans `calculerStats`) : toutes les sorties et tous les retraits **à venir** des sets de la wishlist (sans plafond), groupés par mois, par date (le retrait avant la sortie
+    le même jour), en frise verticale (jour à gauche, point rouge pour un retrait, bleu pour une sortie) après le budget. Sets sans date, déjà sortis ou déjà retirés absents. Un appui sur une ligne ouvre la fiche (par-dessus les Stats).
+    Le bloc n'apparaît que s'il y a au moins un événement.
 - **Retrait, sous-thème, notices PDF** (14 novembre 2026, choisis par Antoni dans le tableau « données utilisées / inutilisées ») :
   - **Retrait prévu par LEGO** : champ `dateRetrait` (même validation que `dateSortie`, jamais saisi à la main, donc sans source), donné par
     Brickset via `/sortie` (`retrait`). Affiché pour la **wishlist** seulement : un **bandeau en travers de la photo** de la liste et de la grille (choix d'Antoni, variante B de la maquette ; `badgeRetrait` dans
@@ -280,10 +287,10 @@ testé avec sa vraie collection, tout fonctionne.
   au rechargement (`bl_filtres`, hors export, `src/lib/filtresMemo.js`, entrée validée ; l'ancien format à un
   seul jeu est lu). La recherche texte n'est pas retenue et se vide au changement d'onglet. Un raccourci des
   Stats remplace les filtres de la collection.
-- **Qualité** : `npm run lint`, `npm test` (482 tests, dont ceux du relais), `npm run verif:ui` (axe-core, cibles de
+- **Qualité** : `npm run lint`, `npm test` (492 tests, dont ceux du relais), `npm run verif:ui` (axe-core, cibles de
   48 px, débordements, navigation, recherche visible clavier ouvert, et quatre parcours qui vérifient un
   comportement : filtres conservés au rechargement, onglets indépendants, import d'un `.txt`, repli des
-  boîtes, photo personnelle (enregistrée, relue, retirée), image de la liste (fiche et règle), dates de sortie (affichage, filtre, saisie, relais), remise en wishlist (fiche et sélection, avec annulation), retrait (carte, filtre, frise), sous-thème (fiche, filtre, rattrapage), notices PDF, carrousel, plein écran (zoom, flèches, partage, image de la liste), plusieurs photos par set, images Brickset (chercher, planche, garder, boîte), boîtes gardées (sauvegarde, service hors BrickLink, arrêt en maintenance), rendus gardés par le relais, sauvegarde complète avec images (export, vidage, restauration) ; 104 écrans × 2 thèmes × 4
+  boîtes, photo personnelle (enregistrée, relue, retirée), image de la liste (fiche et règle), dates de sortie (affichage, filtre, saisie, relais), remise en wishlist (fiche et sélection, avec annulation), retrait (carte, filtre, frise), sous-thème (fiche, filtre, rattrapage), notices PDF, carrousel, plein écran (zoom, flèches, partage, image de la liste), plusieurs photos par set, images Brickset (chercher, planche, garder, boîte), prix par pièce, bloc « À venir », boîtes gardées (sauvegarde, service hors BrickLink, arrêt en maintenance), rendus gardés par le relais, sauvegarde complète avec images (export, vidage, restauration) ; 110 écrans × 2 thèmes × 4
   largeurs : 360, 412, 900, 1280). Les trois tournent dans le CI avant le déploiement.
 
 ## Décisions de cadrage (ne pas rouvrir sans raison)

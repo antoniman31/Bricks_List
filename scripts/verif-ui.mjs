@@ -486,6 +486,49 @@ const ECRANS = {
     await p.click('.nav__item:has-text("Wishlist")');
     await p.waitForSelector('.carte--tuile .carte__prix');
   },
+  // Prix par pièce (wishlist) : pastille sur la carte, la tuile et la fiche (verte sous 8 ct, jaune au-dessus de 12 ct, neutre entre les
+  // deux), tri « Meilleur prix par pièce ». Départ : Souhait 0 à 249 € / 1 500 pièces (17 ct, cher), Souhait 1 sans prix, Souhait 2 à 59,99 € / 4 500 pièces (1,3 ct, bon).
+  'wishlist (prix par pièce)': async (p) => {
+    await p.click('.nav__item:has-text("Wishlist")');
+    await p.waitForSelector('.pastille-pp');
+    exiger(await p.locator('.carte:has-text("Souhait 0") .pastille-pp--cher').innerText().then((t) => /17 ct\/pièce/.test(t)), 'Souhait 0 doit afficher 17 ct/pièce en jaune');
+    exiger(await p.locator('.carte:has-text("Souhait 2") .pastille-pp--bon').innerText().then((t) => /1,3 ct\/pièce/.test(t)), 'Souhait 2 doit afficher 1,3 ct/pièce en vert');
+    exiger(await p.locator('.carte:has-text("Souhait 1") .pastille-pp').count() === 0, 'un set sans prix n\'a pas de prix par pièce');
+    exiger(await p.locator('.carte:has-text("Souhait 2") .pastille-pp .visuellement-cache').innerText().then((t) => /bon prix/.test(t)), 'le lecteur d\'écran doit entendre « bon prix »');
+  },
+  'wishlist grille (prix par pièce)': async (p) => {
+    await p.click(GRILLE);
+    await p.click('.nav__item:has-text("Wishlist")');
+    await p.waitForSelector('.carte--tuile .pastille-pp');
+  },
+  'wishlist : tri par prix par pièce': async (p) => {
+    await p.click('.nav__item:has-text("Wishlist")');
+    await trier(p, 'Meilleur prix par pièce');
+    const noms = await p.locator('.carte .carte__nom').allInnerTexts();
+    exiger(JSON.stringify(noms.map((n) => n.replace(/\s+\(.*/, ''))) === JSON.stringify(['Souhait 2', 'Souhait 0', 'Souhait 1']), `ordre du tri par prix par pièce inattendu : ${noms.join(' | ')}`);
+  },
+  'fiche (prix par pièce)': async (p) => {
+    await p.click('.nav__item:has-text("Wishlist")');
+    await p.locator('.carte:has-text("Souhait 0")').click();
+    await p.waitForSelector('.fiche__ligne:has(dt:text-is("Prix")) .pastille-pp--cher');
+  },
+  // Bloc « À venir » des Stats : sorties et retraits à venir de la wishlist, par mois, en frise ; un appui ouvre la fiche.
+  // Départ : Souhait 0 (retrait dans 90 jours, sortie l'an prochain), Souhait 1 (retiré depuis 30 jours : absent), Souhait 2 (sans date).
+  'stats (à venir)': async (p) => {
+    await p.click('.nav__item:has-text("Stats")');
+    await p.waitForSelector('.avenir');
+    const evts = await p.locator('.avenir__evt').allInnerTexts();
+    exiger(evts.length === 2 && evts.every((t) => /Souhait 0/.test(t)), `le bloc « À venir » doit montrer les deux événements de Souhait 0 : ${evts.join(' | ')}`);
+    exiger(await p.locator('.avenir__chip--retrait').count() === 1 && await p.locator('.avenir__chip--sortie').count() === 1, 'un retrait et une sortie');
+    exiger(await p.locator('.avenir:has-text("Souhait 1")').count() === 0, 'un set déjà retiré n\'a rien à faire dans « À venir »');
+  },
+  'stats : À venir ouvre la fiche': async (p) => {
+    await p.click('.nav__item:has-text("Stats")');
+    await p.waitForSelector('.avenir');
+    await p.locator('.avenir__bloc').first().click();
+    await p.waitForSelector('.heros__legende');
+    exiger(await p.locator('.heros__titre h2').innerText().then((t) => /Souhait 0/.test(t)), 'la fiche de Souhait 0 doit s\'ouvrir');
+  },
   // La fiche, elle, dit d'où vient un prix pré-rempli (« prix DE »), pas celle d'un prix saisi à la main.
   'fiche : origine du prix': async (p) => {
     await p.click('.nav__item:has-text("Wishlist")');

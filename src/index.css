@@ -62,6 +62,8 @@
   --echelle-5: #7fb2f2; --sur-echelle-5: #0b0b0b;
   /* Bandeau « Retiré » sur la photo : aplat opaque (le contraste ne dépend jamais de la boîte dessous). Blanc dessus : 6,5:1. */
   --retire: #b3261e; --sur-retire: #ffffff;
+  /* Pastille « bon prix par pièce » : blanc dessus, 5,3:1. « Cher » reprend le jaune de la marque (--accent-fond, texte sombre). */
+  --bon: #1f7a4d; --sur-bon: #ffffff;
   color-scheme: dark;
 }
 
@@ -98,6 +100,7 @@ html[data-theme='light'] {
   --echelle-4: #2468c4; --sur-echelle-4: #ffffff;
   --echelle-5: #1b4f96; --sur-echelle-5: #ffffff;
   --retire: #b3261e; --sur-retire: #ffffff; /* 6,5:1 */
+  --bon: #1f7a4d; --sur-bon: #ffffff; /* 5,3:1 */
   color-scheme: light;
 }
 
@@ -1037,3 +1040,27 @@ div.anneau__ligne { padding: 6px 0; }
 .badge-retrait--bientot { background: var(--accent-fond); color: var(--sur-accent); font-size: 0.65625rem; letter-spacing: 0.08em; }
 .carte--tuile .badge-retrait { font-size: 0.9375rem; line-height: 20px; }
 .carte--tuile .badge-retrait--bientot { font-size: 0.875rem; }
+
+/* ---------- Prix par pièce : pastille neutre, verte (bon prix) ou jaune (cher) ; le chiffre reste écrit ---------- */
+.pastille-pp { display: inline-block; margin-left: 6px; padding: 0 8px; border: 1px solid var(--bordure); border-radius: var(--rayon-pilule); background: var(--surface); color: var(--texte); font-size: 0.6875rem; font-weight: 700; line-height: 18px; white-space: nowrap; }
+.pastille-pp--bon { border-color: var(--bon); background: var(--bon); color: var(--sur-bon); }
+.pastille-pp--cher { border-color: var(--accent-fond); background: var(--accent-fond); color: var(--sur-accent); }
+.carte--tuile .pastille-pp { margin-left: 0; }
+
+/* ---------- Stats : bloc « À venir », frise verticale (le jour à gauche, un point rouge pour un retrait, bleu pour une sortie) ---------- */
+.avenir { position: relative; margin: 0; padding: 0 0 0 64px; list-style: none; }
+.avenir::before { content: ''; position: absolute; left: 46px; top: 6px; bottom: 6px; width: 2px; background: var(--bordure); }
+.avenir__mois { position: relative; width: fit-content; padding-right: 8px; background: var(--surface); margin: 14px 0 6px -64px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+.avenir__mois:first-child { margin-top: 0; }
+.avenir__evt { position: relative; margin-bottom: 8px; }
+.avenir__evt::before { content: ''; position: absolute; left: -23px; top: 18px; width: 10px; height: 10px; border: 2px solid var(--surface); border-radius: 50%; background: var(--retire); }
+.avenir__evt--sortie::before { background: var(--echelle-3); }
+.avenir__jour { position: absolute; left: -64px; top: 6px; width: 36px; text-align: center; line-height: 1.1; }
+.avenir__jour b { display: block; font-family: var(--police-titre); font-size: 1.25rem; font-weight: 600; }
+.avenir__jour span { font-size: 0.625rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--texte-doux); }
+.avenir__bloc { display: grid; gap: 2px; width: 100%; min-height: var(--cible-min); padding: 8px 10px; border: 0; border-radius: 12px; background: var(--surface-haute); color: inherit; font: inherit; text-align: left; }
+.avenir__nom { font-weight: 600; font-size: 0.875rem; line-height: 1.3; overflow-wrap: anywhere; }
+.avenir__det { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; color: var(--texte-doux); font-size: 0.75rem; }
+.avenir__chip { padding: 0 8px; border-radius: 6px; font-size: 0.6875rem; font-weight: 800; letter-spacing: 0.05em; line-height: 18px; text-transform: uppercase; }
+.avenir__chip--retrait { background: var(--retire); color: var(--sur-retire); }
+.avenir__chip--sortie { background: var(--echelle-3); color: var(--sur-echelle-3); }

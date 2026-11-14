@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { ETATS } from '../lib/model.js'
 import { blocsProportionnels } from '../lib/treemap.js'
 import { formaterPrix, formaterPrixRond } from '../lib/prix.js'
+import { relatif } from '../lib/sortie.js'
 
 const SERIES = ['var(--serie-1)', 'var(--serie-2)', 'var(--serie-3)', 'var(--serie-4)']
 // Une couleur par priorité, la même dans « Par priorité » et « Budget par priorité » (jamais selon la position dans la liste).
@@ -259,7 +260,7 @@ function Bloc({ titre, children }) {
   )
 }
 
-export default function StatsView({ stats, onOuvrir, onVoirWishlist }) {
+export default function StatsView({ stats, onOuvrir, onOuvrirSet, onVoirWishlist }) {
   const [tousLesThemes, setTousLesThemes] = useState(false)
   const [anneesDetail, setAnneesDetail] = useState(false)
   const { resume, themes, annees, etats, tailles, etiquettes, emplacements, boiteNotice, aCompleter, wishlist, activite, avancement, mensuel, delai } = stats
@@ -453,6 +454,31 @@ export default function StatsView({ stats, onOuvrir, onVoirWishlist }) {
           </>
         )}
       </Bloc>
+
+      {wishlist.avenir.length > 0 && (
+        <Bloc titre="À venir">
+          <ol className="avenir">
+            {wishlist.avenir.map((m) => (
+              <Fragment key={m.cle}>
+                <li className="avenir__mois">{m.libelle}</li>
+                {m.evenements.map((e) => (
+                  <li key={`${e.id}-${e.type}`} className={`avenir__evt avenir__evt--${e.type}`}>
+                    <span className="avenir__jour" aria-hidden="true"><b>{e.jour}</b><span>{e.moisCourt}</span></span>
+                    <button type="button" className="avenir__bloc" onClick={() => onOuvrirSet(e.id)}>
+                      <span className="avenir__nom">{e.nom}</span>
+                      <span className="avenir__det">
+                        <span className={`avenir__chip avenir__chip--${e.type}`}>{e.type === 'retrait' ? 'Retrait' : 'Sortie'}</span>
+                        {`le ${e.jour} ${e.moisCourt} · ${relatif(e.jours)}`}
+                        {e.prix != null && ` · ${formaterPrix(e.prix)}`}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </Fragment>
+            ))}
+          </ol>
+        </Bloc>
+      )}
     </div>
   )
 }

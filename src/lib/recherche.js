@@ -3,6 +3,7 @@ import { PRIORITES } from './model.js';
 import { aEtiquette } from './etiquettes.js';
 import { comparerSorties, correspondRetrait, correspondSortie } from './sortie.js';
 import { comparerPrix, correspondPrix } from './prix.js';
+import { comparerPrixPiece } from './prixPiece.js';
 
 // Minuscules sans accents : « creatif » doit trouver « Créatif », et « Technic »
 // ne doit pas dépendre de la casse tapée.
@@ -26,6 +27,8 @@ export const TRIS = [
   // Le prix officiel n'existe que pour la wishlist ; les sets sans prix restent en dernier dans les deux sens.
   { cle: 'prix', libelle: 'Prix croissant', statut: 'souhaité' },
   { cle: 'prix-desc', libelle: 'Prix décroissant', statut: 'souhaité' },
+  // Le moins cher la pièce d'abord (prix ÷ pièces) ; les sets sans prix ou sans nombre de pièces en dernier.
+  { cle: 'prix-piece', libelle: 'Meilleur prix par pièce', statut: 'souhaité' },
 ];
 
 // Un tri propre à un onglet n'est pas proposé dans l'autre, et la liste retombe sur
@@ -115,6 +118,8 @@ export function trier(sets, cle, maintenant = new Date()) {
       const parPrix = comparerPrix(cle === 'prix' ? 1 : -1);
       return copie.sort((a, b) => parPrix(a, b) || comparerNoms(a, b));
     }
+    case 'prix-piece':
+      return copie.sort((a, b) => comparerPrixPiece(a, b) || comparerNoms(a, b));
     case 'nom':
       return copie.sort((a, b) => a.nom.localeCompare(b.nom, 'fr', { sensitivity: 'base' }));
     case 'annee':

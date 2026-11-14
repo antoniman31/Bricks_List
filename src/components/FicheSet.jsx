@@ -10,6 +10,7 @@ import { urlNotice } from '../lib/notice.js'
 import { etapesFrise } from '../lib/frise.js'
 import { PRIX_MAX, formaterPrix, lirePrixSaisi, prixPourSaisie } from '../lib/prix.js'
 import { messageRelais, recupererNotices } from '../lib/relais.js'
+import PastillePrixPiece from './PastillePrixPiece.jsx'
 
 // Une info en lecture seule : une cellule de la grille, sur toute la largeur.
 function Ligne({ libelle, valeur }) {
@@ -222,7 +223,7 @@ export function FicheContenu({ set, lectureSeule, relais = null, lieux = [], lie
             <LigneEditable
               libelle="Prix"
               large
-              valeur={set.prix != null ? `${formaterPrix(set.prix)}${set.prixSource === 'brickset-de' ? ' (prix DE)' : ''}` : 'Ajouter'}
+              valeur={set.prix != null ? <>{`${formaterPrix(set.prix)}${set.prixSource === 'brickset-de' ? ' (prix DE)' : ''}`}<PastillePrixPiece set={set} /></> : 'Ajouter'}
               ouvert={edition === 'prix'}
               desactive={lectureSeule}
               onBasculer={ouvrirPrix}
