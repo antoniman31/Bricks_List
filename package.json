@@ -10,7 +10,8 @@
     "lint": "oxlint",
     "test": "node --test src/lib/*.test.mjs relais/*.test.mjs",
     "icones": "node scripts/icones.mjs",
-    "verif:ui": "vite build && node scripts/verif-ui.mjs"
+    "verif:ui": "vite build && node scripts/verif-ui-parallele.mjs",
+    "verif:ui:serie": "vite build && node scripts/verif-ui.mjs"
   },
   "dependencies": {
     "react": "^19.2.7",

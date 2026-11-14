@@ -3,7 +3,7 @@
 Ce fichier dit **où on s'est arrêtés** et **quoi faire ensuite**, dans l'ordre. Il complète `docs/SUITE.md` (état
 complet du projet, décisions, limites) et `CLAUDE.md` (règles de travail). Lire les trois avant de commencer.
 
-Dernière PR fusionnée : **#84** (bandeau « Retiré » en travers de la photo) ; en cours : prix par pièce et bloc « À venir ». Branche de travail unique :
+Dernière PR fusionnée : **#85** (prix par pièce et bloc « À venir ») ; en cours : `verif:ui` en parallèle, puis bandeau « Sortie », puis sous-onglets des Stats. Branche de travail unique :
 `ccr-bf63eeba-887je4`. Qualité : lint OK, 492 tests, `verif:ui` 880 écrans.
 
 Depuis la PR #66 : transfert collection ↔ wishlist (#67), boîtes BrickLink gardées sur l'appareil (#68), rendus

@@ -14,7 +14,10 @@ import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 const AXE = readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8');
-const PORT = 4174;
+// VERIF_PORT et VERIF_CONFIGS (« dark:360,light:360 ») servent à `verif-ui-parallele.mjs`, qui lance plusieurs copies de ce script, chacune sur son
+// port et sur une partie des configurations (thème × largeur). Sans eux : le port 4174 et toutes les configurations, comme avant.
+const PORT = Number(process.env.VERIF_PORT) || 4174;
+const CONFIGS = process.env.VERIF_CONFIGS ? new Set(process.env.VERIF_CONFIGS.split(',')) : null;
 const URL = `http://localhost:${PORT}/Bricks_List/`;
 const THEMES = ['dark', 'light'];
 const LARGEURS = [360, 412, 900, 1280];
@@ -1220,6 +1223,7 @@ try {
   const navigateur = await chromium.launch({ executablePath: process.env.CHROMIUM || undefined });
   for (const theme of THEMES) {
     for (const largeur of LARGEURS) {
+      if (CONFIGS && !CONFIGS.has(`${theme}:${largeur}`)) continue;
       const ctx = await navigateur.newContext({ colorScheme: theme, viewport: { width: largeur, height: 900 } });
       await ctx.route('https://cdn.rebrickable.com/**', (r) => r.fulfill({ status: 200, contentType: 'image/png', body: PNG }));
       await ctx.route('https://images.brickset.com/**', (r) => r.fulfill({ status: 200, contentType: 'image/png', body: PNG }));
