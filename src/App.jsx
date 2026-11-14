@@ -102,7 +102,8 @@ export default function App() {
   const [photos, setPhotos] = useState(() => new Set())
   const [regleImage, setRegleImage] = useState(lireRegle)
   const rafraichirPhotos = useCallback(() => {
-    idsPhotos().then((cles) => setPhotos(new Set(cles))).catch(() => {})
+    // Renvoie la promesse : la fiche attend que la liste soit à jour avant d'aller voir la photo qu'elle vient d'ajouter.
+    return idsPhotos().then((cles) => setPhotos(new Set(cles))).catch(() => {})
   }, [])
   // Les boîtes gardées sur l'appareil, par numéro : lues une fois, puis remises à jour (en différé, pour ne pas
   // redessiner toute la liste à chaque boîte qui arrive).

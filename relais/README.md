@@ -26,7 +26,16 @@ Les notices PDF de Brickset (`getInstructions2`, un appel par demande, comptés 
 vraie réponse** : si la réponse réelle diffère, la fiche affiche « Aucune notice chez Brickset » ; ouvrir `/notices?numero=75192-1` dans le navigateur
 (sans clé à saisir, elle est côté Cloudflare) montre ce que le relais renvoie.
 
-Troisième route, sans lien avec Brickset (elle marche même sans `BRICKSET_KEY`) :
+```
+GET /galerie?numero=75192-1
+-> { "numero": "75192-1", "trouve": true, "images": [{ "url": "https://…jpg", "miniature": "https://…jpg" }] }
+```
+
+Les images supplémentaires de Brickset (`getSets` pour l'identifiant interne, puis `getAdditionalImages` : **deux appels Brickset** dans la limite de 100 par jour). Route
+d'essai : l'application ne l'appelle pas encore ; ouvre-la dans ton navigateur pour voir ce que Brickset renvoie. Mêmes adresses autorisées que pour les notices ;
+les noms de champs suivent la documentation et n'ont jamais été vus dans une vraie réponse.
+
+Quatrième route, sans lien avec Brickset (elle marche même sans `BRICKSET_KEY`) :
 
 ```
 GET /image?url=https://cdn.rebrickable.com/media/sets/75192-1.jpg   ->  l'image (jpeg, png ou webp, 2 Mo au plus)

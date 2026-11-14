@@ -3,8 +3,8 @@
 Ce fichier dit **où on s'est arrêtés** et **quoi faire ensuite**, dans l'ordre. Il complète `docs/SUITE.md` (état
 complet du projet, décisions, limites) et `CLAUDE.md` (règles de travail). Lire les trois avant de commencer.
 
-Dernière PR fusionnée : **#79** (budget de la wishlist, vérifier une sauvegarde, espace utilisé) ; en cours : retrait, sous-thème et notices PDF (PR suivante). Branche de travail unique :
-`ccr-bf63eeba-887je4`. Qualité : lint OK, 461 tests, `verif:ui` 720 écrans.
+Dernière PR fusionnée : **#80** (retrait, sous-thème, notices PDF) ; en cours : carrousel de la fiche, plein écran, plusieurs photos par set. Branche de travail unique :
+`ccr-bf63eeba-887je4`. Qualité : lint OK, 472 tests, `verif:ui` 776 écrans.
 
 Depuis la PR #66 : transfert collection ↔ wishlist (#67), boîtes BrickLink gardées sur l'appareil (#68), rendus
 Rebrickable gardés via la route `/image` du relais (#69), sauvegarde complète avec toutes les images (#70), prix officiel
@@ -20,6 +20,11 @@ de la wishlist (#71), correctif de la copie des rendus (#72).
    photos, boîtes, rendus et prix, et pèse des dizaines de Mo.
 3. **BrickLink est hors ligne** (« activité inhabituelle », déclaration du 11 novembre 2026, aucune date de retour). 51 boîtes
    sont déjà gardées sur l'appareil ; à son retour, relancer « Sauvegarder toutes les images » pour les autres.
+
+**Images Brickset, étape 2 (à faire après test d'Antoni)** : ouvrir `https://bricks-relais.antoniman31.workers.dev/galerie?numero=75192-1` dans le
+navigateur (2 appels Brickset, pas de clé à saisir) et coller le JSON. Selon ce qu'il contient : images dans le carrousel, **copiées sur l'appareil et dans
+l'export** (Antoni veut toutes les choisir pour la liste et toutes les sauvegarder), choix `extra-n` dans `imageListe`, hôte des images à ajouter à la liste
+blanche de `/image`. Voir `docs/SUITE.md` (« Carrousel, plein écran, plusieurs photos »).
 
 ## 2. Le relais Cloudflare : en service depuis le 13 novembre
 

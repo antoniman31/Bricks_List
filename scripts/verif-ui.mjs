@@ -72,7 +72,7 @@ async function verifier(page, largeur) {
     }
     const nav = document.querySelector('.nav')?.getBoundingClientRect();
     const dialogue = document.querySelector('dialog[open]');
-    const corps = dialogue?.querySelector('.sheet__corps');
+    const corps = dialogue?.querySelector('.sheet__corps') ?? dialogue; // la visionneuse plein écran n'a pas de corps de feuille
     const rd = dialogue?.getBoundingClientRect();
     return {
       petits: [...new Set(petits)],
@@ -157,6 +157,14 @@ const tailleEnStock = (p) => p.evaluate(() => new Promise((res) => {
   o.onsuccess = () => { const g = o.result.transaction('photos').objectStore('photos').getAll(); g.onsuccess = () => res(g.result[0] ? g.result[0].size : 0); g.onerror = () => res(-1); };
   o.onerror = () => res(-1);
 }));
+// Dans le carrousel de la fiche, avance jusqu'à la diapositive dont la légende contient `texte` (« Ajouter une photo », « Ma photo »…).
+async function allerA(p, texte) {
+  for (let i = 0; i < 9; i += 1) {
+    if ((await p.locator('.heros__legende').innerText()).includes(texte)) return;
+    await p.click('button[aria-label="Image suivante"]');
+  }
+  throw new Error(`diapositive « ${texte} » introuvable`);
+}
 const nbFiltresActifs = async (p) => Number(((await p.getAttribute(FILTRES, 'aria-label')).match(/(\d+) actif/) ?? [0, 0])[1]);
 
 const ECRANS = {
@@ -219,12 +227,12 @@ const ECRANS = {
   // après rechargement, retirer). La photo gardée doit être réduite (quelques centaines de Ko au plus).
   'fiche (ma photo, vide)': async (p) => {
     await p.locator('.carte').first().click();
-    await p.click('button.puce:text-is("Ma photo")');
+    await allerA(p, 'Ajouter une photo');
     await p.waitForSelector('.photo-vide');
   },
   'photo : recadrage': async (p) => {
     await p.locator('.carte').first().click();
-    await p.click('button.puce:text-is("Ma photo")');
+    await allerA(p, 'Ajouter une photo');
     await choisirPhoto(p);
     await p.waitForSelector('dialog[open] .recadrage__image');
   },
@@ -339,6 +347,7 @@ const ECRANS = {
         o.onsuccess = () => {
           const tx = o.result.transaction(['photos', 'boites', 'rendus'], 'readwrite');
           tx.objectStore('photos').put(blob, premier.id);
+          tx.objectStore('photos').put(blob, `${premier.id}#2`); // une deuxième photo du même set
           tx.objectStore('boites').put(blob, premier.numero);
           tx.objectStore('rendus').put(blob, premier.numero);
           tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error);
@@ -357,6 +366,7 @@ const ECRANS = {
     const dansFichier = [nb('photos'), nb('boites'), nb('rendus')];
     exiger(dansFichier.every((n, i) => n >= avant[i]), `l'export doit contenir toutes les images (au moins ${avant}, fichier ${dansFichier})`);
     exiger(Object.values(exporte.images.photos).every((v) => v.startsWith('/9j/')), 'les images exportées doivent être des JPEG');
+    exiger(Object.keys(exporte.images.photos).some((k) => k.endsWith('#2')), 'la deuxième photo d\'un set doit être dans l\'export');
     exiger(exporte.sets.find((x) => x.nom === 'Souhait 0')?.prix === 249 && exporte.sets.find((x) => x.nom === 'Souhait 2')?.prixSource === 'brickset-de', 'les prix doivent être dans l\'export');
     await p.waitForSelector('dialog[open] [role=status]:has-text("image")');
     // L'appareil perd ses images.
@@ -557,12 +567,97 @@ const ECRANS = {
     const manuel = sets.find((x) => x.nom === 'Souhait 0');
     exiger(manuel.sortieSource === 'manuelle' && manuel.dateSortie.endsWith('-03-01'), 'une date saisie à la main a été écrasée');
   },
+  // Carrousel de la fiche : boîte, rendu, photos personnelles (jusqu'à six), puis « ajouter ». Glisser ou flèches pour passer de l'une à l'autre,
+  // un appui ouvre l'image en plein écran. La fiche s'ouvre sur l'image choisie pour la liste.
+  'fiche (carrousel)': async (p) => {
+    await p.locator('.carte:has-text("Set numéro 1 avec")').click();
+    await p.waitForSelector('.heros__legende');
+    await p.click('button[aria-label="Image suivante"]');
+    await p.waitForSelector('.heros__fleche--gauche');
+  },
+  'plein écran (visionneuse)': async (p) => {
+    await p.locator('.carte:has-text("Set numéro 1 avec")').click();
+    await p.click('.heros__ouvrir');
+    await p.waitForSelector('dialog.visionneuse[open] .visionneuse__image');
+  },
+  'plein écran : zoom, flèches, fermeture': async (p) => {
+    await p.locator('.carte:has-text("Set numéro 1 avec")').click();
+    await p.click('.heros__ouvrir');
+    await p.waitForSelector('dialog.visionneuse[open]');
+    const legende = () => p.locator('.visionneuse__legende').innerText();
+    exiger(/Boîte · 1\/2/.test(await legende()), `légende inattendue : ${await legende()}`);
+    await p.click('.visionneuse__image');
+    await p.waitForSelector('.visionneuse__scene--zoom');
+    await p.click('.visionneuse__image');
+    await p.waitForFunction(() => !document.querySelector('.visionneuse__scene--zoom'));
+    await p.keyboard.press('ArrowRight');
+    await p.waitForFunction(() => /Rendu · 2\/2/.test(document.querySelector('.visionneuse__legende').textContent));
+    exiger(await p.locator('button[aria-label="Image suivante"]:disabled').count() === 1, 'la dernière image n\'a pas de suivante');
+    await p.keyboard.press('ArrowLeft');
+    await p.waitForFunction(() => /Boîte · 1\/2/.test(document.querySelector('.visionneuse__legende').textContent));
+    await p.click('button[aria-label="Fermer le plein écran"]');
+    await p.waitForFunction(() => !document.querySelector('dialog.visionneuse'));
+    exiger(await p.locator('.heros__legende').count() === 1, 'la fiche doit rester ouverte après le plein écran');
+  },
+  'plein écran : choisir l\'image de la liste': async (p) => {
+    await p.locator('.carte:has-text("Set numéro 1 avec")').click();
+    await p.click('.heros__ouvrir');
+    await p.keyboard.press('ArrowRight');
+    await p.click('dialog.visionneuse button:has-text("Pour la liste")');
+    await p.waitForSelector('dialog.visionneuse button[aria-pressed=true]:has-text("Image de la liste")');
+    exiger(await p.evaluate(() => JSON.parse(localStorage.getItem('bl_v1')).sets.filter((x) => x.imageListe === 'rendu').length) === 1, 'le rendu doit être l\'image de la liste');
+  },
+  'fiche : s\'ouvre sur l\'image choisie pour la liste': async (p) => {
+    await p.locator('.carte:has-text("Set numéro 1 avec")').click();
+    exiger(/^Boîte/.test(await p.locator('.heros__legende').innerText()), 'sans choix, la fiche s\'ouvre sur la boîte');
+    await p.click('button[aria-label="Image suivante"]');
+    await p.click('button[aria-label="Utiliser dans la liste"]');
+    await p.waitForSelector('.heros__etoile[aria-pressed=true]');
+    await p.reload(); await p.waitForSelector('.carte');
+    await p.locator('.carte:has-text("Set numéro 1 avec")').click();
+    await p.waitForSelector('.heros__legende:has-text("Rendu")');
+    exiger(await p.locator('.heros__legende .puce__etoile').count() === 1, 'l\'image de la liste doit porter l\'étoile dans la légende');
+  },
+  'photos : plusieurs par set, choisir la deuxième pour la liste': async (p) => {
+    const cartePhoto = () => p.evaluate(() => document.querySelectorAll('.carte img.vignette[data-origine="photo"]').length);
+    await p.locator('.carte').first().click();
+    for (let i = 0; i < 2; i += 1) {
+      await allerA(p, 'Ajouter une photo');
+      await choisirPhoto(p);
+      await p.waitForSelector('dialog[open] .recadrage__image');
+      await p.click('dialog[open] button:has-text("Enregistrer")');
+      await p.waitForSelector('.heros__legende:has-text("Ma photo")');
+    }
+    await p.waitForSelector('.heros__legende:has-text("Ma photo 2")');
+    exiger(await p.evaluate(() => new Promise((res) => { const o = indexedDB.open('bl_photos'); o.onsuccess = () => { const g = o.result.transaction('photos').objectStore('photos').getAllKeys(); g.onsuccess = () => res(g.result.length); }; })) === 2, 'deux photos doivent être gardées');
+    exiger(await cartePhoto() === 0, 'une photo non choisie apparaît déjà dans la liste');
+    await p.click('button[aria-label="Utiliser dans la liste"]');
+    await p.waitForFunction(() => document.querySelectorAll('.carte img.vignette[data-origine="photo"]').length === 1);
+    exiger(await p.evaluate(() => JSON.parse(localStorage.getItem('bl_v1')).sets.filter((x) => x.imageListe === 'photo-2').length) === 1, 'la deuxième photo doit être l\'image de la liste');
+    // La fiche s'ouvre sur cette photo.
+    await p.reload(); await p.waitForSelector('.carte');
+    await p.locator('.carte').first().click();
+    await p.waitForSelector('.heros__legende:has-text("Ma photo 2")');
+    // Retirer la photo choisie remet le set en automatique.
+    await p.click('.photo-actions button:has-text("Retirer")');
+    await p.click('[role=alertdialog] button:has-text("Retirer")');
+    await p.waitForSelector('.heros__legende:has-text("Boîte")');
+    exiger(await p.evaluate(() => JSON.parse(localStorage.getItem('bl_v1')).sets.filter((x) => x.imageListe).length) === 0, 'retirer l\'image de la liste doit remettre le set en automatique');
+  },
+  // Plein écran : « Partager » enregistre le fichier sur un navigateur qui ne partage pas (ici : téléchargement).
+  'plein écran : enregistrer l\'image': async (p) => {
+    await p.locator('.carte:has-text("Set numéro 1 avec")').click();
+    await p.click('.heros__ouvrir');
+    await p.waitForSelector('dialog.visionneuse[open] img.vignette--plein');
+    const [telechargement] = await Promise.all([p.waitForEvent('download', { timeout: 8000 }), p.click('dialog.visionneuse .visionneuse__action:not([aria-pressed])')]);
+    exiger(/^\d+-\d+-boite\.(png|jpg)$/.test(telechargement.suggestedFilename()), `nom de fichier inattendu : ${telechargement.suggestedFilename()}`);
+  },
   // Image de la liste : choisie sur la fiche (étoile), puis par la règle des Réglages. La carte montre
   // la photo (une image « blob: », lue dans IndexedDB) seulement dans ces cas.
   'photo : choisie pour la liste (fiche)': async (p) => {
     const cartePhoto = () => p.evaluate(() => document.querySelectorAll('.carte img.vignette[data-origine="photo"]').length);
     await p.locator('.carte').first().click();
-    await p.click('button.puce:has-text("Ma photo")');
+    await allerA(p, 'Ajouter une photo');
     await choisirPhoto(p);
     await p.waitForSelector('dialog[open] .recadrage__image');
     await p.click('dialog[open] button:has-text("Enregistrer")');
@@ -577,7 +672,7 @@ const ECRANS = {
   },
   'photo : règle des Réglages': async (p) => {
     await p.locator('.carte').first().click();
-    await p.click('button.puce:has-text("Ma photo")');
+    await allerA(p, 'Ajouter une photo');
     await choisirPhoto(p);
     await p.waitForSelector('dialog[open] .recadrage__image');
     await p.click('dialog[open] button:has-text("Enregistrer")');
@@ -593,7 +688,7 @@ const ECRANS = {
   },
   'photo : enregistrée, relue, retirée': async (p) => {
     await p.locator('.carte').first().click();
-    await p.click('button.puce:text-is("Ma photo")');
+    await allerA(p, 'Ajouter une photo');
     await choisirPhoto(p);
     await p.waitForSelector('dialog[open] .recadrage__image');
     await p.click('dialog[open] button:has-text("Enregistrer")');
@@ -602,11 +697,11 @@ const ECRANS = {
     exiger(octets > 0 && octets < 300 * 1024, `photo gardée de ${octets} octets (attendu : réduite, moins de 300 Ko)`);
     await p.reload(); await p.waitForSelector('.carte');
     await p.locator('.carte').first().click();
-    await p.click('button.puce:text-is("Ma photo")');
+    await allerA(p, 'Ma photo');
     await p.waitForSelector('img.vignette--fiche[alt^="Ma photo"]');
     await p.click('.photo-actions button:has-text("Retirer")');
     await p.click('[role=alertdialog] button:has-text("Retirer")');
-    await p.waitForSelector('.photo-vide');
+    await p.waitForSelector('.heros__legende:has-text("Boîte")');
     exiger(await tailleEnStock(p) === 0, 'la photo retirée est encore en stock');
   },
   'liste par emplacement': async (p) => { await trier(p, 'Emplacement'); await p.waitForSelector('.rangee'); },

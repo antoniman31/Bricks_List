@@ -891,10 +891,19 @@ div.anneau__ligne { padding: 6px 0; }
 .heros .vignette--fiche.vignette--vide { height: auto; aspect-ratio: 5 / 4; }
 /* Sans image : un fond sombre uni dans les deux thèmes (le titre blanc posé dessus reste lisible), avec le numéro en clair. */
 .heros .vignette--vide, .heros .photo-vide { background: #2a2d36; color: #dfe2ea; }
-.heros__pastilles { position: absolute; top: 12px; left: 12px; right: 72px; z-index: 2; flex-wrap: nowrap; gap: 6px; }
-.sheet--heros .heros__pastilles { top: 36px; }
-.heros__pastilles .puce { flex: none; padding: 0 12px; border-color: transparent; background: rgb(0 0 0 / 0.62); color: #fff; white-space: nowrap; }
-.heros__pastilles .puce[aria-pressed='true'] { background: var(--accent-fond); color: var(--sur-accent); }
+/* Carrousel : la légende (image et rang) en haut à gauche, les flèches au milieu des bords, l'étoile en bas à droite. Tous sur fond
+   sombre translucide, comme l'étoile. Un calque transparent couvre l'image : un appui l'ouvre en plein écran, un glissé horizontal
+   change d'image (`touch-action: pan-y` laisse la page défiler). Il passe sous les autres contrôles. */
+.heros__ouvrir { position: absolute; inset: 0; z-index: 1; display: block; width: 100%; height: 100%; padding: 0; border: 0; background: transparent; cursor: zoom-in; touch-action: pan-y; }
+.heros__ouvrir:focus-visible { outline: 3px solid var(--accent-fond); outline-offset: -6px; }
+.heros__ouvrir--ajout { cursor: default; }
+.heros__legende { position: absolute; top: 12px; left: 12px; z-index: 2; display: inline-flex; align-items: center; gap: 4px; max-width: calc(100% - 84px); margin: 0; padding: 0 12px; min-height: 32px; border-radius: var(--rayon-pilule); background: rgb(0 0 0 / 0.62); color: #fff; font-size: 0.8125rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sheet--heros .heros__legende { top: 36px; }
+.heros__legende .puce__etoile svg { width: 14px; height: 14px; display: block; }
+.heros__fleche { position: absolute; top: 50%; z-index: 2; display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border: 0; border-radius: 50%; background: rgb(0 0 0 / 0.62); color: #fff; transform: translateY(-50%); }
+.heros__fleche--gauche { left: 8px; }
+.heros__fleche--droite { right: 8px; }
+.heros__fleche svg { width: 28px; height: 28px; display: block; }
 .heros__etoile { position: absolute; right: 12px; bottom: 12px; z-index: 2; display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border: 0; border-radius: 50%; background: rgb(0 0 0 / 0.62); color: #fff; }
 .heros__etoile[aria-pressed='true'] { background: var(--accent-fond); color: var(--sur-accent); }
 .heros__etoile svg { width: 24px; height: 24px; display: block; }
@@ -965,3 +974,25 @@ div.anneau__ligne { padding: 6px 0; }
 .budget__colonnes--serre { font-size: 0.8125rem; gap: 6px; }
 /* Quatre colonnes sur 360 px : les noms rapetissent plutôt que de se toucher ou de passer à la ligne. */
 .budget__colonnes--serre .budget__nom { gap: 3px; font-size: 0.6875rem; }
+
+/* ---------- Visionneuse : les images du set en plein écran ---------- */
+.visionneuse { width: 100vw; max-width: none; height: 100dvh; max-height: none; margin: 0; padding: 0; border: 0; background: #000; color: #fff; overflow: hidden; }
+.visionneuse[open] { display: flex; flex-direction: column; }
+.visionneuse::backdrop { background: #000; }
+.visionneuse__haut { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; }
+.visionneuse__legende { margin: 0; padding: 4px 12px; border-radius: var(--rayon-pilule); background: #20232b; font-size: 0.875rem; font-weight: 600; }
+.visionneuse .icone-btn { background: #20232b; color: #fff; }
+.visionneuse .icone-btn:disabled { opacity: 0.35; }
+/* La scène défile quand l'image est zoomée : on se déplace avec le doigt ou la souris. */
+.visionneuse__scene { flex: 1 1 0; min-height: 0; overflow: auto; }
+.visionneuse__image { display: block; width: 100%; height: 100%; padding: 0; border: 0; background: transparent; cursor: zoom-in; }
+.visionneuse__scene--zoom .visionneuse__image { width: 260%; height: 260%; cursor: zoom-out; }
+.visionneuse .vignette--plein { display: block; width: 100%; height: 100%; max-height: none; margin: 0; border: 0; border-radius: 0; aspect-ratio: auto; object-fit: contain; background: transparent; }
+.visionneuse .photo-vide { height: 100%; max-height: none; aspect-ratio: auto; border: 0; color: #dfe2ea; }
+.visionneuse .vignette--vide { background: #2a2d36; color: #dfe2ea; }
+.visionneuse__message { margin: 0; padding: 8px 16px; background: #3b1d1d; color: #ffd9d6; font-size: 0.875rem; }
+.visionneuse__bas { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); }
+.visionneuse__action { display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex: 0 1 auto; margin: 0; background: #20232b; border-color: #4a4f5c; color: #fff; }
+.visionneuse__action[aria-pressed='true'] { background: var(--accent-fond); border-color: var(--accent-fond); color: var(--sur-accent); }
+.visionneuse__action svg { width: 20px; height: 20px; }
+@media (max-width: 420px) { .visionneuse__action { padding: 0 10px; } }
