@@ -868,14 +868,20 @@ const ECRANS = {
   // frise de la fiche. Départ : Souhait 0 retiré dans 90 jours, Souhait 1 retiré depuis 30 jours, Souhait 2 sans retrait.
   'wishlist (retrait)': async (p) => {
     await p.click('.nav__item:has-text("Wishlist")');
-    await p.waitForSelector('.carte:has-text("Retiré")');
-    exiger(await p.locator('.carte:has-text("Souhait 0")').innerText().then((t) => /Retrait dans 3 mois|Retrait dans 9\d jours|Retrait dans 8\d jours/.test(t)), 'un retrait dans trois mois doit s\'afficher sur la carte');
-    exiger(!/Retrait|Retiré/.test(await p.locator('.carte:has-text("Souhait 2")').innerText()), 'un set sans retrait ne doit rien afficher');
+    await p.waitForSelector('.carte .badge-retrait--retire:has-text("Retiré")');
+    exiger(await p.locator('.carte:has-text("Souhait 0") .badge-retrait--bientot').innerText().then((t) => /Retrait 3 mois/i.test(t)), 'un retrait dans trois mois doit s\'écrire sur la photo');
+    exiger(await p.locator('.carte:has-text("Souhait 2") .badge-retrait').count() === 0, 'un set sans retrait ne doit rien afficher');
+    // Le bandeau est décoratif et hors du texte de la carte : un lecteur d'écran lit la phrase cachée, le texte visible n'en parle plus.
+    exiger(await p.locator('.carte:has-text("Souhait 1") .carte__etat:has-text("Retiré")').count() === 0, 'le texte de la carte ne doit plus parler du retrait');
+    exiger(await p.locator('.carte:has-text("Souhait 1") .carte__nom .visuellement-cache').innerText().then((t) => /retiré/.test(t)), 'le lecteur d\'écran doit entendre « retiré »');
+    const bande = await p.locator('.carte:has-text("Souhait 1") .badge-retrait').boundingBox();
+    const photo = await p.locator('.carte:has-text("Souhait 1") .carte__photo').boundingBox();
+    exiger(bande && photo && bande.width > photo.width * 0.9 && Math.abs((bande.y + bande.height / 2) - (photo.y + photo.height / 2)) < photo.height * 0.2, 'le bandeau doit passer en travers du milieu de la photo');
   },
   'wishlist grille (retrait)': async (p) => {
     await p.click(GRILLE);
     await p.click('.nav__item:has-text("Wishlist")');
-    await p.waitForSelector('.carte--tuile .carte__sortie:has-text("Retiré")');
+    await p.waitForSelector('.carte--tuile .badge-retrait:has-text("Retiré")');
   },
   'filtres (retrait)': async (p) => {
     await p.click('.nav__item:has-text("Wishlist")');

@@ -64,13 +64,26 @@ export function etatRetrait(set, maintenant = new Date()) {
   return { date: set.dateRetrait, jours, retire: jours < 0, bientot: jours >= 0 && jours <= JOURS_BIENTOT_RETIRE };
 }
 
-// Le texte d'une carte de la wishlist : « Retiré » si c'est fait, « Retrait dans 5 mois » dans les six mois, sinon rien.
-export function texteRetrait(set, maintenant = new Date()) {
+// Le temps restant, en deux mots au plus pour tenir dans un bandeau sur la photo : « demain », « 12 j », « 3 mois ».
+function delaiCourt(jours) {
+  if (jours <= 0) return 'dernier jour';
+  if (jours === 1) return 'demain';
+  if (jours < 60) return `${jours} j`;
+  return `${Math.round(jours / 30.44)} mois`;
+}
+
+// Le badge posé en travers de la photo d'une carte de la wishlist : null (rien à signaler), ou { etat, texte, accessible }.
+// `etat` : « retire » (rouge) ou « bientot » (jaune, dans les six mois). `texte` : ce qui s'écrit sur le bandeau (« Retiré »,
+// « Retrait 3 mois ») ; `accessible` : la phrase que lit un lecteur d'écran (le bandeau, lui, est décoratif). Le texte de la carte
+// n'en parle plus.
+export function badgeRetrait(set, maintenant = new Date()) {
   if (set?.statut !== 'souhaité') return null;
   const e = etatRetrait(set, maintenant);
   if (!e) return null;
-  if (e.retire) return 'Retiré';
-  return e.bientot ? `Retrait ${relatif(e.jours)}` : null;
+  if (e.retire) return { etat: 'retire', texte: 'Retiré', accessible: 'retiré' };
+  if (!e.bientot) return null;
+  const court = delaiCourt(e.jours);
+  return { etat: 'bientot', texte: court === 'dernier jour' ? 'Dernier jour' : `Retrait ${court}`, accessible: `retrait ${relatif(e.jours)}` };
 }
 
 export const FILTRES_RETRAIT = [

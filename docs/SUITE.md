@@ -203,8 +203,10 @@ testé avec sa vraie collection, tout fonctionne.
   possible : l'appel `getInstructions` de l'API Brickset (URL de PDF), via le relais.
 - **Retrait, sous-thème, notices PDF** (14 novembre 2026, choisis par Antoni dans le tableau « données utilisées / inutilisées ») :
   - **Retrait prévu par LEGO** : champ `dateRetrait` (même validation que `dateSortie`, jamais saisi à la main, donc sans source), donné par
-    Brickset via `/sortie` (`retrait`). Affiché pour la **wishlist** seulement : « Retiré » ou « Retrait dans 5 mois » sur la carte (dans les six
-    mois, `JOURS_BIENTOT_RETIRE` = 183 dans `src/lib/sortie.js`), étape « Retrait » de la frise (non modifiable), filtre « Retrait » (« Bientôt
+    Brickset via `/sortie` (`retrait`). Affiché pour la **wishlist** seulement : un **bandeau en travers de la photo** de la liste et de la grille (choix d'Antoni, variante B de la maquette ; `badgeRetrait` dans
+    `src/lib/sortie.js`, tokens `--retire` / `--sur-retire`), rouge « Retiré » ou jaune « Retrait 3 mois » / « Retrait 12 j » / « Retrait demain » / « Dernier jour » dans les six
+    mois (`JOURS_BIENTOT_RETIRE` = 183). Le bandeau est décoratif (`aria-hidden`) ; le texte de la carte n'en parle plus, mais le nom porte une phrase cachée (« retiré », « retrait dans 3 mois »)
+    pour les lecteurs d'écran, étape « Retrait » de la frise (non modifiable), filtre « Retrait » (« Bientôt
     retirés (6 mois) », « Déjà retirés »). C'est une prévision de LEGO, qui bouge souvent. Pas de tri dédié.
   - **Sous-thème** : champ `sousTheme` (texte de 60 caractères au plus, `src/lib/libelle.js`) ; `null` = jamais demandé, `''` = « Brickset n'en a pas »
     (ne se redemande pas). Ligne « Sous-thème » sur la fiche, filtre « Sous-thème » (collection et wishlist). **Rattrapage** : « Mettre à jour dates et
