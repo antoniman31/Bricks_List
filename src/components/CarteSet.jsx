@@ -1,7 +1,7 @@
 // Toute la carte est un vrai <button> (clavier, lecteur d'écran) et ouvre la fiche.
 import ImageSet from './ImageSet.jsx'
 import { LIBELLES_PRIORITE } from '../lib/model.js'
-import { badgeRetrait, texteCarte } from '../lib/sortie.js'
+import { badgeRetrait, badgeSortie } from '../lib/sortie.js'
 import { formaterPrix } from '../lib/prix.js'
 import PastillePrixPiece from './PastillePrixPiece.jsx'
 
@@ -11,16 +11,20 @@ export default function CarteSet({ set, onOuvrir, selection, onBasculer, vue = '
   const badge = n > 1 && (
     <span className="carte__badge" role="img" aria-label={`${n} exemplaires`}>×{n}</span>
   )
-  // Un set pas encore sorti dit quand : « Sort le 1 janv. 2027 · dans 57 jours » (version courte en grille).
-  const sortieLongue = texteCarte(set)
-  const sortieCourte = texteCarte(set, undefined, true)
-  // Le prix officiel ne s'affiche que sur la wishlist. Pas de marque « DE » sur les cartes (choix d'Antoni) : la fiche, elle, dit
-  // « prix DE » quand le prix est le prix allemand pré-rempli.
   // Le retrait prévu (wishlist seulement) : un bandeau en travers de la photo, « Retiré » (rouge) ou « Retrait 3 mois » (jaune, dans
   // les six mois). Décoratif : le texte de la carte porte la même information pour un lecteur d'écran.
   const retrait = badgeRetrait(set)
-  const bandeau = retrait && <span className={`badge-retrait badge-retrait--${retrait.etat}`} aria-hidden="true">{retrait.texte}</span>
-  const pourLecteur = retrait && <span className="visuellement-cache"> ({retrait.accessible})</span>
+  // Un set pas encore sorti : un bandeau en bas de la photo (couleur selon le délai : bleu foncé loin, bleu dans les trois mois, vert dans le
+  // mois), la date exacte restant sur la fiche. Un set qui a déjà le bandeau de retrait (en travers, plus pressant) n'a pas celui-ci.
+  const sortie = retrait ? null : badgeSortie(set)
+  const annonce = retrait ?? sortie
+  const bandeau = (
+    <>
+      {retrait && <span className={`badge-retrait badge-retrait--${retrait.etat}`} aria-hidden="true">{retrait.texte}</span>}
+      {sortie && <span className={`badge-sortie badge-sortie--${sortie.palier}`} aria-hidden="true">{sortie.texte}</span>}
+    </>
+  )
+  const pourLecteur = annonce && <span className="visuellement-cache"> ({annonce.accessible})</span>
   const prix = set.statut === 'souhaité' && set.prix != null ? formaterPrix(set.prix) : ''
   const details = [
     set.theme || null,
@@ -61,7 +65,6 @@ export default function CarteSet({ set, onOuvrir, selection, onBasculer, vue = '
               {set.pieces != null ? `${set.pieces.toLocaleString('fr-FR')} pièces` : set.numero}
               {set.emplacement && ` · ${set.emplacement}`}
             </p>
-            {sortieCourte && <p className="carte__details carte__sortie">{sortieCourte}</p>}
             {prix && <p className="carte__details carte__prix">{prix}</p>}
             {prix && <p className="carte__details"><PastillePrixPiece set={set} /></p>}
             {repere && <span className="tuile__repere">{repere}</span>}
@@ -82,7 +85,6 @@ export default function CarteSet({ set, onOuvrir, selection, onBasculer, vue = '
         <div className="carte__texte">
           <p className="carte__nom">{set.nom}{badge}{pourLecteur}</p>
           <p className="carte__details">{set.numero}{details.length > 0 && ` · ${details.join(' · ')}`}</p>
-          {sortieLongue && <p className="carte__etat">{sortieLongue}</p>}
           {prix && <p className="carte__etat">{prix}<PastillePrixPiece set={set} /></p>}
           {set.priorite && <p className="carte__etat">{LIBELLES_PRIORITE[set.priorite]}</p>}
           {set.etiquettes?.length > 0 && <p className="carte__etat">{set.etiquettes.join(' · ')}</p>}

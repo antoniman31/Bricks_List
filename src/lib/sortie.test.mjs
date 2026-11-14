@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { aInterroger, candidats, comparerSorties, correspondRetrait, correspondSortie, dateCourte, etatRetrait, etatSortie, relatif, texteCarte, badgeRetrait } from './sortie.js';
+import { aInterroger, candidats, comparerSorties, correspondRetrait, correspondSortie, dateCourte, etatRetrait, relatif, badgeSortie, badgeRetrait } from './sortie.js';
 import { dateSortieValide, joursJusque } from './dates.js';
 import { normaliserSet } from './model.js';
 import { filtrer, trier } from './recherche.js';
@@ -35,13 +35,21 @@ test('texte : un ordre de grandeur quand c\'est loin, le jour quand c\'est proch
   assert.equal(dateCourte('n\'importe quoi'), '');
 });
 
-test('carte : seulement pour un set pas encore sorti, version courte pour la grille', () => {
-  assert.equal(texteCarte(set('a', '2027-01-01'), AUJOURDHUI), 'Sort le 1 janv. 2027 · dans 57 jours');
-  assert.equal(texteCarte(set('a', '2027-01-01'), AUJOURDHUI, true), 'Sort dans 57 jours');
-  assert.equal(texteCarte(set('a', '2026-01-01'), AUJOURDHUI), null);
-  assert.equal(texteCarte(set('a', '2026-11-05'), AUJOURDHUI), null, 'sorti aujourd\'hui = sorti');
-  assert.equal(texteCarte(set('a', null), AUJOURDHUI), null);
-  assert.equal(etatSortie(set('a', null), AUJOURDHUI), null);
+test('badgeSortie : seulement pour un set pas encore sorti ; trois paliers de couleur, délai toujours écrit', () => {
+  const b = (iso) => badgeSortie(set('a', iso), AUJOURDHUI);
+  assert.deepEqual(b('2027-01-01'), { palier: 'mois', texte: 'Sort dans 57 j', accessible: 'sort dans 57 jours' });
+  assert.deepEqual(b('2026-11-06'), { palier: 'proche', texte: 'Sort demain', accessible: 'sort demain' });
+  assert.deepEqual([b('2026-11-17').palier, b('2026-11-17').texte], ['proche', 'Sort dans 12 j']); // 12 jours : texte en jours
+  assert.equal(b('2026-12-05').palier, 'proche'); // 30 jours : limite du palier proche
+  assert.equal(b('2026-12-06').palier, 'mois'); // 31 jours
+  assert.equal(b('2027-02-03').palier, 'mois'); // 90 jours : limite du palier mois
+  assert.equal(b('2027-02-04').palier, 'loin'); // 91 jours
+  assert.equal(b('2027-02-04').texte, 'Sort dans 3 mois');
+  assert.equal(b('2027-07-05').texte, 'Sort dans 8 mois');
+  assert.equal(b('2028-11-05').texte, 'Sort dans 2 ans'); // 2 ans et plus
+  assert.equal(b('2026-01-01'), null);
+  assert.equal(b('2026-11-05'), null, 'sorti aujourd\'hui = sorti');
+  assert.equal(b(null), null);
 });
 
 test('filtre « Sortie » : à venir, déjà sorti, date inconnue', () => {

@@ -29,11 +29,25 @@ export function relatif(jours) {
   return mois < 24 ? `dans ${mois} mois` : `dans ${Math.round(jours / 365.25)} ans`;
 }
 
-// Le texte d'une carte : seulement pour un set pas encore sorti. `court` pour la grille (deux colonnes).
-export function texteCarte(set, maintenant = new Date(), court = false) {
+// Le bandeau posé en bas de la photo d'une carte, pour un set pas encore sorti (la fiche garde la date en clair). Renvoie null (rien
+// à signaler), ou { palier, texte, accessible }. `palier` dit l'urgence, la couleur suit : « loin » (plus de 90 jours, bleu foncé),
+// « mois » (de 31 à 90 jours, bleu), « proche » (30 jours et moins, vert). `texte` : « Sort dans 8 mois », « Sort dans 12 j », « Sort demain » ;
+// `accessible` : la phrase que lit un lecteur d'écran (le bandeau, lui, est décoratif). Le délai est toujours écrit : la couleur ne dit
+// jamais seule. Un set qui porte déjà un bandeau de retrait n'a pas celui-ci (voir CarteSet).
+export const JOURS_PALIER_PROCHE = 30;
+export const JOURS_PALIER_MOIS = 90;
+export function badgeSortie(set, maintenant = new Date()) {
   const e = etatSortie(set, maintenant);
   if (!e || !e.aVenir) return null;
-  return court ? `Sort ${relatif(e.jours)}` : `Sort le ${dateCourte(e.date)} · ${relatif(e.jours)}`;
+  const palier = e.jours <= JOURS_PALIER_PROCHE ? 'proche' : e.jours <= JOURS_PALIER_MOIS ? 'mois' : 'loin';
+  let delai;
+  if (e.jours === 1) delai = 'demain';
+  else if (e.jours < 60) delai = `dans ${e.jours} j`;
+  else {
+    const mois = Math.round(e.jours / 30.44);
+    delai = mois < 24 ? `dans ${mois} mois` : `dans ${Math.round(e.jours / 365.25)} ans`;
+  }
+  return { palier, texte: `Sort ${delai}`, accessible: `sort ${relatif(e.jours)}` };
 }
 
 // Les valeurs du filtre « Sortie ».
