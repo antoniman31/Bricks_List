@@ -14,6 +14,9 @@ de la wishlist (#71), correctif de la copie des rendus (#72).
 
 1. ~~Réorganiser les Réglages~~ : fait (quatre groupes, états en une ligne, une section ouverte à la fois ; voir `docs/SUITE.md`). La wishlist
    n'a plus que le total et un bouton-icône « Copier la liste » (la mise à jour dates et prix est dans Réglages > Brickset).
+1 bis. **Sauvegarde en ligne (Antoni, avant de fusionner la PR)** : créer le bucket R2 `bricks-sauvegardes` (Cloudflare > R2 > Create bucket), vérifier que le secret `JETON` existe
+   sur le relais et le saisir dans Réglages > Brickset > Jeton ; redéployer le relais (voir `relais/README.md`). Puis Réglages > Sauvegarde en ligne > « Envoyer en ligne », « Voir les copies »,
+   et essayer une relecture (aperçu, puis Fusionner sans rien casser).
 2. **Antoni, sur son S26** : relancer Réglages > Images gardées > « Garder toutes les images » (avant #72, la
    copie des rendus s'était arrêtée après 8 images sur un « image trop grosse » ; on ne sait pas quel set) et coller le
    message, qui nomme maintenant les sets refusés. Puis faire un **export complet** (Réglages > Sauvegarde) : il contient

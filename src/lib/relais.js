@@ -70,6 +70,10 @@ const MESSAGES = {
   rebrickable: 'Rebrickable ne répond pas correctement.',
   type: 'Le relais n\'a pas renvoyé une image.',
   taille: 'Image trop grosse pour le relais.',
+  protection: 'Le relais n\'a pas de secret JETON : ajoute-le (sauvegarde en ligne).',
+  stockage: 'Le relais n\'a pas son bucket R2 « bricks-sauvegardes ».',
+  gros: 'Sauvegarde trop grosse pour le relais (100 Mo au plus).',
+  vide: 'Aucune sauvegarde en ligne.',
 };
 export const messageRelais = (code) => MESSAGES[code] ?? MESSAGES.reponse;
 
@@ -196,4 +200,79 @@ export async function recupererGalerie(relais, numero, fetchFn = globalThis.fetc
   if (!reponse.ok) return { ok: false, code: typeof corps?.erreur === 'string' && corps.erreur in MESSAGES ? corps.erreur : 'reponse' };
   const images = lireGalerie(corps);
   return images ? { ok: true, images } : { ok: false, code: 'reponse' };
+}
+
+
+// ---- Sauvegarde en ligne (R2, via le relais) -----------------------------------------------------------------------
+// Le fichier est celui de « Enregistrer le fichier » : collection et images. Le relais exige le jeton pour ces trois routes.
+const DELAI_SAUVEGARDE_MS = 120_000; // plusieurs dizaines de Mo : un téléphone en 4G n'est pas en avance
+export const CLE_COPIE = /^sauvegardes\/\d{4}-\d{2}-\d{2}T\d{6}Z\.json$/;
+
+function enTetes(relais) { return relais.jeton ? { 'X-Jeton': relais.jeton } : {}; }
+const codeErreur = (corps) => (typeof corps?.erreur === 'string' && corps.erreur in MESSAGES ? corps.erreur : 'reponse');
+
+// Envoie le fichier d'export. Renvoie { ok: true, cle, octets } ou { ok: false, code }. Ne lève jamais.
+export async function envoyerSauvegarde(relais, contenu, fetchFn = globalThis.fetch) {
+  const base = urlRelaisValide(relais?.url);
+  if (!base || typeof contenu !== 'string' || contenu.length < 2) return { ok: false, code: 'url' };
+  if (!relais.jeton) return { ok: false, code: 'jeton' };
+  let reponse;
+  try {
+    reponse = await fetchFn(`${base}/sauvegarde`, {
+      method: 'PUT',
+      headers: { ...enTetes(relais), 'Content-Type': 'application/json' },
+      body: contenu,
+      signal: AbortSignal.timeout(DELAI_SAUVEGARDE_MS),
+    });
+  } catch (e) {
+    return { ok: false, code: e?.name === 'TimeoutError' ? 'delai' : 'reseau' };
+  }
+  let corps = null;
+  try { corps = await reponse.json(); } catch { /* corps illisible */ }
+  if (!reponse.ok) return { ok: false, code: codeErreur(corps) };
+  if (typeof corps?.cle !== 'string' || !CLE_COPIE.test(corps.cle)) return { ok: false, code: 'reponse' };
+  return { ok: true, cle: corps.cle, octets: Number.isFinite(corps.octets) ? corps.octets : null };
+}
+
+// Les copies gardées en ligne, la plus récente d'abord (5 au plus). La réponse est une entrée non fiable : clé, taille et date revérifiées.
+export async function listerSauvegardes(relais, fetchFn = globalThis.fetch) {
+  const base = urlRelaisValide(relais?.url);
+  if (!base) return { ok: false, code: 'url' };
+  if (!relais.jeton) return { ok: false, code: 'jeton' };
+  let reponse;
+  try {
+    reponse = await fetchFn(`${base}/sauvegardes`, { headers: enTetes(relais), signal: AbortSignal.timeout(DELAI_MS) });
+  } catch (e) {
+    return { ok: false, code: e?.name === 'TimeoutError' ? 'delai' : 'reseau' };
+  }
+  let corps = null;
+  try { corps = await reponse.json(); } catch { /* corps illisible */ }
+  if (!reponse.ok) return { ok: false, code: codeErreur(corps) };
+  if (!Array.isArray(corps?.versions)) return { ok: false, code: 'reponse' };
+  const versions = [];
+  for (const v of corps.versions.slice(0, 5)) {
+    const t = typeof v?.date === 'string' ? Date.parse(v.date) : NaN;
+    if (typeof v?.cle !== 'string' || !CLE_COPIE.test(v.cle) || Number.isNaN(t)) continue;
+    versions.push({ cle: v.cle, date: new Date(t).toISOString(), octets: Number.isFinite(v.octets) && v.octets >= 0 ? v.octets : null });
+  }
+  return { ok: true, versions };
+}
+
+// Le texte d'une copie, à passer à `lireImport` comme un fichier choisi : c'est lui qui valide tout (entrée non fiable).
+export async function telechargerSauvegarde(relais, cle, fetchFn = globalThis.fetch) {
+  const base = urlRelaisValide(relais?.url);
+  if (!base || !CLE_COPIE.test(cle ?? '')) return { ok: false, code: 'url' };
+  if (!relais.jeton) return { ok: false, code: 'jeton' };
+  let reponse;
+  try {
+    reponse = await fetchFn(`${base}/sauvegarde?v=${encodeURIComponent(cle)}`, { headers: enTetes(relais), signal: AbortSignal.timeout(DELAI_SAUVEGARDE_MS) });
+  } catch (e) {
+    return { ok: false, code: e?.name === 'TimeoutError' ? 'delai' : 'reseau' };
+  }
+  if (!reponse.ok) {
+    let corps = null;
+    try { corps = await reponse.json(); } catch { /* corps illisible */ }
+    return { ok: false, code: codeErreur(corps) };
+  }
+  try { return { ok: true, texte: await reponse.text() }; } catch { return { ok: false, code: 'reseau' }; }
 }

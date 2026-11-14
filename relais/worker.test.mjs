@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { datePropre, identifiantBrickset, libellePropre, lireBrickset, lireImagesSet, lireNotices, prixPropre, traiter, urlImageValide, urlNoticeValide } from './worker.js';
+import { cleDeSauvegarde, datePropre, identifiantBrickset, libellePropre, lireBrickset, lireImagesSet, lireNotices, prixPropre, traiter, urlImageValide, urlNoticeValide } from './worker.js';
 
 const ENV = { BRICKSET_KEY: 'cle-secrete-de-test', ORIGINE: 'https://antoniman31.github.io' };
 const SUCCES = (sets) => ({ status: 'success', matches: sets.length, sets });
@@ -319,4 +319,100 @@ test('urlImageValide : les images de la galerie de Brickset passent, rien d\'aut
     'https://cdn.rebrickable.com/sets/AdditionalImages/75192-1/a.jpg', 'https://images.brickset.com/media/sets/75192-1.jpg',
   ]) assert.equal(urlImageValide(v), null, String(v));
   assert.equal(urlImageValide('https://__proto__/media/sets/a.jpg'), null);
+});
+
+// ---- Sauvegarde en ligne : un faux bucket R2 en mémoire -----------------------------------------------------------
+function fauxBucket() {
+  const objets = new Map();
+  return {
+    objets,
+    async put(cle, corps) { objets.set(cle, { texte: typeof corps === 'string' ? corps : await new Response(corps).text(), uploaded: new Date('2026-11-14T12:00:00Z') }); },
+    async get(cle) { const o = objets.get(cle); return o ? { body: new Response(o.texte).body } : null; },
+    async list({ prefix }) { return { objects: [...objets].filter(([k]) => k.startsWith(prefix)).map(([key, o]) => ({ key, size: o.texte.length, uploaded: o.uploaded })), truncated: false }; },
+    async delete(cles) { for (const c of [].concat(cles)) objets.delete(c); },
+  };
+}
+const ENV_SAUV = () => ({ ...ENV, JETON: 'jeton-de-test-1234', SAUVEGARDES: fauxBucket() });
+const AVEC_JETON = { 'X-Jeton': 'jeton-de-test-1234' };
+const envoyer = (env, texte, entetes = {}) => appel('/sauvegarde', { env, init: { method: 'PUT', body: texte, headers: { 'Content-Type': 'application/json', 'Content-Length': String(new TextEncoder().encode(texte).length), ...AVEC_JETON, ...entetes } } });
+
+test('cleDeSauvegarde : la date UTC, triable', () => {
+  assert.equal(cleDeSauvegarde(new Date('2026-11-14T14:30:05Z')), 'sauvegardes/2026-11-14T143005Z.json');
+  assert.ok(cleDeSauvegarde(new Date('2026-11-14T14:30:05Z')) < cleDeSauvegarde(new Date('2026-12-01T00:00:00Z')));
+});
+
+test('sauvegarde : sans JETON défini côté relais, refusée (la collection entière ne passe pas sans protection)', async () => {
+  const env = { ...ENV, SAUVEGARDES: fauxBucket() };
+  assert.equal((await appel('/sauvegardes', { env, init: { headers: AVEC_JETON } })).status, 403);
+  assert.equal((await envoyer(env, '{}')).status, 403);
+});
+
+test('sauvegarde : mauvais jeton, 401 ; pas de bucket, 500 « stockage »', async () => {
+  const env = ENV_SAUV();
+  assert.equal((await appel('/sauvegardes', { env })).status, 401);
+  assert.equal((await appel('/sauvegardes', { env, init: { headers: { 'X-Jeton': 'autre' } } })).status, 401);
+  const r = await appel('/sauvegardes', { env: { ...ENV, JETON: 'jeton-de-test-1234' }, init: { headers: AVEC_JETON } });
+  assert.deepEqual([r.status, (await r.json()).erreur], [500, 'stockage']);
+});
+
+test('sauvegarde : envoi puis liste puis relecture, le fichier revient à l\'identique', async () => {
+  const env = ENV_SAUV();
+  const texte = JSON.stringify({ version: 1, sets: [{ numero: '75192-1', nom: 'Faucon é' }] });
+  const r = await envoyer(env, texte);
+  assert.equal(r.status, 200);
+  const { cle, octets } = await r.json();
+  assert.match(cle, /^sauvegardes\/\d{4}-\d{2}-\d{2}T\d{6}Z\.json$/);
+  assert.equal(octets, new TextEncoder().encode(texte).length);
+  const liste = await (await appel('/sauvegardes', { env, init: { headers: AVEC_JETON } })).json();
+  assert.equal(liste.versions.length, 1);
+  assert.equal(liste.versions[0].cle, cle);
+  const lu = await appel(`/sauvegarde?v=${encodeURIComponent(cle)}`, { env, init: { headers: AVEC_JETON } });
+  assert.equal(lu.status, 200);
+  assert.equal(await lu.text(), texte);
+  assert.equal(await (await appel('/sauvegarde', { env, init: { headers: AVEC_JETON } })).text(), texte, 'sans v : la plus récente');
+});
+
+test('sauvegarde : seules les 5 plus récentes restent', async () => {
+  const env = ENV_SAUV();
+  for (let i = 1; i <= 7; i += 1) env.SAUVEGARDES.objets.set(`sauvegardes/2026-11-0${i}T120000Z.json`, { texte: `{"n":${i}}`, uploaded: new Date(`2026-11-0${i}T12:00:00Z`) });
+  assert.equal((await envoyer(env, '{"n":8}')).status, 200);
+  const cles = [...env.SAUVEGARDES.objets.keys()].sort();
+  assert.equal(cles.length, 5);
+  assert.ok(!cles.includes('sauvegardes/2026-11-01T120000Z.json') && !cles.includes('sauvegardes/2026-11-03T120000Z.json'));
+  const liste = await (await appel('/sauvegardes', { env, init: { headers: AVEC_JETON } })).json();
+  assert.equal(liste.versions.length, 5);
+  assert.ok(liste.versions[0].cle > liste.versions[4].cle, 'la plus récente d\'abord');
+});
+
+test('sauvegarde : envoi refusé (type, taille absente, trop gros) sans rien ranger', async () => {
+  const env = ENV_SAUV();
+  assert.equal((await envoyer(env, '{}', { 'Content-Type': 'text/plain' })).status, 415);
+  assert.equal((await envoyer(env, '{}', { 'Content-Length': '' })).status, 411);
+  assert.equal((await envoyer(env, '{}', { 'Content-Length': String(101 * 1024 * 1024) })).status, 413);
+  assert.equal(env.SAUVEGARDES.objets.size, 0);
+});
+
+test('sauvegarde : clé demandée invalide, ou copie absente', async () => {
+  const env = ENV_SAUV();
+  for (const v of ['../secret', 'sauvegardes/x.json', 'autre/2026-11-14T143005Z.json', '']) {
+    assert.equal((await appel(`/sauvegarde?v=${encodeURIComponent(v)}`, { env, init: { headers: AVEC_JETON } })).status, 400, v);
+  }
+  assert.equal((await appel('/sauvegarde', { env, init: { headers: AVEC_JETON } })).status, 404, 'aucune copie');
+  assert.equal((await appel('/sauvegarde?v=sauvegardes%2F2026-11-14T143005Z.json', { env, init: { headers: AVEC_JETON } })).status, 404);
+});
+
+test('sauvegarde : méthodes refusées, panne R2 en 502, CORS accepte PUT et Content-Type', async () => {
+  const env = ENV_SAUV();
+  assert.equal((await appel('/sauvegardes', { env, init: { method: 'PUT', body: '{}', headers: AVEC_JETON } })).status, 405);
+  assert.equal((await appel('/sauvegarde', { env, init: { method: 'DELETE', headers: AVEC_JETON } })).status, 405);
+  env.SAUVEGARDES.list = async () => { throw new Error('r2'); };
+  assert.equal((await appel('/sauvegardes', { env, init: { headers: AVEC_JETON } })).status, 502);
+  const pre = await appel('/sauvegarde', { env, init: { method: 'OPTIONS', headers: { Origin: 'https://antoniman31.github.io' } } });
+  assert.equal(pre.status, 204);
+  assert.match(pre.headers.get('Access-Control-Allow-Methods'), /PUT/);
+  assert.match(pre.headers.get('Access-Control-Allow-Headers'), /Content-Type/);
+});
+
+test('les autres routes refusent toujours PUT', async () => {
+  assert.equal((await appel('/sortie?numero=75192-1', { init: { method: 'PUT', body: '{}' } })).status, 405);
 });

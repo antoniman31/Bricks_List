@@ -12,9 +12,15 @@
 //     (ni le CDN de Rebrickable ni les images de Brickset n'en envoient : sans relais, l'app ne peut pas les copier sur l'appareil).
 //     Route volontairement étroite : deux hôtes, un dossier chacun, des images, une taille maximale.
 //
+//   PUT /sauvegarde  (corps : le fichier d'export JSON)  ->  { cle, octets }   range une copie dans R2 et ne garde que les 5 dernières
+//   GET /sauvegardes  ->  { versions: [{ cle, octets, date }] }   les copies gardées, la plus récente d'abord
+//   GET /sauvegarde[?v=<cle>]  ->  le fichier JSON de cette copie (par défaut la plus récente)
+//     Ces trois routes exigent le secret JETON (la collection entière passe par là) et le bucket R2 « SAUVEGARDES ».
+//
 // Secrets et variables (voir relais/README.md) :
 //   BRICKSET_KEY  (secret, obligatoire)  la clé de l'API Brickset
 //   JETON         (secret, facultatif)   si défini, l'appel doit porter l'en-tête X-Jeton identique
+//   SAUVEGARDES   (R2, liaison)          le bucket des copies en ligne (voir wrangler.toml)
 //   ORIGINE       (variable)             sites autorisés à appeler depuis un navigateur, séparés par des virgules
 
 const BRICKSET = 'https://brickset.com/api/v3.asmx/getSets';
@@ -25,6 +31,11 @@ const MAX_IMAGES = 40;
 const NUMERO = /^\d{3,7}-\d{1,2}$/;
 const ORIGINE_PAR_DEFAUT = 'https://antoniman31.github.io';
 const DELAI_MS = 8000;
+// Sauvegarde en ligne : 5 copies, 100 Mo au plus chacune (la limite d'une requête sur l'offre gratuite de Workers).
+const COPIES_GARDEES = 5;
+const SAUVEGARDE_MAX = 100 * 1024 * 1024;
+const PREFIXE = 'sauvegardes/';
+const CLE_SAUVEGARDE = /^sauvegardes\/\d{4}-\d{2}-\d{2}T\d{6}Z\.json$/;
 // Deux hôtes seulement, chacun avec son dossier : les rendus de Rebrickable et la galerie de Brickset.
 const HOTES_IMAGES = {
   'cdn.rebrickable.com': /^\/media\/sets\/[A-Za-z0-9_\-./]+\.(?:jpe?g|png|webp)$/i,
@@ -169,8 +180,8 @@ function entetes(request, env) {
   const h = { 'Content-Type': 'application/json; charset=utf-8', Vary: 'Origin', 'Cache-Control': 'no-store' };
   if (origine && autorisees.includes(origine)) {
     h['Access-Control-Allow-Origin'] = origine;
-    h['Access-Control-Allow-Headers'] = 'X-Jeton';
-    h['Access-Control-Allow-Methods'] = 'GET, OPTIONS';
+    h['Access-Control-Allow-Headers'] = 'X-Jeton, Content-Type';
+    h['Access-Control-Allow-Methods'] = 'GET, PUT, OPTIONS';
     h['Access-Control-Max-Age'] = '86400';
   }
   return h;
@@ -244,13 +255,70 @@ async function traiterGalerie(numero, env, rep, fetchFn) {
   }
 }
 
+// ---- Sauvegarde en ligne (R2) ------------------------------------------------------------------------------------
+// La clé d'une copie est la date UTC : l'ordre alphabétique est l'ordre du temps, sans base de données.
+export function cleDeSauvegarde(maintenant = new Date()) {
+  return `${PREFIXE}${maintenant.toISOString().slice(0, 19).replace(/[-:]/g, '').replace(/^(\d{4})(\d{2})(\d{2})/, '$1-$2-$3')}Z.json`;
+}
+
+async function copies(bucket) {
+  const lues = [];
+  let curseur;
+  do {
+    const page = await bucket.list({ prefix: PREFIXE, cursor: curseur });
+    for (const o of page.objects) if (CLE_SAUVEGARDE.test(o.key)) lues.push({ cle: o.key, octets: o.size, date: new Date(o.uploaded).toISOString() });
+    curseur = page.truncated ? page.cursor : undefined;
+  } while (curseur);
+  return lues.sort((a, b) => (a.cle < b.cle ? 1 : -1));
+}
+
+async function traiterSauvegarde(request, url, env, h, rep) {
+  // La collection entière passe par ces routes : sans jeton défini côté relais, on refuse plutôt que d'être ouvert à tous.
+  if (!env.JETON) return rep(403, { erreur: 'protection' });
+  if (request.headers.get('X-Jeton') !== env.JETON) return rep(401, { erreur: 'jeton' });
+  if (!env.SAUVEGARDES) return rep(500, { erreur: 'stockage' });
+
+  if (url.pathname === '/sauvegardes') {
+    if (request.method !== 'GET') return rep(405, { erreur: 'methode' });
+    return rep(200, { versions: (await copies(env.SAUVEGARDES)).slice(0, COPIES_GARDEES) });
+  }
+
+  if (request.method === 'GET') {
+    const demandee = url.searchParams.get('v');
+    if (demandee !== null && !CLE_SAUVEGARDE.test(demandee)) return rep(400, { erreur: 'cle' });
+    const cle = demandee ?? (await copies(env.SAUVEGARDES))[0]?.cle;
+    if (!cle) return rep(404, { erreur: 'vide' });
+    const objet = await env.SAUVEGARDES.get(cle);
+    if (!objet) return rep(404, { erreur: 'vide' });
+    return new Response(objet.body, { status: 200, headers: { ...h, 'Content-Type': 'application/json; charset=utf-8', 'X-Content-Type-Options': 'nosniff' } });
+  }
+
+  if (request.method !== 'PUT') return rep(405, { erreur: 'methode' });
+  const type = (request.headers.get('Content-Type') ?? '').split(';')[0].trim().toLowerCase();
+  if (type !== 'application/json') return rep(415, { erreur: 'type' });
+  // Taille annoncée : la plateforme coupe un corps qui en dit plus que son Content-Length, donc on peut s'y fier pour borner.
+  const taille = Number(request.headers.get('Content-Length'));
+  if (!Number.isInteger(taille) || taille < 2) return rep(411, { erreur: 'taille' });
+  if (taille > SAUVEGARDE_MAX) return rep(413, { erreur: 'gros' });
+  const cle = cleDeSauvegarde();
+  await env.SAUVEGARDES.put(cle, request.body, { httpMetadata: { contentType: 'application/json' } });
+  // Seules les plus récentes restent : une mauvaise copie n'efface pas les bonnes, et l'espace ne grossit pas sans fin.
+  const toutes = await copies(env.SAUVEGARDES);
+  const vieilles = toutes.slice(COPIES_GARDEES).map((c) => c.cle);
+  if (vieilles.length > 0) await env.SAUVEGARDES.delete(vieilles);
+  return rep(200, { cle, octets: taille });
+}
+
 export async function traiter(request, env, { fetchFn = fetch } = {}) {
   const h = entetes(request, env);
   const rep = (statut, corps) => new Response(corps === null ? null : JSON.stringify(corps), { status: statut, headers: h });
 
   if (request.method === 'OPTIONS') return rep(204, null);
-  if (request.method !== 'GET') return rep(405, { erreur: 'methode' });
   const url = new URL(request.url);
+  if (url.pathname === '/sauvegarde' || url.pathname === '/sauvegardes') {
+    try { return await traiterSauvegarde(request, url, env, h, rep); } catch { return rep(502, { erreur: 'stockage' }); }
+  }
+  if (request.method !== 'GET') return rep(405, { erreur: 'methode' });
   if (url.pathname !== '/sortie' && url.pathname !== '/image' && url.pathname !== '/notices' && url.pathname !== '/galerie') return rep(404, { erreur: 'introuvable' });
   if (env.JETON && request.headers.get('X-Jeton') !== env.JETON) return rep(401, { erreur: 'jeton' });
   if (url.pathname === '/image') return traiterImage(url, h, rep, fetchFn);

@@ -43,6 +43,27 @@ GET /image?url=https://cdn.rebrickable.com/media/sets/75192-1.jpg   ->  l'image 
 Elle sert à copier les rendus Rebrickable sur l'appareil, dont le CDN n'a pas de CORS. Elle n'accepte que cet hôte et
 le dossier `/media/sets/` : ce n'est pas un proxy ouvert.
 
+## Sauvegarde en ligne (R2)
+
+Trois routes, qui exigent **toutes** le secret `JETON` (la collection entière passe par là) : sans `JETON` défini côté relais, elles répondent 403.
+
+```
+PUT /sauvegarde            corps : le fichier d'export JSON (en-tête Content-Type: application/json, 100 Mo au plus)
+-> { "cle": "sauvegardes/2026-11-14T143005Z.json", "octets": 4210345 }
+GET /sauvegardes           -> { "versions": [{ "cle": "…", "octets": 4210345, "date": "2026-11-14T14:30:05.000Z" }] }   (5 au plus, la plus récente d'abord)
+GET /sauvegarde[?v=<cle>]  -> le fichier JSON de cette copie (par défaut la plus récente)
+```
+
+Chaque envoi ajoute une copie et supprime les plus anciennes au-delà de 5 : une mauvaise copie n'écrase pas les bonnes.
+
+**À faire une fois, avant de déployer cette version** (sans le bucket, le déploiement du relais échoue) :
+
+1. Cloudflare > **R2 Object Storage** > **Create bucket**, nom exact `bricks-sauvegardes` (l'offre gratuite suffit : 10 Go ; Cloudflare peut demander un moyen de paiement pour activer R2, sans rien facturer sous le quota).
+2. Définir le secret `JETON` s'il ne l'est pas (Settings > Variables and Secrets, type **Secret**), puis saisir **le même jeton** dans l'appli (Réglages > Brickset > Jeton).
+3. Déployer. Le fichier `wrangler.toml` déclare la liaison `SAUVEGARDES` vers ce bucket. Si tu colles le code à la main dans le tableau de bord, ajoute-la à la main : Settings > Bindings > Add > **R2 bucket**, nom de variable `SAUVEGARDES`.
+
+Erreurs possibles : `{"erreur":"protection"}` (pas de `JETON` défini), `{"erreur":"jeton"}` (jeton absent ou faux), `{"erreur":"stockage"}` (liaison R2 absente ou R2 en panne), `{"erreur":"gros"}` (plus de 100 Mo), `{"erreur":"vide"}` (aucune copie). Les aperçus de pull request n'ont pas de bucket : ils répondent `stockage`, et les copies de production ne sont jamais touchées par un aperçu.
+
 ## Ce qu'il te faut
 
 1. **Une clé Brickset.** Compte sur brickset.com, puis le formulaire de demande de clé :

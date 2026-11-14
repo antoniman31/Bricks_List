@@ -11,6 +11,13 @@ keep_vars = true
 # Sites autorisés à lire la réponse depuis un navigateur (séparés par des virgules).
 ORIGINE = "https://antoniman31.github.io"
 
+# Sauvegarde en ligne : le bucket R2 (à créer une fois dans le tableau de bord Cloudflare > R2, avec exactement ce nom ; voir relais/README.md).
+# Sans lui le déploiement échoue. Les aperçus de pull request n'ont pas de bucket (comme ils n'ont pas la clé Brickset) : ils répondent « stockage »,
+# et les copies de production ne sont jamais touchées par un aperçu.
+[[r2_buckets]]
+binding = "SAUVEGARDES"
+bucket_name = "bricks-sauvegardes"
+
 # Constructions de prévisualisation (commande `wrangler preview` de Cloudflare, utilisée pour les branches et les
 # pull requests) : elle exige ce bloc. Même valeur qu'en production ; la clé Brickset n'y est pas (pas de secret
 # pour un aperçu), donc un aperçu répond « configuration » sans appeler Brickset.
