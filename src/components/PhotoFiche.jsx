@@ -26,10 +26,11 @@ function ChoixFichier({ libelle, camera, desactive, onChoisi }) {
 
 const ONGLETS = [['boite', 'Boîte'], ['rendu', 'Rendu'], ['photo', 'Ma photo']]
 
-// L'image en tête de fiche : la boîte, le rendu Rebrickable ou la photo personnelle, au choix. Un
-// bouton sous l'image fait de celle qu'on regarde l'image du set dans la liste (une étoile marque
-// l'onglet choisi) ; sans choix, la règle des Réglages décide. La boîte est affichée d'abord.
-export default function PhotoFiche({ set, lectureSeule, onChanger }) {
+// L'image en tête de fiche, en grand : la boîte, le rendu Rebrickable ou la photo personnelle, au choix, avec le titre
+// posé dessus. Les pastilles de choix sont sur l'image, en haut ; une étoile, en bas à droite, fait de l'image qu'on
+// regarde celle du set dans la liste (une étoile marque aussi la pastille choisie) ; sans choix, la règle des Réglages
+// décide. La boîte est affichée d'abord. Les actions de la photo perso (reprendre, galerie, retirer) restent dessous.
+export default function PhotoFiche({ set, lectureSeule, onChanger, sousTitre = '' }) {
   const [vue, setVue] = useState('boite')
   const [fichier, setFichier] = useState(null)
   const [retrait, setRetrait] = useState(false)
@@ -73,35 +74,50 @@ export default function PhotoFiche({ set, lectureSeule, onChanger }) {
   const peutChoisir = vue !== 'photo' || Boolean(photo.url)
 
   return (
-    <div className="photo-fiche">
-      <div className="groupe__options" role="group" aria-label="Image du set">
-        {onglets.map(([cle, libelle]) => (
-          <button key={cle} type="button" className="puce puce--etoile" aria-pressed={vue === cle} onClick={() => setVue(cle)}>
-            {set.imageListe === cle && <span className="puce__etoile"><Icone nom="etoile" /></span>}
-            {libelle}
-            {set.imageListe === cle && <span className="visuellement-cache"> (image de la liste)</span>}
+    <div className="photo-fiche heros">
+      <div className="heros__image">
+        {vue === 'boite' && <Vignette image={set.image} numero={set.numero} variante="fiche" />}
+        {vue === 'rendu' && <Vignette image={set.image} numero={set.numero} variante="fiche" premier="rendu" />}
+
+        {vue === 'photo' && (
+          <>
+            {photo.chargement && <div className="photo-vide" role="status">Chargement…</div>}
+            {!photo.chargement && photo.url && <img className="vignette vignette--fiche" src={photo.url} alt={`Ma photo de ${set.nom}`} />}
+            {!photo.chargement && !photo.url && (
+              <div className="photo-vide">{photo.erreur ? 'La photo n\'a pas pu être lue.' : 'Pas encore de photo pour ce set.'}</div>
+            )}
+          </>
+        )}
+
+        <div className="heros__pastilles groupe__options" role="group" aria-label="Image du set">
+          {onglets.map(([cle, libelle]) => (
+            <button key={cle} type="button" className="puce puce--etoile" aria-pressed={vue === cle} onClick={() => setVue(cle)}>
+              {set.imageListe === cle && <span className="puce__etoile"><Icone nom="etoile" /></span>}
+              {libelle}
+              {set.imageListe === cle && <span className="visuellement-cache"> (image de la liste)</span>}
+            </button>
+          ))}
+        </div>
+
+        {peutChoisir && !photo.chargement && (
+          <button
+            type="button"
+            className="heros__etoile"
+            aria-pressed={choisie}
+            aria-label={choisie ? 'Image de la liste' : 'Utiliser dans la liste'}
+            title={choisie ? 'Image de la liste' : 'Utiliser dans la liste'}
+            disabled={lectureSeule}
+            onClick={basculerListe}
+          >
+            <Icone nom="etoile" />
           </button>
-        ))}
+        )}
+
+        <div className="heros__titre">
+          <p>{sousTitre}</p>
+          <h2>{set.nom}</h2>
+        </div>
       </div>
-
-      {vue === 'boite' && <Vignette image={set.image} numero={set.numero} variante="fiche" />}
-      {vue === 'rendu' && <Vignette image={set.image} numero={set.numero} variante="fiche" premier="rendu" />}
-
-      {vue === 'photo' && (
-        <>
-          {photo.chargement && <div className="photo-vide" role="status">Chargement…</div>}
-          {!photo.chargement && photo.url && <img className="vignette vignette--fiche" src={photo.url} alt={`Ma photo de ${set.nom}`} />}
-          {!photo.chargement && !photo.url && (
-            <div className="photo-vide">{photo.erreur ? 'La photo n\'a pas pu être lue.' : 'Pas encore de photo pour ce set.'}</div>
-          )}
-        </>
-      )}
-
-      {peutChoisir && !photo.chargement && (
-        <button type="button" className={`bouton${choisie ? ' bouton--plein' : ''}`} aria-pressed={choisie} disabled={lectureSeule} onClick={basculerListe}>
-          <Icone nom="etoile" /> {choisie ? 'Image de la liste' : 'Utiliser dans la liste'}
-        </button>
-      )}
 
       {vue === 'photo' && !photo.chargement && !retrait && (
         <div className="photo-actions">

@@ -6,24 +6,27 @@ import { ETATS, LIBELLES_PRIORITE, PRIORITES } from '../lib/model.js'
 import { aEtiquette, ajouterEtiquettes, basculerEtiquette } from '../lib/etiquettes.js'
 import { champsPerdus } from '../lib/collection.js'
 import { aujourdhuiISO, dateSortieValide, dateValide, finSortiePossible, formaterDate } from '../lib/dates.js'
-import { etatSortie, relatif } from '../lib/sortie.js'
 import { urlNotice } from '../lib/notice.js'
+import { etapesFrise } from '../lib/frise.js'
 import { PRIX_MAX, formaterPrix, lirePrixSaisi, prixPourSaisie } from '../lib/prix.js'
 
+// Une info en lecture seule : une cellule de la grille, sur toute la largeur.
 function Ligne({ libelle, valeur }) {
   if (valeur == null || valeur === '') return null
   return (
-    <div className="fiche__ligne">
+    <div className="fiche__ligne cellule--large">
       <dt>{libelle}</dt>
       <dd>{valeur}</dd>
     </div>
   )
 }
 
-// Une ligne dont la valeur s'édite sur place : un appui déplie le choix sous la ligne.
-function LigneEditable({ libelle, valeur, ouvert, desactive, onBasculer, children }) {
+// Une info modifiable sur place : une cellule de la grille (libellé au-dessus, valeur dessous). Un appui déplie le choix ; la
+// cellule prend alors toute la largeur, car un sélecteur ne tient pas dans une demi-colonne. `large` : une valeur longue
+// (emplacement, étiquettes) garde toute la largeur même fermée.
+function LigneEditable({ libelle, valeur, ouvert, desactive, onBasculer, large = false, children }) {
   return (
-    <div className="fiche__ligne fiche__ligne--edit">
+    <div className={`fiche__ligne fiche__ligne--edit${large ? ' cellule--large' : ''}${ouvert ? ' cellule--ouverte' : ''}`}>
       <dt>{libelle}</dt>
       <dd>
         <button type="button" className="fiche__valeur" aria-expanded={ouvert} disabled={desactive} onClick={onBasculer}>{valeur}</button>
@@ -43,16 +46,6 @@ function LigneOuiNon({ libelle, champ, set, ouvert, desactive, onBasculer, onCho
           <button key={texte} type="button" className="puce" aria-pressed={(v ?? null) === valeur} onClick={() => onChoisir(valeur)}>{texte}</button>
         ))}
       </div>
-    </LigneEditable>
-  )
-}
-
-// Une date s'édite avec le sélecteur du système ; « Effacer » la retire.
-function LigneDate({ libelle, valeur, ouvert, desactive, onBasculer, onChoisir, vide = 'Ajouter', complement = '', max = aujourdhuiISO() }) {
-  return (
-    <LigneEditable libelle={libelle} valeur={valeur ? `${formaterDate(valeur)}${complement}` : vide} ouvert={ouvert} desactive={desactive} onBasculer={onBasculer}>
-      <input className="champ" type="date" aria-label={libelle} min="1949-01-01" max={max} value={valeur ?? ''} onChange={(e) => onChoisir(e.target.value)} />
-      {valeur && <button type="button" className="bouton" onClick={() => onChoisir(null)}>Effacer</button>}
     </LigneEditable>
   )
 }
@@ -93,7 +86,6 @@ export function FicheContenu({ set, lectureSeule, lieux = [], lieuRecent = '', e
   }
   // La date de sortie, elle, peut être dans le futur (un set annoncé). Saisie à la main, elle n'est plus
   // écrasée par une mise à jour automatique (`sortieSource`) ; l'effacer rend la main à Brickset.
-  const sortie = etatSortie(set)
   function changerSortie(v) {
     if (v === null) { if (changer({ dateSortie: null, sortieSource: null })) setEdition(''); return }
     if (v === '') return
@@ -112,6 +104,10 @@ export function FicheContenu({ set, lectureSeule, lieux = [], lieuRecent = '', e
     if (v === null) return setProbleme(`Prix invalide (de 0,01 à ${PRIX_MAX.toLocaleString('fr-FR')} €).`)
     if (changer({ prix: v, prixSource: 'manuelle' })) setEdition('')
   }
+  // Les dates forment une frise ; toucher une étape ouvre un seul sélecteur de date, sous la frise.
+  const etapes = etapesFrise(set)
+  const dateEditee = etapes.find((e) => e.cle && e.cle === edition)
+  const changerEtape = (cle, v) => (cle === 'dateSortie' ? changerSortie(v) : changerDate(cle, v))
   const etiquettes = set.etiquettes ?? []
   const choixEtiquettes = [...etiquettes, ...etiquettesConnues.filter((c) => !aEtiquette(set, c))]
 
@@ -122,211 +118,220 @@ export function FicheContenu({ set, lectureSeule, lieux = [], lieuRecent = '', e
 
   return (
     <>
-      <PhotoFiche key={set.id} set={set} lectureSeule={lectureSeule} onChanger={changer} />
+      <PhotoFiche key={set.id} set={set} lectureSeule={lectureSeule} onChanger={changer} sousTitre={sousTitreDe(set)} />
 
-      <div className="chiffres">
-        <div><b>{set.pieces != null ? set.pieces.toLocaleString('fr-FR') : '—'}</b><small>pièces</small></div>
-        <div><b>{set.annee ?? '—'}</b><small>année</small></div>
-        <button type="button" className="chiffres__cle" aria-expanded={edition === 'cle'} disabled={lectureSeule} onClick={() => basculer('cle')}>
-          <b>{possede ? (set.etat ?? '—') : (set.priorite ? LIBELLES_PRIORITE[set.priorite] : '—')}</b>
-          <small className={lectureSeule ? '' : 'chev'}>{possede ? 'état' : 'priorité'}</small>
-        </button>
-      </div>
-      {edition === 'cle' && (
-        <div className="fiche__edition fiche__edition--libre">
-          {possede ? (
-            <div className="groupe__options" role="group" aria-label="État">
-              <button type="button" className="puce" aria-pressed={!set.etat} onClick={() => { if (changer({ etat: null })) setEdition('') }}>Non précisé</button>
-              {ETATS.map((e) => (
-                <button key={e} type="button" className="puce" aria-pressed={set.etat === e} onClick={() => { if (changer({ etat: e })) setEdition('') }}>{e}</button>
-              ))}
-            </div>
-          ) : (
-            <div className="groupe__options" role="group" aria-label="Priorité">
-              {PRIORITES.map((p) => (
-                <button key={p} type="button" className="puce" aria-pressed={set.priorite === p} onClick={() => { if (changer({ priorite: p })) setEdition('') }}>{LIBELLES_PRIORITE[p]}</button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      <dl className="fiche">
-        <LigneDate
-          libelle="Sortie"
-          valeur={set.dateSortie}
-          vide="Inconnue"
-          complement={sortie ? ` (${sortie.aVenir || sortie.jours === 0 ? relatif(sortie.jours) : set.dateSortie.slice(0, 4)})` : ''}
-          max={finSortiePossible()}
-          ouvert={edition === 'dateSortie'}
-          desactive={lectureSeule}
-          onBasculer={() => basculer('dateSortie')}
-          onChoisir={changerSortie}
-        />
-        {!possede && (
-          <LigneEditable
-            libelle="Prix"
-            valeur={set.prix != null ? `${formaterPrix(set.prix)}${set.prixSource === 'brickset-de' ? ' (prix DE)' : ''}` : 'Ajouter'}
-            ouvert={edition === 'prix'}
-            desactive={lectureSeule}
-            onBasculer={ouvrirPrix}
-          >
-            <form className="fiche__prix" onSubmit={enregistrerPrix}>
-              <input className="champ" type="text" inputMode="decimal" autoComplete="off" aria-label="Prix en euros" placeholder="849,99" value={saisiePrix} onChange={(e) => setSaisiePrix(e.target.value)} />
-              <button type="submit" className="bouton bouton--plein">Enregistrer</button>
-              {set.prix != null && <button type="button" className="bouton" onClick={() => { if (changer({ prix: null, prixSource: null })) setEdition('') }}>Effacer</button>}
-            </form>
-          </LigneEditable>
-        )}
-        {possede ? (
-          <>
-            <LigneDate libelle="Acheté le" valeur={set.dateAchat} ouvert={edition === 'dateAchat'} desactive={lectureSeule} onBasculer={() => basculer('dateAchat')} onChoisir={(v) => changerDate('dateAchat', v)} />
-            <LigneDate libelle="Monté le" valeur={set.dateMontage} ouvert={edition === 'dateMontage'} desactive={lectureSeule} onBasculer={() => basculer('dateMontage')} onChoisir={(v) => changerDate('dateMontage', v)} />
-          </>
-        ) : (
-          <Ligne libelle="Acheté le" valeur={formaterDate(set.dateAchat)} />
-        )}
-        {possede && (
-          <div className="fiche__ligne fiche__ligne--edit">
-            <dt>Emplacement</dt>
-            <dd>
-              <button type="button" className="fiche__valeur" disabled={lectureSeule} onClick={() => setRangement(true)}>
-                {set.emplacement || 'Ranger…'}
-              </button>
-            </dd>
-          </div>
-        )}
-        {possede && (
-          <>
-            <LigneOuiNon libelle="Boîte" champ="boite" set={set} ouvert={edition === 'boite'} desactive={lectureSeule} onBasculer={() => basculer('boite')} onChoisir={(v) => { if (changer({ boite: v })) setEdition('') }} />
-            <LigneOuiNon libelle="Notice" champ="notice" set={set} ouvert={edition === 'notice'} desactive={lectureSeule} onBasculer={() => basculer('notice')} onChoisir={(v) => { if (changer({ notice: v })) setEdition('') }} />
-            {urlNotice(set.numero) && (
-              <div className="fiche__ligne fiche__ligne--edit">
-                <dt>Notice LEGO</dt>
-                <dd>
-                  <a className="fiche__valeur fiche__lien" href={urlNotice(set.numero)} target="_blank" rel="noopener noreferrer">
-                    Ouvrir sur lego.com<span className="visuellement-cache"> (nouvel onglet)</span>
-                  </a>
-                </dd>
-              </div>
-            )}
-          </>
-        )}
-        <LigneEditable libelle="Étiquettes" valeur={etiquettes.length > 0 ? etiquettes.join(', ') : 'Ajouter'} ouvert={edition === 'etiquettes'} desactive={lectureSeule} onBasculer={() => basculer('etiquettes')}>
-          {choixEtiquettes.length > 0 && (
-            <div className="groupe__options" role="group" aria-label="Étiquettes">
-              {choixEtiquettes.map((e) => (
-                <button key={e} type="button" className="puce" aria-pressed={aEtiquette(set, e)} onClick={() => etiquettesChangees(basculerEtiquette(etiquettes, e))}>{e}</button>
-              ))}
-            </div>
-          )}
-          <form
-            className="rangement__nouveau"
-            onSubmit={(ev) => {
-              ev.preventDefault()
-              if (nouvelle.trim() === '') return
-              const r = ajouterEtiquettes(etiquettes, nouvelle)
-              etiquettesChangees(r)
-              if (!r.erreur) setNouvelle('')
-            }}
-          >
-            <input className="champ" autoComplete="off" aria-label="Nouvelle étiquette" placeholder="Nouvelle étiquette" value={nouvelle} onChange={(ev) => setNouvelle(ev.target.value)} />
-            <button type="submit" className="bouton" disabled={nouvelle.trim() === ''}>Ajouter</button>
-          </form>
-        </LigneEditable>
-        <Ligne libelle="Ajouté le" valeur={set.dateAjout ? new Date(set.dateAjout).toLocaleDateString('fr-FR') : null} />
-        <Ligne libelle="Notes" valeur={set.notes} />
-      </dl>
-      {probleme && <p className="avis avis--erreur" role="alert">{probleme}</p>}
-
-      {rangement && (
-        <RangerSheet
-          lieux={lieux}
-          actuel={set.emplacement}
-          recent={lieuRecent}
-          onChoisir={(v) => { changer({ emplacement: v }); setRangement(false) }}
-          onFermer={() => setRangement(false)}
-        />
-      )}
-
-      <a className="lien" href={`https://rebrickable.com/sets/${encodeURIComponent(set.numero)}/`} target="_blank" rel="noopener noreferrer">
-        Voir sur Rebrickable
-      </a>
-
-      {set.statut === 'souhaité' && (
-        <div className="fiche__achat">
-          <label className="formulaire__champ">
-            État à l'achat
-            <select className="champ" value={etatAchat} onChange={(e) => setEtatAchat(e.target.value)}>
-              <option value="">Non précisé</option>
-              {ETATS.map((e) => <option key={e} value={e}>{e}</option>)}
-            </select>
-          </label>
-          <button type="button" className="bouton bouton--plein" disabled={lectureSeule} onClick={() => onAcheter(etatAchat)}>
-            Acheté
+      <div className="fiche__corps">
+        <div className="chiffres">
+          <div><b>{set.pieces != null ? set.pieces.toLocaleString('fr-FR') : '—'}</b><small>pièces</small></div>
+          <div><b>{set.annee ?? '—'}</b><small>année</small></div>
+          <button type="button" className="chiffres__cle" aria-expanded={edition === 'cle'} disabled={lectureSeule} onClick={() => basculer('cle')}>
+            <b>{possede ? (set.etat ?? '—') : (set.priorite ? LIBELLES_PRIORITE[set.priorite] : '—')}</b>
+            <small className={lectureSeule ? '' : 'chev'}>{possede ? 'état' : 'priorité'}</small>
           </button>
         </div>
-      )}
+        {edition === 'cle' && (
+          <div className="fiche__edition fiche__edition--libre">
+            {possede ? (
+              <div className="groupe__options" role="group" aria-label="État">
+                <button type="button" className="puce" aria-pressed={!set.etat} onClick={() => { if (changer({ etat: null })) setEdition('') }}>Non précisé</button>
+                {ETATS.map((e) => (
+                  <button key={e} type="button" className="puce" aria-pressed={set.etat === e} onClick={() => { if (changer({ etat: e })) setEdition('') }}>{e}</button>
+                ))}
+              </div>
+            ) : (
+              <div className="groupe__options" role="group" aria-label="Priorité">
+                {PRIORITES.map((p) => (
+                  <button key={p} type="button" className="puce" aria-pressed={set.priorite === p} onClick={() => { if (changer({ priorite: p })) setEdition('') }}>{LIBELLES_PRIORITE[p]}</button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
-      {remise && (
-        <div className="avis avis--erreur" role="alertdialog" aria-label="Confirmer le retour en wishlist">
-          <p>
-            Remettre « {set.nom} » en wishlist ?{' '}
-            {champsPerdus(set).length > 0 ? `Perdus : ${champsPerdus(set).join(', ')}.` : 'Rien n\'est perdu.'} Tu pourras annuler juste après ; pense à exporter.
-          </p>
-          <div className="groupe__options" role="group" aria-label="Priorité">
-            <button type="button" className="puce" aria-pressed={prioriteRemise === ''} onClick={() => setPrioriteRemise('')}>Aucune</button>
-            {PRIORITES.map((p) => (
-              <button key={p} type="button" className="puce" aria-pressed={prioriteRemise === p} onClick={() => setPrioriteRemise(p)}>{LIBELLES_PRIORITE[p]}</button>
+        <div>
+          <p className="fiche__titre-bloc">Dates</p>
+          <dl className="fiche frise">
+            {etapes.map((e) => (
+              <div key={e.libelle} className={`fiche__ligne fiche__ligne--edit etape etape--${e.etat}`}>
+                <dt>{e.libelle}</dt>
+                <dd>
+                  {e.cle ? (
+                    <button type="button" className="fiche__valeur" aria-expanded={edition === e.cle} disabled={lectureSeule} onClick={() => basculer(e.cle)}>
+                      <span className="etape__date">{e.date ? formaterDate(e.date) : e.cle === 'dateSortie' ? 'Inconnue' : 'Ajouter'}</span>
+                      {e.sous && <span className="etape__sous">{e.sous}</span>}
+                    </button>
+                  ) : (
+                    <span className="etape__fixe">{e.date ? formaterDate(e.date) : '—'}</span>
+                  )}
+                </dd>
+              </div>
             ))}
-          </div>
-          <div className="sheet__pied">
-            <button type="button" className="bouton" onClick={() => setRemise(false)}>Annuler</button>
-            <button type="button" className="bouton bouton--plein" onClick={() => onRemettre(prioriteRemise === '' ? null : prioriteRemise)}>Remettre en wishlist</button>
-          </div>
+          </dl>
+          {dateEditee && (
+            <div className="fiche__edition fiche__edition--libre">
+              <input
+                className="champ"
+                type="date"
+                aria-label={dateEditee.libelle}
+                min="1949-01-01"
+                max={dateEditee.cle === 'dateSortie' ? finSortiePossible() : aujourdhuiISO()}
+                value={dateEditee.date ?? ''}
+                onChange={(e) => changerEtape(dateEditee.cle, e.target.value)}
+              />
+              {dateEditee.date && <button type="button" className="bouton" onClick={() => changerEtape(dateEditee.cle, null)}>Effacer</button>}
+            </div>
+          )}
         </div>
-      )}
 
-      {possede && onRemettre && !remise && !confirmer && (
-        <button type="button" className="bouton fiche__remise" disabled={lectureSeule} onClick={() => setRemise(true)}>Remettre en wishlist</button>
-      )}
+        <dl className="fiche fiche__grille">
+          {!possede && (
+            <LigneEditable
+              libelle="Prix"
+              large
+              valeur={set.prix != null ? `${formaterPrix(set.prix)}${set.prixSource === 'brickset-de' ? ' (prix DE)' : ''}` : 'Ajouter'}
+              ouvert={edition === 'prix'}
+              desactive={lectureSeule}
+              onBasculer={ouvrirPrix}
+            >
+              <form className="fiche__prix" onSubmit={enregistrerPrix}>
+                <input className="champ" type="text" inputMode="decimal" autoComplete="off" aria-label="Prix en euros" placeholder="849,99" value={saisiePrix} onChange={(e) => setSaisiePrix(e.target.value)} />
+                <button type="submit" className="bouton bouton--plein">Enregistrer</button>
+                {set.prix != null && <button type="button" className="bouton" onClick={() => { if (changer({ prix: null, prixSource: null })) setEdition('') }}>Effacer</button>}
+              </form>
+            </LigneEditable>
+          )}
+          {possede && (
+            <div className="fiche__ligne fiche__ligne--edit cellule--large">
+              <dt>Emplacement</dt>
+              <dd>
+                <button type="button" className="fiche__valeur" disabled={lectureSeule} onClick={() => setRangement(true)}>
+                  {set.emplacement || 'Ranger…'}
+                </button>
+              </dd>
+            </div>
+          )}
+          {possede && (
+            <>
+              <LigneOuiNon libelle="Boîte" champ="boite" set={set} ouvert={edition === 'boite'} desactive={lectureSeule} onBasculer={() => basculer('boite')} onChoisir={(v) => { if (changer({ boite: v })) setEdition('') }} />
+              <LigneOuiNon libelle="Notice" champ="notice" set={set} ouvert={edition === 'notice'} desactive={lectureSeule} onBasculer={() => basculer('notice')} onChoisir={(v) => { if (changer({ notice: v })) setEdition('') }} />
+            </>
+          )}
+          <LigneEditable large libelle="Étiquettes" valeur={etiquettes.length > 0 ? etiquettes.join(', ') : 'Ajouter'} ouvert={edition === 'etiquettes'} desactive={lectureSeule} onBasculer={() => basculer('etiquettes')}>
+            {choixEtiquettes.length > 0 && (
+              <div className="groupe__options" role="group" aria-label="Étiquettes">
+                {choixEtiquettes.map((e) => (
+                  <button key={e} type="button" className="puce" aria-pressed={aEtiquette(set, e)} onClick={() => etiquettesChangees(basculerEtiquette(etiquettes, e))}>{e}</button>
+                ))}
+              </div>
+            )}
+            <form
+              className="rangement__nouveau"
+              onSubmit={(ev) => {
+                ev.preventDefault()
+                if (nouvelle.trim() === '') return
+                const r = ajouterEtiquettes(etiquettes, nouvelle)
+                etiquettesChangees(r)
+                if (!r.erreur) setNouvelle('')
+              }}
+            >
+              <input className="champ" autoComplete="off" aria-label="Nouvelle étiquette" placeholder="Nouvelle étiquette" value={nouvelle} onChange={(ev) => setNouvelle(ev.target.value)} />
+              <button type="submit" className="bouton" disabled={nouvelle.trim() === ''}>Ajouter</button>
+            </form>
+          </LigneEditable>
+          {possede && urlNotice(set.numero) && (
+            <div className="fiche__ligne fiche__ligne--edit cellule--large">
+              <dt>Notice LEGO</dt>
+              <dd>
+                <a className="fiche__valeur fiche__lien" href={urlNotice(set.numero)} target="_blank" rel="noopener noreferrer">
+                  Ouvrir sur lego.com<span className="visuellement-cache"> (nouvel onglet)</span>
+                </a>
+              </dd>
+            </div>
+          )}
+          {possede && <Ligne libelle="Ajouté le" valeur={set.dateAjout ? new Date(set.dateAjout).toLocaleDateString('fr-FR') : null} />}
+          <Ligne libelle="Notes" valeur={set.notes} />
+        </dl>
+        {probleme && <p className="avis avis--erreur" role="alert">{probleme}</p>}
 
-      {confirmer ? (
-        <div className="avis avis--erreur" role="alertdialog" aria-label="Confirmer la suppression">
-          <p>Supprimer « {set.nom} » ? C'est définitif : pense à exporter.</p>
-          <div className="sheet__pied">
-            <button type="button" className="bouton" onClick={() => setConfirmer(false)}>Annuler</button>
-            <button type="button" className="bouton bouton--danger" onClick={onSupprimer}>Supprimer</button>
+        {rangement && (
+          <RangerSheet
+            lieux={lieux}
+            actuel={set.emplacement}
+            recent={lieuRecent}
+            onChoisir={(v) => { changer({ emplacement: v }); setRangement(false) }}
+            onFermer={() => setRangement(false)}
+          />
+        )}
+
+        <a className="lien" href={`https://rebrickable.com/sets/${encodeURIComponent(set.numero)}/`} target="_blank" rel="noopener noreferrer">
+          Voir sur Rebrickable
+        </a>
+
+        {set.statut === 'souhaité' && (
+          <div className="fiche__achat">
+            <label className="formulaire__champ">
+              État à l'achat
+              <select className="champ" value={etatAchat} onChange={(e) => setEtatAchat(e.target.value)}>
+                <option value="">Non précisé</option>
+                {ETATS.map((e) => <option key={e} value={e}>{e}</option>)}
+              </select>
+            </label>
+            <button type="button" className="bouton bouton--plein" disabled={lectureSeule} onClick={() => onAcheter(etatAchat)}>
+              Acheté
+            </button>
           </div>
-        </div>
-      ) : (
-        <div className="sheet__pied">
-          <button type="button" className="bouton bouton--danger" disabled={lectureSeule} onClick={() => setConfirmer(true)}>Supprimer</button>
-          <button type="button" className="bouton bouton--plein" disabled={lectureSeule} onClick={onModifier}>Plus d'options</button>
-        </div>
-      )}
+        )}
+
+        {remise && (
+          <div className="avis avis--erreur" role="alertdialog" aria-label="Confirmer le retour en wishlist">
+            <p>
+              Remettre « {set.nom} » en wishlist ?{' '}
+              {champsPerdus(set).length > 0 ? `Perdus : ${champsPerdus(set).join(', ')}.` : 'Rien n\'est perdu.'} Tu pourras annuler juste après ; pense à exporter.
+            </p>
+            <div className="groupe__options" role="group" aria-label="Priorité">
+              <button type="button" className="puce" aria-pressed={prioriteRemise === ''} onClick={() => setPrioriteRemise('')}>Aucune</button>
+              {PRIORITES.map((p) => (
+                <button key={p} type="button" className="puce" aria-pressed={prioriteRemise === p} onClick={() => setPrioriteRemise(p)}>{LIBELLES_PRIORITE[p]}</button>
+              ))}
+            </div>
+            <div className="sheet__pied">
+              <button type="button" className="bouton" onClick={() => setRemise(false)}>Annuler</button>
+              <button type="button" className="bouton bouton--plein" onClick={() => onRemettre(prioriteRemise === '' ? null : prioriteRemise)}>Remettre en wishlist</button>
+            </div>
+          </div>
+        )}
+
+        {possede && onRemettre && !remise && !confirmer && (
+          <button type="button" className="bouton fiche__remise" disabled={lectureSeule} onClick={() => setRemise(true)}>Remettre en wishlist</button>
+        )}
+
+        {confirmer ? (
+          <div className="avis avis--erreur" role="alertdialog" aria-label="Confirmer la suppression">
+            <p>Supprimer « {set.nom} » ? C'est définitif : pense à exporter.</p>
+            <div className="sheet__pied">
+              <button type="button" className="bouton" onClick={() => setConfirmer(false)}>Annuler</button>
+              <button type="button" className="bouton bouton--danger" onClick={onSupprimer}>Supprimer</button>
+            </div>
+          </div>
+        ) : (
+          <div className="sheet__pied">
+            <button type="button" className="bouton bouton--danger" disabled={lectureSeule} onClick={() => setConfirmer(true)}>Supprimer</button>
+            <button type="button" className="bouton bouton--plein" disabled={lectureSeule} onClick={onModifier}>Plus d'options</button>
+          </div>
+        )}
+      </div>
     </>
   )
 }
 
-// Le haut de la fiche, commun à la feuille (qui le reprend dans son bandeau) et au panneau de droite.
-function etiquetteDe(set) {
-  return set.statut === 'souhaité' ? `${set.numero} · souhaité` : set.numero
-}
-
-export function EnteteFiche({ set }) {
-  return (
-    <div className="bandeau bandeau--panneau">
-      <span className="bandeau__num">{etiquetteDe(set)}</span>
-      <h2 className="bandeau__titre">{set.nom}</h2>
-      {set.theme && <p className="bandeau__sous">{set.theme}</p>}
-    </div>
-  )
+// Sous le titre de la grande image : « 75192-1 · Star Wars », et « souhaité » pour un set de la wishlist.
+function sousTitreDe(set) {
+  return [set.numero, set.theme || null, set.statut === 'souhaité' ? 'souhaité' : null].filter(Boolean).join(' · ')
 }
 
 export default function FicheSet({ set, lectureSeule, lieux, lieuRecent, etiquettesConnues, onChanger, onModifier, onAcheter, onRemettre, onSupprimer, onFermer }) {
   return (
-    <Sheet ouvert onFermer={onFermer} titre={set.nom} bandeau={{ badge: etiquetteDe(set), sous: set.theme }}>
+    <Sheet ouvert onFermer={onFermer} titre={set.nom} heros>
       <FicheContenu set={set} lectureSeule={lectureSeule} lieux={lieux} lieuRecent={lieuRecent} etiquettesConnues={etiquettesConnues} onChanger={onChanger} onModifier={onModifier} onAcheter={onAcheter} onRemettre={onRemettre} onSupprimer={onSupprimer} />
     </Sheet>
   )

@@ -880,3 +880,78 @@ div.anneau__ligne { padding: 6px 0; }
 
 /* « Remettre en wishlist » : sa propre ligne, sinon trois boutons se serrent et rognent « Supprimer ». */
 .fiche__remise { width: 100%; margin-bottom: 8px; }
+
+/* ---------- Fiche d'un set : grande image, frise des dates, grille d'infos ---------- */
+/* L'image occupe toute la largeur du haut de la feuille (ou du panneau), le titre posé dessus sur un dégradé sombre : le
+   texte y est blanc dans les deux thèmes. Les pastilles de choix et l'étoile sont sur l'image, sur fond sombre translucide
+   (blanc sur noir à 62 % sur une image blanche : environ 6:1). */
+.heros { display: block; margin: 0; }
+.heros__image { position: relative; overflow: hidden; background: var(--vignette); }
+.heros .vignette--fiche, .heros .photo-vide { display: block; width: 100%; max-height: none; aspect-ratio: 5 / 4; margin: 0; border: 0; border-radius: 0; }
+.heros .vignette--fiche.vignette--vide { height: auto; aspect-ratio: 5 / 4; }
+/* Sans image : un fond sombre uni dans les deux thèmes (le titre blanc posé dessus reste lisible), avec le numéro en clair. */
+.heros .vignette--vide, .heros .photo-vide { background: #2a2d36; color: #dfe2ea; }
+.heros__pastilles { position: absolute; top: 12px; left: 12px; right: 72px; z-index: 2; flex-wrap: nowrap; gap: 6px; }
+.sheet--heros .heros__pastilles { top: 36px; }
+.heros__pastilles .puce { flex: none; padding: 0 12px; border-color: transparent; background: rgb(0 0 0 / 0.62); color: #fff; white-space: nowrap; }
+.heros__pastilles .puce[aria-pressed='true'] { background: var(--accent-fond); color: var(--sur-accent); }
+.heros__etoile { position: absolute; right: 12px; bottom: 12px; z-index: 2; display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border: 0; border-radius: 50%; background: rgb(0 0 0 / 0.62); color: #fff; }
+.heros__etoile[aria-pressed='true'] { background: var(--accent-fond); color: var(--sur-accent); }
+.heros__etoile svg { width: 24px; height: 24px; display: block; }
+/* Pas de `pointer-events: none` ici : le contrôle de contraste ignore alors ce calque et lit le blanc de l'image derrière le texte. */
+.heros__titre { position: absolute; left: 0; right: 0; bottom: 0; padding: 56px 72px 14px 18px; background: linear-gradient(to top, rgb(0 0 0 / 0.85), rgb(0 0 0 / 0)); color: #fff; }
+/* Sans image à montrer (numéro seul, ou pas encore de photo), pas de dégradé fondu sur une image : un bandeau sombre uni, lisible partout. */
+.heros__image:has(.vignette--vide, .photo-vide) .heros__titre { background: rgb(0 0 0 / 0.72); padding-top: 12px; }
+.heros__titre p { display: inline-block; margin: 0; padding: 1px 10px; border-radius: var(--rayon-pilule); background: rgb(0 0 0 / 0.62); font-size: 0.8125rem; }
+.heros__titre h2 { margin: 2px 0 0; font-family: var(--police-titre); font-weight: 600; font-size: 1.5rem; line-height: 1.15; text-wrap: balance; }
+.heros .photo-actions { padding: 12px 16px 0; }
+.heros > .avis { margin: 12px 16px 0; }
+/* Feuille : l'en-tête (poignée et fermeture) se pose sur l'image, et reste la zone de prise du glissé. */
+.sheet--heros { overflow: hidden; }
+.sheet--heros .sheet__corps { position: relative; }
+/* L'en-tête recouvre le haut de l'image : il laisse passer les appuis (pastilles dessous), seuls la poignée et le bouton fermer les prennent. */
+.sheet__haut--heros { position: absolute; top: 0; left: 0; right: 0; z-index: 3; padding: 0 12px; pointer-events: none; }
+.sheet__haut--heros .sheet__poignee, .sheet__haut--heros .sheet__droite { pointer-events: auto; }
+.sheet__haut--heros .sheet__poignee { position: relative; }
+.sheet__haut--heros .sheet__poignee::before { content: ''; position: absolute; inset: -12px -48px; }
+.sheet__haut--heros .sheet__poignee { background: rgb(0 0 0 / 0.5); box-shadow: 0 0 0 1px rgb(255 255 255 / 0.6); }
+.sheet__haut--heros .icone-btn { background: rgb(0 0 0 / 0.62); color: #fff; }
+.sheet__defile--heros { padding: 0 0 16px; }
+/* Panneau de droite (grand écran) : l'image déborde du remplissage du panneau, comme dans la feuille. */
+.detail .heros { margin: -20px -20px 0; }
+.detail .heros .photo-actions { padding: 12px 20px 0; }
+.detail .heros > .avis { margin: 12px 20px 0; }
+.fiche__corps { display: grid; gap: 14px; padding: 14px 16px 0; }
+.detail .fiche__corps { padding: 14px 0 0; }
+.fiche__corps > * { min-width: 0; }
+.fiche__titre-bloc { margin: 0 0 6px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+
+/* Grille d'infos : deux colonnes, libellé au-dessus de la valeur. Une valeur longue, ou une cellule ouverte, prend toute la
+   largeur. La valeur reste un bouton de 48 px ; le libellé passe derrière elle par une marge négative, pour une cellule de 60 px. */
+.fiche__grille { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.fiche__grille > .fiche__ligne { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 0; min-height: 64px; padding: 8px 12px 4px; border: 0; border-radius: 14px; background: var(--surface-haute); }
+.fiche__grille > .fiche__ligne > dt { padding: 0; font-size: 0.6875rem; letter-spacing: 0.04em; text-transform: uppercase; }
+.fiche__grille > .fiche__ligne > dd { width: 100%; text-align: left; }
+.fiche__grille > .fiche__ligne > dt + dd { margin-top: -8px; }
+.fiche__grille > .fiche__ligne:not(.fiche__ligne--edit) > dt + dd { margin: 2px 0 8px; }
+.fiche__grille .fiche__valeur { width: 100%; justify-content: space-between; padding: 0; text-align: left; }
+.fiche__grille .fiche__edition { padding: 8px 0; }
+.cellule--large, .cellule--ouverte { grid-column: 1 / -1; }
+
+/* Frise des dates : trois blocs reliés, remplis quand l'étape est faite, en pointillés pour une sortie à venir. */
+.frise { display: flex; align-items: stretch; margin: 0; }
+.frise > .etape { display: flex; flex: 1 1 0; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 0; min-width: 0; min-height: 64px; padding: 10px 10px 6px; border: 1px solid var(--bordure); background: var(--surface-haute); }
+.frise > .etape + .etape { margin-left: -1px; }
+.frise > .etape:first-child { border-radius: 14px 0 0 14px; }
+.frise > .etape:last-child { border-radius: 0 14px 14px 0; }
+.frise > .etape--fait { border-color: transparent; background: var(--accent-conteneur); color: var(--sur-accent-conteneur); }
+.frise > .etape--fait dt { color: inherit; }
+.frise > .etape--futur { border-style: dashed; border-color: var(--bordure-champ); }
+.frise dt { padding: 0; font-size: 0.625rem; letter-spacing: 0.04em; text-transform: uppercase; }
+.frise dd { width: 100%; text-align: left; }
+.frise dt + dd { margin-top: -8px; }
+.frise .fiche__valeur { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; width: 100%; padding: 0; text-align: left; font-weight: 600; font-size: 0.8125rem; line-height: 1.25; color: inherit; }
+.frise .fiche__valeur::after { display: none; }
+.frise .etape--vide .etape__date { color: var(--accent); font-weight: 500; }
+.etape__sous { font-weight: 400; font-size: 0.6875rem; }
+.etape__fixe { display: block; padding: 6px 0 8px; font-weight: 600; font-size: 0.8125rem; }

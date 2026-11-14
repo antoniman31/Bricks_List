@@ -11,7 +11,9 @@ const SEUIL_VITESSE = 0.6
 //
 // `modifie` : des saisies seraient perdues à la fermeture, on demande confirmation.
 // `pied` : actions toujours visibles sous le contenu qui défile.
-export default function Sheet({ ouvert, onFermer, titre, children, modifie = false, pied = null, pleinEcran = false, bandeau = null, actionHaut = null }) {
+// `heros` : une grande image occupe le haut de la feuille (fiche d'un set) ; la poignée et le bouton fermer se posent
+// par-dessus, dans le même en-tête, qui reste la zone de prise du glissé.
+export default function Sheet({ ouvert, onFermer, titre, children, modifie = false, pied = null, pleinEcran = false, bandeau = null, actionHaut = null, heros = false }) {
   const ref = useRef(null)
   const glisse = useRef(null)
   const [confirmer, setConfirmer] = useState(false)
@@ -57,7 +59,7 @@ export default function Sheet({ ouvert, onFermer, titre, children, modifie = fal
   return (
     <dialog
       ref={ref}
-      className={`sheet${pleinEcran ? ' sheet--plein' : ''}`}
+      className={`sheet${pleinEcran ? ' sheet--plein' : ''}${heros ? ' sheet--heros' : ''}`}
       aria-label={titre}
       onClose={() => { setConfirmer(false); onFermer() }}
       onCancel={(e) => { if (modifie) { e.preventDefault(); setConfirmer(true) } }}
@@ -65,7 +67,7 @@ export default function Sheet({ ouvert, onFermer, titre, children, modifie = fal
     >
       <div className="sheet__corps">
         <div
-          className={`sheet__haut${bandeau ? ' bandeau' : ''}`}
+          className={`sheet__haut${bandeau ? ' bandeau' : ''}${heros ? ' sheet__haut--heros' : ''}`}
           onPointerDown={debutGlisse}
           onPointerMove={glissePendant}
           onPointerUp={finGlisse}
@@ -73,7 +75,7 @@ export default function Sheet({ ouvert, onFermer, titre, children, modifie = fal
         >
           <span className="sheet__poignee" aria-hidden="true" />
           <div className="sheet__entete">
-            {bandeau ? <span className="bandeau__num">{bandeau.badge}</span> : <h2 className="sheet__titre">{titre}</h2>}
+            {bandeau ? <span className="bandeau__num">{bandeau.badge}</span> : heros ? <span /> : <h2 className="sheet__titre">{titre}</h2>}
             <span className="sheet__droite">
               {actionHaut}
               <button type="button" className="icone-btn" aria-label="Fermer" onClick={demanderFermer}>
@@ -97,7 +99,7 @@ export default function Sheet({ ouvert, onFermer, titre, children, modifie = fal
             </div>
           </div>
         )}
-        <div className="sheet__defile">{children}</div>
+        <div className={`sheet__defile${heros ? ' sheet__defile--heros' : ''}`}>{children}</div>
         {pied && <div className="sheet__action">{pied}</div>}
       </div>
     </dialog>
