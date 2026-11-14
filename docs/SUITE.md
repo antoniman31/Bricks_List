@@ -41,7 +41,7 @@ testé avec sa vraie collection, tout fonctionne.
   emplacement » dans « À compléter » seulement si la fonction sert.
 - **Sauvegarde fiable** : demande de stockage protégé à Chrome (verdict réel affiché dans les
   Réglages), date de dernière sauvegarde (clé `bl_derniere_sauvegarde`, hors export), bandeau de
-  rappel après 30 jours, bouton « Partager la sauvegarde » (partage Android, repli téléchargement).
+  rappel après 30 jours, bouton « Envoyer le fichier » (partage Android, repli téléchargement).
   La clé Rebrickable n'est jamais dans une sauvegarde.
 - **Priorité sur la wishlist** (envie forte, un jour, pas pressé) : tri, filtre, Stats, effacée à l'achat.
 - **Copier la wishlist en texte** : liste affichée (filtres compris), classée par priorité, avec liens.
@@ -102,7 +102,7 @@ testé avec sa vraie collection, tout fonctionne.
   disponible » (Plus tard, Recharger) s'affiche si l'app est restée ouverte pendant une publication, et
   seulement si le serveur annonce un autre fichier de code que celui de la page. Au retour au premier plan,
   l'app cherche une mise à jour (au plus une fois par minute). `src/lib/miseAJour.js`.
-  Dans les Réglages, « Vérifier les mises à jour » compare le fichier de code affiché à celui du serveur : il
+  Dans les Réglages, « Chercher une version » compare le fichier de code affiché à celui du serveur : il
   recharge seul s'il y en a un autre, dit « dernière version » sinon, et signale un échec (hors ligne) au lieu
   de répondre « à jour » par défaut (`verifierMiseAJour`).
   *Limite* : si on installe l'app puis qu'on coupe le réseau avant le deuxième lancement, la page d'accueil
@@ -130,8 +130,8 @@ testé avec sa vraie collection, tout fonctionne.
   boîtes) : chaque photo de boîte affichée depuis BrickLink est recadrée en JPEG de 1 024 px au plus (une soixantaine
   de Ko) et enregistrée dans IndexedDB (base `bl_photos`, magasin `boites`, clé = numéro du set, version 2 de la base,
   la mise à jour garde les photos personnelles). L'affichage la prend **en premier** (`Vignette`, `useBoite`, contexte
-  `ImagesContext`), puis BrickLink, puis le rendu Rebrickable, puis le numéro. Réglages > Images sur l'appareil : le nombre de
-  boîtes et de rendus gardés et « Sauvegarder toutes les images » (boîtes d'abord, une par une, wishlist comprise ; s'arrête après trois échecs de suite
+  `ImagesContext`), puis BrickLink, puis le rendu Rebrickable, puis le numéro. Réglages > Images gardées : le nombre de
+  boîtes et de rendus gardés et « Garder toutes les images » (boîtes d'abord, une par une, wishlist comprise ; s'arrête après trois échecs de suite
   sans réussite : BrickLink en maintenance). Hors export. Les boîtes dont le numéro n'est plus dans la collection sont
   retirées au démarrage. Les sets sans photo chez BrickLink sont **nommés** dans le message (« 2 sans photo chez BrickLink (Titanic (10294-1), …) », cinq au plus). Ne marche que pour les boîtes **déjà vues ou sauvegardées** : si BrickLink est en panne
   avant la première fois, il n'y a rien à garder. Ce n'est pas lié à l'export des photos personnelles (version 2).
@@ -146,21 +146,21 @@ testé avec sa vraie collection, tout fonctionne.
   copie automatique à l'affichage : seulement par ce bouton. Hors export, purgés au démarrage comme les boîtes.
 - **Réglages réorganisés et wishlist allégée** (novembre 2026, demandé par Antoni : « c'est le foutoir »). Les sept sections à plat
   deviennent quatre groupes : **Affichage** (Apparence), **Connexions** (Rebrickable, Relais « dates et prix »), **Données** (Sauvegarde,
-  Importer un fichier, Images sur l'appareil), **À propos** (Mise à jour, version). Chaque section fermée affiche son état en une ligne
+  Restaurer un fichier, Images sur l'appareil), **À propos** (Mise à jour, version). Chaque section fermée affiche son état en une ligne
   (`resumeCle`, `resumeRelais`, `resumeSauvegarde`, `resumeImages` dans `src/lib/reglages.js`, testés) ; **une seule section s'ouvre à la
   fois** (Apparence est ouverte au départ). Aucune fonction ne change ; « Dates de sortie » devient « Relais (dates et prix) » car il sert
-  aussi aux rendus. Sur la wishlist, les deux gros boutons sont retirés : « Mettre à jour dates et prix » vit dans Réglages > Relais,
+  aussi aux rendus. Sur la wishlist, les deux gros boutons sont retirés : « Récupérer dates et prix » vit dans Réglages > Brickset,
   « Copier la liste » devient un bouton-icône à côté de la ligne « Total ». Parcours `verif:ui` : groupes, états, une seule section ouverte.
 - **Budget de la wishlist, vérifier une sauvegarde, espace utilisé** (novembre 2026, au choix d'Antoni) :
   - **Budget** (Stats > Wishlist, dessin A de la maquette) : un troisième chiffre-clé (le budget au euro près) et un bloc « Budget par priorité »
     (`budgetWishlist` dans `src/lib/stats.js`, testé) : une barre empilée en euros et **les montants sur une seule ligne**, une colonne par priorité
     (quatre au plus, la quatrième s'appelle « Autre »), la même couleur que « Par priorité » (par clé, pas par position). Un set sans prix n'est jamais
     compté et la note le dit ; une note rappelle que des prix sont allemands. Absent si aucun prix.
-  - **Vérifier un fichier de sauvegarde** (Réglages > Données > Sauvegarde, `src/lib/verifSauvegarde.js`, testé) : compare un export à la collection de
+  - **Comparer un fichier** (Réglages > Données > Sauvegarde, `src/lib/verifSauvegarde.js`, testé) : compare un export à la collection de
     l'appareil **sans rien écrire** (ni collection, ni images) : sets absents du fichier ou de l'appareil, sets modifiés (comparaison des fiches champ par
     champ), fiches corrigées ou rejetées à la lecture, images de l'appareil qui manqueraient dans le fichier, fichier sans images. Les noms sont donnés (cinq
     au plus). « Ce fichier correspond à ta collection » ou « diffère ». Un fichier illisible est refusé à voix haute.
-  - **Espace utilisé** (Réglages > Données > Images sur l'appareil, `src/lib/octets.js`) : l'estimation du navigateur pour le site (`navigator.storage.estimate`)
+  - **Espace utilisé** (Réglages > Données > Images gardées, `src/lib/octets.js`) : l'estimation du navigateur pour le site (`navigator.storage.estimate`)
     et la taille mesurée des images gardées (`tailleImages`, somme des tailles des blobs) : « 38 Mo utilisés sur cet appareil, dont 31 Mo d'images ».
   - La pastille « DE » est retirée des cartes de la wishlist (la fiche garde « prix DE »).
 - **Fiche de set refaite** (novembre 2026, au choix d'Antoni parmi quatre propositions de maquette) : **plein cadre**, infos en **une grille**, dates en
@@ -179,7 +179,7 @@ testé avec sa vraie collection, tout fonctionne.
   celle de la règle des Réglages (`choisirImage`). Un appui sur l'image l'ouvre en **plein écran** (`Visionneuse`, un `<dialog>` noir) : un appui zoome
   (×2,6, on se déplace en faisant défiler), flèches, **Partager** (`navigator.share` avec le fichier ; sinon téléchargement, « Enregistrer »), et « Pour la
   liste » (n'importe quelle image peut être celle de la liste). Un rendu Rebrickable pas encore copié sur l'appareil ne peut pas être partagé (pas de CORS) :
-  le message renvoie vers Réglages > Images sur l'appareil.
+  le message renvoie vers Réglages > Images gardées.
   - **Stockage** : la première photo garde la clé historique (l'identifiant du set) dans le magasin `photos` d'IndexedDB, les suivantes sont `<id>#2`…`<id>#6`
     (`clePhoto`, `lireClePhoto` dans `src/lib/imageListe.js`) : rien à migrer, pas de nouvelle version de la base. `imageListe` accepte `photo`, `photo-2`…`photo-6`.
     L'export complet porte toutes les photos (clés `<id>#n` validées comme les autres : le set doit exister, n de 2 à 6) ; l'import et le nettoyage des orphelins
@@ -241,11 +241,11 @@ testé avec sa vraie collection, tout fonctionne.
   jamais écrasée) et pré-remplissage du **prix allemand** par le relais (`prixDE` dans la réponse de `/sortie`, lu depuis
   `LEGOCom.DE.retailPrice` d'après la documentation de Brickset, vu dans une vraie réponse le 13 novembre 2026 : Faucon 849,99), marqué « prix DE » sur la fiche (la pastille « DE » des cartes a été retirée à la demande d'Antoni). Affichage : carte et tuile, fiche, **total** de la liste affichée (« 308,99 € · 1 sans
   prix », filtres pris en compte), tri « Prix croissant/décroissant » (sets sans prix en dernier), filtre par tranche (moins de 50 €,
-  50 à 100, 100 à 200, 200 et plus, sans prix). Le bouton devient « Mettre à jour dates et prix » : un seul appel au relais par set,
+  50 à 100, 100 à 200, 200 et plus, sans prix). Le bouton devient « Récupérer dates et prix » : un seul appel au relais par set,
   qui remplit les prix vides et rafraîchit les prix DE, **jamais un prix saisi à la main** (l'effacer rend la main à la mise à jour).
   Parcours `verif:ui` : total, pastille, saisie (valide et invalide), filtre, tri, pré-remplissage ; contrôle de non-vacuité fait
   (protection du prix manuel cassée exprès : le parcours échoue).
-- **Sauvegarde complète avec les images** (novembre 2026) : « Exporter la collection » et « Partager la sauvegarde »
+- **Sauvegarde complète avec les images** (novembre 2026) : « Enregistrer le fichier » et « Envoyer le fichier »
   mettent dans le même fichier JSON les sets **et toutes les images** (photos personnelles, boîtes gardées, rendus gardés),
   en base64, bloc `images: { photos: {<id du set>: …}, boites: {<numéro>: …}, rendus: {<numéro>: …} }` (`src/lib/imagesExport.js`,
   testé ; lecture/écriture dans `photosDB.js`). Un fichier sans `images` (ancienne version) s'importe comme avant, une ancienne
@@ -271,7 +271,7 @@ testé avec sa vraie collection, tout fonctionne.
   rend la main à Brickset. La carte d'un set pas encore sorti dit « Sort le 1 janv. 2027 · dans 57 jours » (« Sort
   dans 57 jours » en grille). Tri « Date de sortie » (prochaine sortie, puis déjà sortis du plus récent, puis sans
   date) et filtre « Sortie » (à venir, déjà sorti, date inconnue). `src/lib/sortie.js` et `relais.js`, testés.
-  **Mise à jour automatique** : bouton « Mettre à jour dates et prix » (Réglages > Relais ; il n'est plus sur la wishlist) qui interroge, un set après l'autre, ceux sans date ou pas encore sortis, wishlist et collection, par le
+  **Mise à jour automatique** : bouton « Récupérer dates et prix » (Réglages > Brickset ; il n'est plus sur la wishlist) qui interroge, un set après l'autre, ceux sans date ou pas encore sortis, wishlist et collection, par le
   relais Brickset ; arrêt à la première panne (clé refusée, limite quotidienne, relais injoignable) ; une seule
   écriture à la fin ; « n dates enregistrées, n inconnues chez Brickset ». L'adresse du relais et son jeton
   facultatif sont dans Réglages (`bl_relais`, hors export). Le relais est dans `relais/` (Cloudflare Worker, clé
@@ -343,7 +343,7 @@ ce sont de petits projets de loisir, récents, la plupart sur serveur.
    - **Export des photos** : fait (novembre 2026), dans le fichier d'export lui-même et pour toutes les images (voir
      « Sauvegarde complète avec les images »). Les photos ne tiennent ni dans un lien ni dans un QR.
    - **Transfert entre téléphone et PC** (Antoni transfère « parfois », collection sous 100 sets) : essayer
-     d'abord ce qui existe, **Partager** (Partage rapide Android vers Windows) puis **Importer un fichier**,
+     d'abord ce qui existe, **Partager** (Partage rapide Android vers Windows) puis **Restaurer un fichier**,
      sans code. Si le geste pèse : **lien** (collection compressée dans la partie après le `#`, que GitHub
      Pages ne reçoit pas ; aperçu puis Fusionner à l'ouverture ; entrée validée ; « lien incomplet » si une
      messagerie le coupe) et **QR allégé** (sans identifiants ni images, mesuré ~0,9 Ko pour 40 sets

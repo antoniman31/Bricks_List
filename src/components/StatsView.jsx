@@ -421,7 +421,7 @@ export default function StatsView({ stats, onOuvrir, onOuvrirSet, onVoirWishlist
                   { cle: 'sous', libelle: 'Sous-thème connu', valeur: `${nombre(donnees.sousTheme)} sur ${nombre(donnees.sets)}` },
                 ]}
               />
-              <h3 className="bloc__sous">Images sur l'appareil</h3>
+              <h3 className="bloc__sous">Images gardées</h3>
               <ImagesAppareil />
             </Bloc>
           )}

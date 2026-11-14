@@ -59,7 +59,7 @@ export default function Visionneuse({ set, diapos, cle, onAller, onFermer, image
       else telecharger(blob, nom)
     } catch (e) {
       if (e?.name === 'AbortError') return // partage annulé par la personne
-      setMessage('Cette image ne peut pas être copiée d\'ici : garde-la d\'abord sur l\'appareil (Réglages > Images sur l\'appareil).')
+      setMessage('Cette image ne peut pas être copiée d\'ici : garde-la d\'abord sur l\'appareil (Réglages > Images gardées).')
     }
   }
 

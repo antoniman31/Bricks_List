@@ -151,7 +151,7 @@ export default function App() {
     nettoyage.then(() => { rafraichirPhotos(); rafraichirBoites(); rafraichirRendus(); rafraichirExtras() })
   }, [depart, rafraichirPhotos, rafraichirBoites, rafraichirRendus, rafraichirExtras])
   const images = useMemo(() => ({ photos, regle: regleImage, rafraichir: rafraichirPhotos, boites, sauverBoite, rendus, extras, rafraichirExtras, rafraichirBoites }), [photos, regleImage, rafraichirPhotos, boites, sauverBoite, rendus, extras, rafraichirExtras, rafraichirBoites])
-  // « Sauvegarder toutes les images » (Réglages) : va chercher, une par une, ce qui manque sur l'appareil. D'abord les
+  // « Garder toutes les images » (Réglages) : va chercher, une par une, ce qui manque sur l'appareil. D'abord les
   // boîtes (BrickLink ; on s'arrête s'il ne répond pas : insister n'apporterait rien), puis les rendus Rebrickable
   // par le relais (leur CDN n'a pas de CORS) ; sans relais configuré, les rendus sont laissés de côté, et on le dit.
   const [majBoites, setMajBoites] = useState({ etat: '', message: '' })

@@ -116,11 +116,11 @@ const AJOUTER = 'button[aria-label="Ajouter un set"]';
 const PLUS_OPTIONS = 'dialog[open] button:has-text("Plus d\'options")';
 const FORMULAIRE = async (p) => { await p.click(AJOUTER); await p.click(PLUS_OPTIONS); await p.waitForSelector('.sheet--plein'); };
 const REGLAGES = 'button[aria-label="Réglages"]';
-// « Mettre à jour dates et prix » vit dans Réglages > Relais (il n'est plus sur la wishlist).
+// « Récupérer dates et prix » vit dans Réglages > Brickset (il n'est plus sur la wishlist).
 const mettreAJourParLesReglages = async (p) => {
   await p.click(REGLAGES);
-  await p.click('dialog[open] summary:has-text("Relais")');
-  await p.click('dialog[open] button:has-text("Mettre à jour dates et prix")');
+  await p.click('dialog[open] summary:has-text("Brickset")');
+  await p.click('dialog[open] button:has-text("Récupérer dates et prix")');
 };
 const FILTRES = 'button[aria-label^="Filtres"]';
 const GRILLE = 'button[aria-label="Afficher en grille"]';
@@ -231,7 +231,7 @@ const ECRANS = {
   // Un export partagé en .txt (repli de Chrome Android) s'importe comme le .json.
   'import d\'un fichier .txt': async (p) => {
     await p.click(REGLAGES);
-    await p.click('dialog[open] summary:has-text("Importer un fichier")');
+    await p.click('dialog[open] summary:has-text("Restaurer un fichier")');
     const contenu = JSON.stringify({ version: 1, sets: [{ id: 'imp1', numero: '30009-1', nom: 'Set importé', statut: 'possédé', theme: 'City', annee: 2024, pieces: 300, etat: 'neuf', dateAjout: '2026-10-10T00:00:00.000Z' }] });
     await p.setInputFiles('dialog[open] label:has-text("Choisir un fichier JSON") input[type=file]', { name: 'transfert.txt', mimeType: 'text/plain', buffer: Buffer.from(contenu) });
     await p.waitForSelector('dialog[open] .avis:has-text("1 set lu")');
@@ -282,8 +282,8 @@ const ECRANS = {
   },
   'boîtes : sauvegarder toutes (réglages)': async (p) => {
     await p.click(REGLAGES);
-    await p.click('dialog[open] summary:has-text("Images sur")');
-    await p.click('dialog[open] button:has-text("Sauvegarder toutes les images")');
+    await p.click('dialog[open] summary:has-text("Images gardées")');
+    await p.click('dialog[open] button:has-text("Garder toutes les images")');
     await p.waitForSelector('dialog[open] .avis:has-text("sauvegardée")', { timeout: 40000 });
     const attendu = await p.evaluate(() => new Set(JSON.parse(localStorage.getItem('bl_v1')).sets.map((x) => x.numero).filter((n) => parseInt(n, 10) % 2 === 1)).size);
     exiger(attendu > 0 && await nbBoitesStock(p) === attendu, `les boîtes disponibles doivent toutes être gardées (attendu ${attendu}, gardé ${await nbBoitesStock(p)})`);
@@ -296,8 +296,8 @@ const ECRANS = {
     await p.evaluate(() => localStorage.removeItem('bl_relais'));
     await p.reload(); await p.waitForSelector('.carte');
     await p.click(REGLAGES);
-    await p.click('dialog[open] summary:has-text("Images sur")');
-    await p.click('dialog[open] button:has-text("Sauvegarder toutes les images")');
+    await p.click('dialog[open] summary:has-text("Images gardées")');
+    await p.click('dialog[open] button:has-text("Garder toutes les images")');
     await p.waitForSelector('dialog[open] [role=alert]:has-text("ajoute le relais")', { timeout: 40000 });
     exiger(await nbBoitesStock(p, 'rendus') === 0, 'sans relais, aucun rendu ne doit être gardé');
   },
@@ -307,8 +307,8 @@ const ECRANS = {
     await p.evaluate(() => localStorage.setItem('bl_relais', JSON.stringify({ url: 'https://relais-test.example', jeton: '' })));
     await p.reload(); await p.waitForSelector('.carte');
     await p.click(REGLAGES);
-    await p.click('dialog[open] summary:has-text("Images sur")');
-    await p.click('dialog[open] button:has-text("Sauvegarder toutes les images")');
+    await p.click('dialog[open] summary:has-text("Images gardées")');
+    await p.click('dialog[open] button:has-text("Garder toutes les images")');
     await p.waitForSelector('dialog[open] .avis:has-text("rendu")', { timeout: 40000 });
     const attendu = await p.evaluate(() => new Set(JSON.parse(localStorage.getItem('bl_v1')).sets.filter((x) => x.image).map((x) => x.numero)).size);
     exiger(attendu > 0 && await nbBoitesStock(p, 'rendus') === attendu, `tous les rendus doivent être gardés (attendu ${attendu}, gardé ${await nbBoitesStock(p, 'rendus')}, ${demandes} demandes au relais)`);
@@ -331,8 +331,8 @@ const ECRANS = {
     await p.evaluate(() => localStorage.setItem('bl_relais', JSON.stringify({ url: 'https://relais-test.example', jeton: '' })));
     await p.reload(); await p.waitForSelector('.carte');
     await p.click(REGLAGES);
-    await p.click('dialog[open] summary:has-text("Images sur")');
-    await p.click('dialog[open] button:has-text("Sauvegarder toutes les images")');
+    await p.click('dialog[open] summary:has-text("Images gardées")');
+    await p.click('dialog[open] button:has-text("Garder toutes les images")');
     await p.waitForSelector('dialog[open] [role=alert]:has-text("refusé")', { timeout: 40000 });
     const attendu = await p.evaluate(() => new Set(JSON.parse(localStorage.getItem('bl_v1')).sets.filter((x) => x.image).map((x) => x.numero)).size);
     exiger(attendu > 1 && await nbBoitesStock(p, 'rendus') === attendu - 1, `les autres rendus doivent être gardés (attendu ${attendu - 1}, gardé ${await nbBoitesStock(p, 'rendus')}, ${demandes} demandes)`);
@@ -355,8 +355,8 @@ const ECRANS = {
       await q.reload(); await q.waitForSelector('.carte');
       appels = 0;
       await q.click(REGLAGES);
-      await q.click('dialog[open] summary:has-text("Images sur")');
-      await q.click('dialog[open] button:has-text("Sauvegarder toutes les images")');
+      await q.click('dialog[open] summary:has-text("Images gardées")');
+      await q.click('dialog[open] button:has-text("Garder toutes les images")');
       try {
         await q.waitForSelector('dialog[open] [role=alert]:has-text("BrickLink ne répond pas")', { timeout: 40000 });
       } catch {
@@ -393,8 +393,8 @@ const ECRANS = {
     const avant = [await nbBoitesStock(p, 'photos'), await nbBoitesStock(p, 'boites'), await nbBoitesStock(p, 'rendus'), await nbBoitesStock(p, 'extras')];
     exiger(avant.every((n) => n >= 1), `le semis d'images a échoué (${avant})`);
     await p.click(REGLAGES);
-    await p.click('dialog[open] summary:has-text("Sauvegarde")');
-    const [telechargement] = await Promise.all([p.waitForEvent('download'), p.click('dialog[open] button:has-text("Exporter la collection")')]);
+    await p.click('dialog[open] summary:has-text("Exporter")');
+    const [telechargement] = await Promise.all([p.waitForEvent('download'), p.click('dialog[open] button:has-text("Enregistrer le fichier")')]);
     const fichier = readFileSync(await telechargement.path());
     const exporte = JSON.parse(fichier.toString('utf8'));
     const nb = (g) => Object.keys(exporte.images?.[g] ?? {}).length;
@@ -416,7 +416,7 @@ const ECRANS = {
       };
     }));
     exiger(await nbBoitesStock(p, 'photos') === 0 && await nbBoitesStock(p, 'rendus') === 0, 'IndexedDB aurait dû être vidée');
-    await p.click('dialog[open] summary:has-text("Importer un fichier")');
+    await p.click('dialog[open] summary:has-text("Restaurer un fichier")');
     await p.setInputFiles('dialog[open] label:has-text("Choisir un fichier JSON") input[type=file]', { name: 'sauvegarde.json', mimeType: 'application/json', buffer: fichier });
     await p.waitForSelector('dialog[open] .avis:has-text("remplaceront celles de cet appareil")');
     await p.click('dialog[open] button:has-text("Fusionner")');
@@ -473,7 +473,7 @@ const ECRANS = {
     await sortiesParPaliers(p);
     await p.click('.nav__item:has-text("Wishlist")');
     await p.waitForSelector('.carte:has-text("Sort ")');
-    exiger(await p.locator('button:has-text("Mettre à jour dates et prix")').count() === 0, 'le bouton de mise à jour ne doit plus encombrer la wishlist (il est dans Réglages)');
+    exiger(await p.locator('button:has-text("Récupérer dates et prix")').count() === 0, 'le bouton de mise à jour ne doit plus encombrer la wishlist (il est dans Réglages)');
     exiger(await p.locator('button[aria-label="Copier la liste"]').count() === 1, 'le bouton « Copier la liste » manque');
   },
   'wishlist grille (dates de sortie)': async (p) => {
@@ -590,6 +590,34 @@ const ECRANS = {
     await p.locator('.carte:has-text("Souhait 0")').click();
     await p.waitForSelector('.fiche__ligne--edit:has(dt:text-is("Prix")) .fiche__valeur');
     exiger(!/prix DE/.test(await p.locator('.fiche__ligne--edit:has(dt:text-is("Prix")) .fiche__valeur').innerText()), 'un prix saisi à la main ne doit pas être marqué « prix DE »');
+  },
+  // Une cellule ouverte de la fiche (prix, étiquettes, boîte, notice) garde son champ DANS la cellule et dans l'écran : ni deuxième colonne, ni largeur en trop.
+  // Un champ rejeté hors de l'écran faisait défiler toute la fiche en largeur au premier appui dans le champ.
+  'fiche : cellules ouvertes restent dans la largeur': async (p) => {
+    const dansLaLargeur = async (libelle) => {
+      await p.locator(`.fiche__ligne:has(dt:text-is("${libelle}")) .fiche__valeur`).click();
+      await p.waitForSelector(`.fiche__ligne:has(dt:text-is("${libelle}")) .fiche__edition`);
+      const m = await p.evaluate((l) => {
+        const ligne = [...document.querySelectorAll('.fiche__ligne')].find((x) => x.querySelector('dt')?.textContent === l);
+        const rl = ligne.getBoundingClientRect();
+        const dehors = [...ligne.querySelectorAll('*')].filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && (r.right > rl.right + 1 || r.left < rl.left - 1); }).map((e) => `${e.tagName}.${String(e.className).slice(0, 24)}`);
+        const colonnes = new Set([...ligne.children].map((c) => Math.round(c.getBoundingClientRect().left)));
+        return { dehors, colonnes: colonnes.size, droite: Math.round(rl.right), largeur: innerWidth };
+      }, libelle);
+      exiger(m.dehors.length === 0 && m.colonnes === 1 && m.droite <= m.largeur, `la cellule « ${libelle} » ouverte déborde (${JSON.stringify(m)})`);
+      await p.locator(`.fiche__ligne:has(dt:text-is("${libelle}")) .fiche__valeur`).click(); // la referme
+    };
+    await p.click('.nav__item:has-text("Wishlist")');
+    await p.locator('.carte:has-text("Souhait 0")').click();
+    await p.waitForSelector('.fiche__ligne:has(dt:text-is("Prix"))');
+    await dansLaLargeur('Prix');
+    await dansLaLargeur('Étiquettes');
+    await p.keyboard.press('Escape');
+    await p.click('.nav__item:has-text("Collection")');
+    await p.locator('.carte').first().click();
+    await p.waitForSelector('.fiche__ligne:has(dt:text-is("Boîte"))');
+    await dansLaLargeur('Boîte');
+    await dansLaLargeur('Notice');
   },
   'fiche (prix)': async (p) => {
     await p.click('.nav__item:has-text("Wishlist")');
@@ -870,7 +898,7 @@ const ECRANS = {
     const fermer = p.locator('dialog[open] button[aria-label="Fermer"]');
     if (await fermer.count()) await fermer.click();
     await p.click(REGLAGES);
-    await p.click('dialog[open] [aria-label="Image de la liste"] .puce:has-text("Ma photo")'); // Apparence est ouverte d'emblée
+    await p.click('dialog[open] [aria-label="Image des cartes"] .puce:has-text("Ma photo")'); // Apparence est ouverte d'emblée
     await p.click('dialog[open] button[aria-label="Fermer"]');
     await p.waitForFunction(() => document.querySelectorAll('.carte img.vignette[data-origine="photo"]').length === 1);
     await p.reload(); await p.waitForSelector('.carte');
@@ -1073,23 +1101,23 @@ const ECRANS = {
     }
     const ouvertes = () => p.locator('dialog[open] details.reglage[open]').count();
     exiger(await ouvertes() === 1 && await p.locator('dialog[open] details.reglage[open] .reglage__nom:text-is("Apparence")').count() === 1, 'Apparence doit être la seule section ouverte au départ');
-    await p.click('dialog[open] summary:has-text("Sauvegarde")');
-    exiger(await ouvertes() === 1 && await p.locator('dialog[open] details.reglage[open] .reglage__nom:text-is("Sauvegarde")').count() === 1, 'ouvrir une section doit refermer la précédente');
-    await p.click('dialog[open] summary:has-text("Sauvegarde")');
+    await p.click('dialog[open] summary:has-text("Exporter")');
+    exiger(await ouvertes() === 1 && await p.locator('dialog[open] details.reglage[open] .reglage__nom:text-is("Exporter")').count() === 1, 'ouvrir une section doit refermer la précédente');
+    await p.click('dialog[open] summary:has-text("Exporter")');
     exiger(await ouvertes() === 0, 'un second appui doit refermer la section');
     const etats = await p.locator('dialog[open] .reglage__etat').allInnerTexts();
     exiger(etats.some((t) => /^Dernière : .+ · /.test(t)) && etats.some((t) => /^Pas de clé$/.test(t)) && etats.some((t) => /^Non configuré$/.test(t)), `les lignes d'état sont fausses : ${etats.join(' | ')}`);
   },
   'réglages (sauvegarde ouverte)': async (p) => {
     await p.click(REGLAGES);
-    await p.click('dialog[open] summary:has-text("Sauvegarde")');
-    await p.waitForSelector('dialog[open] button:has-text("Exporter la collection")');
+    await p.click('dialog[open] summary:has-text("Exporter")');
+    await p.waitForSelector('dialog[open] button:has-text("Enregistrer le fichier")');
   },
   // Le bouton « Vérifier les mises à jour » des Réglages : le serveur de test sert le même build, donc « à jour ».
   'réglages (vérification de version)': async (p) => {
     await p.click(REGLAGES);
-    await p.click('dialog[open] summary:has-text("Mise à jour")');
-    await p.click('dialog[open] button:has-text("Vérifier les mises à jour")');
+    await p.click('dialog[open] summary:has-text("Version de l\'appli")');
+    await p.click('dialog[open] button:has-text("Chercher une version")');
     await p.waitForSelector('dialog[open] [role=status]:has-text("dernière version")');
   },
   'stats': async (p) => { await p.click('.nav__item:has-text("Stats")'); await p.waitForSelector('.stats'); },
@@ -1128,7 +1156,7 @@ const ECRANS = {
     // Réglages ouverts d'abord (l'ouverture peut faire charger d'autres images), puis on attend que les boîtes aient fini de
     // s'enregistrer : deux lectures identiques à 700 ms d'écart.
     await p.click(REGLAGES);
-    await p.click('dialog[open] summary:has-text("Sauvegarde")');
+    await p.click('dialog[open] summary:has-text("Exporter")');
     let cles = await lireCles();
     for (let i = 0; i < 12; i += 1) {
       await p.waitForTimeout(700);
@@ -1140,7 +1168,7 @@ const ECRANS = {
     const JPEG = '/9j/4AAQSkZJRgABAQ=='; // le début d'un JPEG : la vérification ne décode pas les images
     const avant = await p.evaluate(() => localStorage.getItem('bl_v1'));
     const fichier = (donnees) => Buffer.from(JSON.stringify({ ...donnees, images: Object.fromEntries(['photos', 'boites', 'rendus'].map((g) => [g, Object.fromEntries(cles[g].map((k) => [k, JPEG]))])) }));
-    const champ = 'dialog[open] label:has-text("Vérifier un fichier de sauvegarde") input[type=file]';
+    const champ = 'dialog[open] label:has-text("Comparer un fichier") input[type=file]';
     await p.setInputFiles(champ, { name: 'sauvegarde.json', mimeType: 'application/json', buffer: fichier(JSON.parse(avant)) });
     await p.waitForSelector('dialog[open] .avis:has-text("Rien n\'a été modifié")');
     const premier = (await p.locator('dialog[open] .avis:has-text("Rien n\'a été modifié")').innerText()).replace(/\n+/g, ' / ');
@@ -1163,10 +1191,10 @@ const ECRANS = {
     await p.waitForSelector('dialog[open] [role=alert]:has-text("JSON")');
     exiger(await p.evaluate(() => localStorage.getItem('bl_v1')) === avant, 'vérifier un fichier ne doit rien modifier dans la collection');
   },
-  // Espace utilisé : une phrase avec une unité, dans Réglages > Images sur l'appareil.
+  // Espace utilisé : une phrase avec une unité, dans Réglages > Images gardées.
   'images : espace utilisé': async (p) => {
     await p.click(REGLAGES);
-    await p.click('dialog[open] summary:has-text("Images sur")');
+    await p.click('dialog[open] summary:has-text("Images gardées")');
     await p.waitForFunction(() => /\d[\d\s,]* (o|Ko|Mo|Go) (utilisés|d'images)/.test([...document.querySelectorAll('dialog[open] details[open] .reglage__aide')].map((e) => e.textContent).join(' ').replace(/[\u202f\u00a0]/g, ' ')));
   },
   // Stats en sous-onglets (puces) : Aperçu, Répartition, Suivi, Wishlist. Un seul s'affiche à la fois, l'onglet est retenu au rechargement, la barre

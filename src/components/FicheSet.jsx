@@ -223,7 +223,7 @@ export function FicheContenu({ set, lectureSeule, relais = null, lieux = [], lie
             <LigneEditable
               libelle="Prix"
               large
-              valeur={set.prix != null ? <>{`${formaterPrix(set.prix)}${set.prixSource === 'brickset-de' ? ' (prix DE)' : ''}`}<PastillePrixPiece set={set} /></> : 'Ajouter'}
+              valeur={set.prix != null ? <span className="fiche__prixval">{`${formaterPrix(set.prix)}${set.prixSource === 'brickset-de' ? ' (prix DE)' : ''}`}<PastillePrixPiece set={set} /></span> : 'Ajouter'}
               ouvert={edition === 'prix'}
               desactive={lectureSeule}
               onBasculer={ouvrirPrix}
