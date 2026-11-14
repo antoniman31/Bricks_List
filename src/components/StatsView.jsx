@@ -1,8 +1,12 @@
 import { useState } from 'react'
 import { ETATS } from '../lib/model.js'
 import { blocsProportionnels } from '../lib/treemap.js'
+import { formaterPrix, formaterPrixRond } from '../lib/prix.js'
 
 const SERIES = ['var(--serie-1)', 'var(--serie-2)', 'var(--serie-3)', 'var(--serie-4)']
+// Une couleur par priorité, la même dans « Par priorité » et « Budget par priorité » (jamais selon la position dans la liste).
+const COULEUR_PRIORITE = { forte: SERIES[0], 'un-jour': SERIES[1], 'pas-presse': SERIES[2] }
+const couleurPriorite = (cle) => COULEUR_PRIORITE[cle] ?? 'var(--serie-vide)'
 const HAUT_BLOCS = 62 // hauteur du cadre des blocs, pour 100 de large (voir `.blocs`)
 const nombre = (n) => n.toLocaleString('fr-FR')
 const pluriel = (n, mot) => `${nombre(n)} ${mot}${n > 1 ? 's' : ''}`
@@ -396,26 +400,54 @@ export default function StatsView({ stats, onOuvrir, onVoirWishlist }) {
           <p className="stats__note">Aucun set souhaité.</p>
         ) : (
           <>
-            <div className="kpis kpis--deux">
+            <div className={`kpis ${1 + (wishlist.pieces > 0 ? 1 : 0) + (wishlist.budget ? 1 : 0) === 3 ? 'kpis--trois' : 'kpis--deux'}`}>
               <div className="kpi"><span className="kpi__valeur">{nombre(wishlist.sets)}</span><span className="kpi__libelle">set{wishlist.sets > 1 ? 's' : ''} à acquérir</span></div>
               {wishlist.pieces > 0 && (
                 <div className="kpi"><span className="kpi__valeur">{nombre(wishlist.pieces)}</span><span className="kpi__libelle">pièces{wishlist.sansPieces > 0 ? ' connues' : ''}</span></div>
+              )}
+              {wishlist.budget && (
+                <div className="kpi"><span className="kpi__valeur">{formaterPrixRond(wishlist.budget.total)}</span><span className="kpi__libelle">budget</span></div>
               )}
             </div>
             {wishlist.priorites.length > 0 && (
               <div className="wishlist__priorites">
                 <h3 className="bloc__sous">Par priorité</h3>
                 <div className="empile" role="img" aria-label={`Par priorité : ${wishlist.priorites.map((p) => `${p.libelle} ${p.sets}`).join(', ')}`}>
-                  {wishlist.priorites.map((p, i) => (
-                    <span key={p.cle || 'vide'} style={{ flex: p.sets, background: p.cle === '' ? 'var(--serie-vide)' : SERIES[i % SERIES.length] }} />
+                  {wishlist.priorites.map((p) => (
+                    <span key={p.cle || 'vide'} style={{ flex: p.sets, background: couleurPriorite(p.cle) }} />
                   ))}
                 </div>
                 <ul className="legende-mesures">
-                  {wishlist.priorites.map((p, i) => (
-                    <li key={p.cle || 'vide'}><span className="anneau__pastille" style={{ background: p.cle === '' ? 'var(--serie-vide)' : SERIES[i % SERIES.length] }} aria-hidden="true" />{p.libelle} <b>{p.sets}</b></li>
+                  {wishlist.priorites.map((p) => (
+                    <li key={p.cle || 'vide'}><span className="anneau__pastille" style={{ background: couleurPriorite(p.cle) }} aria-hidden="true" />{p.libelle} <b>{p.sets}</b></li>
                   ))}
                 </ul>
               </div>
+            )}
+            {wishlist.budget && wishlist.budget.priorites.some((p) => p.cle !== '') && (
+              <div className="wishlist__budget">
+                <h3 className="bloc__sous">Budget par priorité</h3>
+                <div className="empile" role="img" aria-label={`Budget par priorité : ${wishlist.budget.priorites.map((p) => `${p.libelle} ${formaterPrix(p.montant)}`).join(', ')}`}>
+                  {wishlist.budget.priorites.map((p) => (
+                    <span key={p.cle || 'vide'} style={{ flex: p.montant, background: couleurPriorite(p.cle) }} />
+                  ))}
+                </div>
+                {/* Les montants sur une seule ligne : une colonne par priorité (quatre au plus, la quatrième s'appelle « Autre »). */}
+                <ul className={`budget__colonnes${wishlist.budget.priorites.length > 3 ? ' budget__colonnes--serre' : ''}`} style={{ '--n': wishlist.budget.priorites.length }}>
+                  {wishlist.budget.priorites.map((p) => (
+                    <li key={p.cle || 'vide'}>
+                      <span className="budget__nom"><span className="anneau__pastille" style={{ background: couleurPriorite(p.cle) }} aria-hidden="true" />{p.cle === '' && wishlist.budget.priorites.length > 3 ? 'Autre' : p.libelle}</span>
+                      <b>{formaterPrix(p.montant)}</b>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {wishlist.budget && (wishlist.budget.sansPrix > 0 || wishlist.budget.prixDE) && (
+              <p className="stats__note">
+                {wishlist.budget.sansPrix > 0 && `${wishlist.budget.sansPrix} set${wishlist.budget.sansPrix > 1 ? 's' : ''} sans prix, non compté${wishlist.budget.sansPrix > 1 ? 's' : ''}. `}
+                {wishlist.budget.prixDE && 'Certains prix sont des prix allemands.'}
+              </p>
             )}
             <button type="button" className="bouton" onClick={onVoirWishlist}>Voir la wishlist</button>
           </>

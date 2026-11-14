@@ -92,7 +92,7 @@ test('« à compléter » : les chiffres collent au filtre', () => {
 });
 
 test('wishlist : sets et pièces à acquérir', () => {
-  assert.deepEqual(calculerStats(COLLECTION).wishlist, { sets: 2, pieces: 2000, sansPieces: 1, priorites: [] });
+  assert.deepEqual(calculerStats(COLLECTION).wishlist, { sets: 2, pieces: 2000, sansPieces: 1, budget: null, priorites: [] });
 });
 
 // ---------- répartition par emplacement ----------
@@ -358,4 +358,23 @@ test('délai entre achat et montage : moyenne en jours, seulement les dates comp
   ]).delai;
   assert.deepEqual(d, { jours: 15, sets: 2 });
   assert.equal(calculerStats([set({ nom: 'A', dateAchat: '2026-03-10' })]).delai, null);
+});
+
+// ---------- budget de la wishlist ----------
+test('budget : somme exacte au centime, montant par priorité, sets sans prix comptés à part', () => {
+  const b = calculerStats([
+    wl({ priorite: 'forte', prix: 0.1 }), wl({ priorite: 'forte', prix: 0.2 }), wl({ priorite: 'un-jour', prix: 100 }),
+    wl({ priorite: 'pas-presse', prix: 50.5, prixSource: 'brickset-de' }), wl({ prix: 10 }), wl({ priorite: 'forte' }),
+  ]).wishlist.budget;
+  assert.equal(b.total, 160.8);
+  assert.equal(b.avecPrix, 5);
+  assert.equal(b.sansPrix, 1);
+  assert.equal(b.prixDE, true);
+  assert.deepEqual(b.priorites.map((p) => [p.cle, p.sets, p.montant]), [['forte', 2, 0.3], ['un-jour', 1, 100], ['pas-presse', 1, 50.5], ['', 1, 10]]);
+});
+
+test('budget : aucun prix connu, pas de budget ; un set possédé n\'y entre jamais', () => {
+  assert.equal(calculerStats(SOUHAITS).wishlist.budget, null);
+  assert.equal(calculerStats([set({ statut: 'possédé', prix: 500 }), wl({ priorite: 'forte' })]).wishlist.budget, null);
+  assert.equal(calculerStats([wl({ prix: 20 })]).wishlist.budget.prixDE, false);
 });

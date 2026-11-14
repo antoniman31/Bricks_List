@@ -3,8 +3,8 @@
 Ce fichier dit **où on s'est arrêtés** et **quoi faire ensuite**, dans l'ordre. Il complète `docs/SUITE.md` (état
 complet du projet, décisions, limites) et `CLAUDE.md` (règles de travail). Lire les trois avant de commencer.
 
-Dernière PR fusionnée : **#73** (TODO) ; en cours : Réglages réorganisés et wishlist allégée. Branche de travail unique :
-`ccr-bf63eeba-887je4`. Qualité : lint OK, 431 tests, `verif:ui` 584 écrans.
+Dernière PR fusionnée : **#78** (fiche de set refaite) ; en cours : budget de la wishlist, vérifier une sauvegarde, espace utilisé. Branche de travail unique :
+`ccr-bf63eeba-887je4`. Qualité : lint OK, 444 tests, `verif:ui` 624 écrans.
 
 Depuis la PR #66 : transfert collection ↔ wishlist (#67), boîtes BrickLink gardées sur l'appareil (#68), rendus
 Rebrickable gardés via la route `/image` du relais (#69), sauvegarde complète avec toutes les images (#70), prix officiel

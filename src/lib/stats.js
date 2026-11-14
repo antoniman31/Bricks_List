@@ -3,6 +3,7 @@ import { ETATS, LIBELLES_PRIORITE, PRIORITES } from './model.js';
 import { anneeDe } from './dates.js';
 import { TAILLES, cleAnnee, cleTaille, libelleAnnee, manquants, modeAnnees } from './recherche.js';
 import { cleEtiquette } from './etiquettes.js';
+import { prixValide } from './prix.js';
 
 // Chaque barre porte le filtre qui retrouve exactement ses sets. Le chiffre
 // affiché et la liste obtenue en la touchant utilisent donc les mêmes prédicats
@@ -10,6 +11,26 @@ import { cleEtiquette } from './etiquettes.js';
 
 function total(sets) {
   return sets.reduce((somme, s) => somme + (s.pieces ?? 0), 0);
+}
+
+// Le budget de la wishlist : la somme des prix connus, au centime (en centimes entiers, sans écart de virgule), et le montant
+// par priorité (seules les priorités qui ont un montant). Un set sans prix n'est jamais compté : on dit combien il y en a.
+function budgetWishlist(souhaites) {
+  const avec = souhaites.filter((s) => prixValide(s.prix) !== null);
+  if (avec.length === 0) return null;
+  const centimes = (liste) => liste.reduce((t, s) => t + Math.round(prixValide(s.prix) * 100), 0);
+  const parPriorite = [
+    ...PRIORITES.map((p) => ({ cle: p, libelle: LIBELLES_PRIORITE[p], liste: avec.filter((s) => s.priorite === p) })),
+    { cle: '', libelle: 'Non précisée', liste: avec.filter((s) => !s.priorite) },
+  ].filter((x) => x.liste.length > 0);
+  return {
+    total: centimes(avec) / 100,
+    avecPrix: avec.length,
+    sansPrix: souhaites.length - avec.length,
+    // Certains prix sont des prix allemands pré-remplis : la vue le rappelle.
+    prixDE: avec.some((s) => s.prixSource === 'brickset-de'),
+    priorites: parPriorite.map((x) => ({ cle: x.cle, libelle: x.libelle, sets: x.liste.length, montant: centimes(x.liste) / 100 })),
+  };
 }
 
 function barre(cle, libelle, sets, filtre) {
@@ -233,6 +254,7 @@ export function calculerStats(sets, maintenant = new Date()) {
       sets: souhaites.length,
       pieces: total(souhaites),
       sansPieces: souhaites.filter((s) => s.pieces == null).length,
+      budget: budgetWishlist(souhaites),
       // Seulement si la fonction sert : sinon une seule ligne « non précisée » = le total.
       priorites: souhaites.some((s) => s.priorite)
         ? [...PRIORITES.map((p) => ({ cle: p, libelle: LIBELLES_PRIORITE[p], sets: souhaites.filter((s) => s.priorite === p).length })),

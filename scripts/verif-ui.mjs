@@ -187,7 +187,7 @@ const ECRANS = {
     await p.click(REGLAGES);
     await p.click('dialog[open] summary:has-text("Importer un fichier")');
     const contenu = JSON.stringify({ version: 1, sets: [{ id: 'imp1', numero: '30009-1', nom: 'Set importé', statut: 'possédé', theme: 'City', annee: 2024, pieces: 300, etat: 'neuf', dateAjout: '2026-10-10T00:00:00.000Z' }] });
-    await p.setInputFiles('dialog[open] input[type=file]', { name: 'transfert.txt', mimeType: 'text/plain', buffer: Buffer.from(contenu) });
+    await p.setInputFiles('dialog[open] label:has-text("Choisir un fichier JSON") input[type=file]', { name: 'transfert.txt', mimeType: 'text/plain', buffer: Buffer.from(contenu) });
     await p.waitForSelector('dialog[open] .avis:has-text("1 set lu")');
     await p.click('dialog[open] button:has-text("Fusionner")');
     await p.waitForSelector('dialog[open] [role=status]:has-text("1 ajouté")');
@@ -368,7 +368,7 @@ const ECRANS = {
     }));
     exiger(await nbBoitesStock(p, 'photos') === 0 && await nbBoitesStock(p, 'rendus') === 0, 'IndexedDB aurait dû être vidée');
     await p.click('dialog[open] summary:has-text("Importer un fichier")');
-    await p.setInputFiles('dialog[open] input[type=file]', { name: 'sauvegarde.json', mimeType: 'application/json', buffer: fichier });
+    await p.setInputFiles('dialog[open] label:has-text("Choisir un fichier JSON") input[type=file]', { name: 'sauvegarde.json', mimeType: 'application/json', buffer: fichier });
     await p.waitForSelector('dialog[open] .avis:has-text("remplaceront celles de cet appareil")');
     await p.click('dialog[open] button:has-text("Fusionner")');
     await p.waitForSelector('dialog[open] [role=status]:has-text("restaurée")', { timeout: 20000 });
@@ -458,13 +458,26 @@ const ECRANS = {
     const total = await p.innerText('.total-prix');
     exiger(/Total\s*:\s*308,99\s€\s·\s1 sans prix/.test(total.replace(/\u202f|\u00a0/g, ' ')), `le total de la wishlist est faux : « ${total} »`);
     exiger(await p.locator('.carte:has-text("Souhait 0"):has-text("249")').count() === 1, 'le prix manque sur la carte');
-    exiger(await p.locator('.carte:has-text("Souhait 2") .pastille-source').count() === 1, 'la pastille DE manque sur un prix pré-rempli');
-    exiger(await p.locator('.carte:has-text("Souhait 0") .pastille-source').count() === 0, 'un prix saisi ne doit pas porter la pastille DE');
+    exiger(await p.locator('.pastille-source').count() === 0, 'les cartes ne portent plus de pastille DE');
+    exiger(await p.locator('.carte:has-text("Souhait 2"):has-text("59,99")').count() === 1, 'le prix pré-rempli doit rester affiché sur la carte');
   },
   'wishlist grille (prix)': async (p) => {
     await p.click(GRILLE);
     await p.click('.nav__item:has-text("Wishlist")');
     await p.waitForSelector('.carte--tuile .carte__prix');
+  },
+  // La fiche, elle, dit d'où vient un prix pré-rempli (« prix DE »), pas celle d'un prix saisi à la main.
+  'fiche : origine du prix': async (p) => {
+    await p.click('.nav__item:has-text("Wishlist")');
+    await p.locator('.carte:has-text("Souhait 2")').click();
+    await p.waitForSelector('.fiche__ligne--edit:has(dt:text-is("Prix")) .fiche__valeur');
+    exiger(/prix DE/.test(await p.locator('.fiche__ligne--edit:has(dt:text-is("Prix")) .fiche__valeur').innerText()), 'la fiche doit dire « prix DE » pour un prix pré-rempli');
+  },
+  'fiche : prix saisi sans marque': async (p) => {
+    await p.click('.nav__item:has-text("Wishlist")');
+    await p.locator('.carte:has-text("Souhait 0")').click();
+    await p.waitForSelector('.fiche__ligne--edit:has(dt:text-is("Prix")) .fiche__valeur');
+    exiger(!/prix DE/.test(await p.locator('.fiche__ligne--edit:has(dt:text-is("Prix")) .fiche__valeur').innerText()), 'un prix saisi à la main ne doit pas être marqué « prix DE »');
   },
   'fiche (prix)': async (p) => {
     await p.click('.nav__item:has-text("Wishlist")');
@@ -682,6 +695,81 @@ const ECRANS = {
     await p.waitForSelector('dialog[open] [role=status]:has-text("dernière version")');
   },
   'stats': async (p) => { await p.click('.nav__item:has-text("Stats")'); await p.waitForSelector('.stats'); },
+  // Budget de la wishlist (dessin A) : un chiffre-clé, et les montants par priorité sur UNE SEULE ligne (même hauteur à l'écran).
+  // Données : Souhait 0 « Prioritaire » 249 € (saisi), Souhait 1 « Envie » sans prix, Souhait 2 « Un jour » 59,99 € (DE).
+  'stats : budget de la wishlist': async (p) => {
+    await p.click('.nav__item:has-text("Stats")');
+    await p.waitForSelector('.wishlist__budget');
+    const blanc = (t) => t.replace(/[\u202f\u00a0]/g, ' ');
+    const tuile = blanc(await p.locator('.kpi:has(.kpi__libelle:text-is("budget"))').innerText());
+    exiger(/309 €/.test(tuile), `le budget total doit valoir 309 € : ${tuile}`);
+    const montants = (await p.locator('.budget__colonnes b').allInnerTexts()).map(blanc);
+    exiger(montants.length === 2 && montants[0] === '249 €' && montants[1] === '59,99 €', `montants par priorité faux : ${montants.join(' | ')}`);
+    const tops = await p.locator('.budget__colonnes b').evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().top)));
+    exiger(new Set(tops).size === 1, `les montants doivent être sur une seule ligne (${tops.join(', ')})`);
+    const note = blanc(await p.locator('.wishlist__budget ~ .stats__note').innerText());
+    exiger(/1 set sans prix, non compté/.test(note) && /prix allemands/.test(note), `la note du budget est fausse : ${note}`);
+  },
+  // « Vérifier ma sauvegarde » : compare un fichier à la collection, SANS rien modifier (la collection reste identique à l'octet).
+  'sauvegarde : vérifier un fichier': async (p) => {
+    // Les images de l'appareil à cet instant (des boîtes s'enregistrent d'elles-mêmes à l'affichage) : le fichier « identique »
+    // en porte une copie pour chaque clé, sinon il serait à juste titre jugé incomplet.
+    const lireCles = () => p.evaluate(() => new Promise((res, rej) => {
+      const o = indexedDB.open('bl_photos');
+      o.onerror = () => rej(o.error);
+      o.onsuccess = () => {
+        const sortie = {}; let reste = 3;
+        for (const m of ['photos', 'boites', 'rendus']) {
+          const g = o.result.transaction(m).objectStore(m).getAllKeys();
+          g.onsuccess = () => { sortie[m] = g.result; if (--reste === 0) res(sortie); };
+          g.onerror = () => rej(g.error);
+        }
+      };
+    }));
+    // Réglages ouverts d'abord (l'ouverture peut faire charger d'autres images), puis on attend que les boîtes aient fini de
+    // s'enregistrer : deux lectures identiques à 700 ms d'écart.
+    await p.click(REGLAGES);
+    await p.click('dialog[open] summary:has-text("Sauvegarde")');
+    let cles = await lireCles();
+    for (let i = 0; i < 12; i += 1) {
+      await p.waitForTimeout(700);
+      const suivantes = await lireCles();
+      const stable = JSON.stringify(suivantes) === JSON.stringify(cles);
+      cles = suivantes;
+      if (stable) break;
+    }
+    const JPEG = '/9j/4AAQSkZJRgABAQ=='; // le début d'un JPEG : la vérification ne décode pas les images
+    const avant = await p.evaluate(() => localStorage.getItem('bl_v1'));
+    const fichier = (donnees) => Buffer.from(JSON.stringify({ ...donnees, images: Object.fromEntries(['photos', 'boites', 'rendus'].map((g) => [g, Object.fromEntries(cles[g].map((k) => [k, JPEG]))])) }));
+    const champ = 'dialog[open] label:has-text("Vérifier un fichier de sauvegarde") input[type=file]';
+    await p.setInputFiles(champ, { name: 'sauvegarde.json', mimeType: 'application/json', buffer: fichier(JSON.parse(avant)) });
+    await p.waitForSelector('dialog[open] .avis:has-text("Rien n\'a été modifié")');
+    const premier = (await p.locator('dialog[open] .avis:has-text("Rien n\'a été modifié")').innerText()).replace(/\n+/g, ' / ');
+    exiger(/correspond à ta collection/.test(premier), `un fichier identique doit correspondre : ${premier}`);
+    // Un fichier qui diffère : un set modifié et un set retiré.
+    const donnees = JSON.parse(avant);
+    donnees.sets[0].nom = 'Nom changé dans le fichier';
+    donnees.sets = donnees.sets.slice(0, -1);
+    await p.setInputFiles(champ, { name: 'autre.json', mimeType: 'application/json', buffer: fichier(donnees) });
+    await p.waitForSelector('dialog[open] [role=alert]:has-text("diffère de ta collection")');
+    const dit = await p.locator('dialog[open] [role=alert]').first().innerText();
+    exiger(/manque dans le fichier/.test(dit) && /diffère/.test(dit) && /Rien n'a été modifié/.test(dit), `le résultat doit dire ce qui diffère : ${dit}`);
+    // Un fichier sans images, alors que l'appareil en a : signalé comme incomplet.
+    if (cles.boites.length + cles.rendus.length + cles.photos.length > 0) {
+      await p.setInputFiles(champ, { name: 'sans-images.json', mimeType: 'application/json', buffer: Buffer.from(avant) });
+      await p.waitForSelector('dialog[open] [role=alert]:has-text("ne contient pas d\'images")');
+    }
+    // Un fichier illisible est refusé à voix haute.
+    await p.setInputFiles(champ, { name: 'casse.json', mimeType: 'application/json', buffer: Buffer.from('{ pas du json') });
+    await p.waitForSelector('dialog[open] [role=alert]:has-text("JSON")');
+    exiger(await p.evaluate(() => localStorage.getItem('bl_v1')) === avant, 'vérifier un fichier ne doit rien modifier dans la collection');
+  },
+  // Espace utilisé : une phrase avec une unité, dans Réglages > Images sur l'appareil.
+  'images : espace utilisé': async (p) => {
+    await p.click(REGLAGES);
+    await p.click('dialog[open] summary:has-text("Images sur")');
+    await p.waitForFunction(() => /\d[\d\s,]* (o|Ko|Mo|Go) (utilisés|d'images)/.test([...document.querySelectorAll('dialog[open] details[open] .reglage__aide')].map((e) => e.textContent).join(' ').replace(/[\u202f\u00a0]/g, ' ')));
+  },
   'stats (détails dépliés)': async (p) => {
     await p.click('.nav__item:has-text("Stats")'); await p.waitForSelector('.stats');
     await p.click('.stats__detail:has-text("thèmes")');

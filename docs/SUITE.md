@@ -151,6 +151,18 @@ testé avec sa vraie collection, tout fonctionne.
   fois** (Apparence est ouverte au départ). Aucune fonction ne change ; « Dates de sortie » devient « Relais (dates et prix) » car il sert
   aussi aux rendus. Sur la wishlist, les deux gros boutons sont retirés : « Mettre à jour dates et prix » vit dans Réglages > Relais,
   « Copier la liste » devient un bouton-icône à côté de la ligne « Total ». Parcours `verif:ui` : groupes, états, une seule section ouverte.
+- **Budget de la wishlist, vérifier une sauvegarde, espace utilisé** (novembre 2026, au choix d'Antoni) :
+  - **Budget** (Stats > Wishlist, dessin A de la maquette) : un troisième chiffre-clé (le budget au euro près) et un bloc « Budget par priorité »
+    (`budgetWishlist` dans `src/lib/stats.js`, testé) : une barre empilée en euros et **les montants sur une seule ligne**, une colonne par priorité
+    (quatre au plus, la quatrième s'appelle « Autre »), la même couleur que « Par priorité » (par clé, pas par position). Un set sans prix n'est jamais
+    compté et la note le dit ; une note rappelle que des prix sont allemands. Absent si aucun prix.
+  - **Vérifier un fichier de sauvegarde** (Réglages > Données > Sauvegarde, `src/lib/verifSauvegarde.js`, testé) : compare un export à la collection de
+    l'appareil **sans rien écrire** (ni collection, ni images) : sets absents du fichier ou de l'appareil, sets modifiés (comparaison des fiches champ par
+    champ), fiches corrigées ou rejetées à la lecture, images de l'appareil qui manqueraient dans le fichier, fichier sans images. Les noms sont donnés (cinq
+    au plus). « Ce fichier correspond à ta collection » ou « diffère ». Un fichier illisible est refusé à voix haute.
+  - **Espace utilisé** (Réglages > Données > Images sur l'appareil, `src/lib/octets.js`) : l'estimation du navigateur pour le site (`navigator.storage.estimate`)
+    et la taille mesurée des images gardées (`tailleImages`, somme des tailles des blobs) : « 38 Mo utilisés sur cet appareil, dont 31 Mo d'images ».
+  - La pastille « DE » est retirée des cartes de la wishlist (la fiche garde « prix DE »).
 - **Fiche de set refaite** (novembre 2026, au choix d'Antoni parmi quatre propositions de maquette) : **plein cadre**, infos en **une grille**, dates en
   **frise** « fil sur une ligne ». La boîte (ou le rendu, ou ta photo) occupe toute la largeur du haut de la feuille (ou du panneau de droite sur PC),
   le titre posé dessus sur un dégradé sombre ; les pastilles Boîte / Rendu / Ma photo sont sur l'image (en haut), l'étoile « utiliser dans la liste »
@@ -173,8 +185,7 @@ testé avec sa vraie collection, tout fonctionne.
   `src/lib/prix.js`. **Pas de source française** : Rebrickable n'a pas de prix, Brickset donne US, UK, CA et DE (pas FR), LEGO.fr n'a pas
   d'API publique et BrickLink/Brickfact donnent des prix du marché (non retenus). D'où : saisie à la main (fiche, ligne « Prix »,
   jamais écrasée) et pré-remplissage du **prix allemand** par le relais (`prixDE` dans la réponse de `/sortie`, lu depuis
-  `LEGOCom.DE.retailPrice` d'après la documentation de Brickset, **jamais vu dans une vraie réponse**), marqué « DE » (pastille
-  sur la carte, « prix DE » sur la fiche). Affichage : carte et tuile, fiche, **total** de la liste affichée (« 308,99 € · 1 sans
+  `LEGOCom.DE.retailPrice` d'après la documentation de Brickset, vu dans une vraie réponse le 13 novembre 2026 : Faucon 849,99), marqué « prix DE » sur la fiche (la pastille « DE » des cartes a été retirée à la demande d'Antoni). Affichage : carte et tuile, fiche, **total** de la liste affichée (« 308,99 € · 1 sans
   prix », filtres pris en compte), tri « Prix croissant/décroissant » (sets sans prix en dernier), filtre par tranche (moins de 50 €,
   50 à 100, 100 à 200, 200 et plus, sans prix). Le bouton devient « Mettre à jour dates et prix » : un seul appel au relais par set,
   qui remplit les prix vides et rafraîchit les prix DE, **jamais un prix saisi à la main** (l'effacer rend la main à la mise à jour).
@@ -231,10 +242,10 @@ testé avec sa vraie collection, tout fonctionne.
   au rechargement (`bl_filtres`, hors export, `src/lib/filtresMemo.js`, entrée validée ; l'ancien format à un
   seul jeu est lu). La recherche texte n'est pas retenue et se vide au changement d'onglet. Un raccourci des
   Stats remplace les filtres de la collection.
-- **Qualité** : `npm run lint`, `npm test` (431 tests, dont ceux du relais), `npm run verif:ui` (axe-core, cibles de
+- **Qualité** : `npm run lint`, `npm test` (444 tests, dont ceux du relais), `npm run verif:ui` (axe-core, cibles de
   48 px, débordements, navigation, recherche visible clavier ouvert, et quatre parcours qui vérifient un
   comportement : filtres conservés au rechargement, onglets indépendants, import d'un `.txt`, repli des
-  boîtes, photo personnelle (enregistrée, relue, retirée), image de la liste (fiche et règle), dates de sortie (affichage, filtre, saisie, relais), remise en wishlist (fiche et sélection, avec annulation), boîtes gardées (sauvegarde, service hors BrickLink, arrêt en maintenance), rendus gardés par le relais, sauvegarde complète avec images (export, vidage, restauration) ; 73 écrans × 2 thèmes × 4
+  boîtes, photo personnelle (enregistrée, relue, retirée), image de la liste (fiche et règle), dates de sortie (affichage, filtre, saisie, relais), remise en wishlist (fiche et sélection, avec annulation), boîtes gardées (sauvegarde, service hors BrickLink, arrêt en maintenance), rendus gardés par le relais, sauvegarde complète avec images (export, vidage, restauration) ; 78 écrans × 2 thèmes × 4
   largeurs : 360, 412, 900, 1280). Les trois tournent dans le CI avant le déploiement.
 
 ## Décisions de cadrage (ne pas rouvrir sans raison)

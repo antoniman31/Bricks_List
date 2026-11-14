@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Sheet from './Sheet.jsx'
 import { exporter, lireImport } from '../lib/partage.js'
 import { fusionner } from '../lib/collection.js'
 import { nombreImages, resume } from '../lib/imagesExport.js'
-import { imagesDuStock, restaurerImages } from '../lib/photosDB.js'
+import { clesImages, imagesDuStock, restaurerImages, tailleImages } from '../lib/photosDB.js'
+import { comparerSauvegarde } from '../lib/verifSauvegarde.js'
+import { phraseEspace } from '../lib/octets.js'
 import { imageDecodable } from '../lib/photoNavigateur.js'
 import { partageDisponible, partager, telecharger } from '../lib/fichier.js'
 import { ecrirePartageTexte, etatSauvegarde, libelleDelai, lirePartageTexte } from '../lib/sauvegarde.js'
@@ -34,6 +36,18 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
   const [ouverte, setOuverte] = useState('apparence')
   const basculer = (id) => setOuverte((o) => (o === id ? '' : id))
   const [apercu, setApercu] = useState(null)
+  // Vérifier un fichier de sauvegarde : lecture seule, rien n'est importé ni écrit.
+  const [verif, setVerif] = useState({ etat: '', message: '', resultat: null })
+  // L'espace pris sur l'appareil : estimation du navigateur pour le site entier, taille mesurée pour les images.
+  const [espace, setEspace] = useState(null)
+  useEffect(() => {
+    let annule = false
+    Promise.all([
+      Promise.resolve(globalThis.navigator?.storage?.estimate?.()).then((e) => e?.usage).catch(() => undefined),
+      tailleImages().catch(() => undefined),
+    ]).then(([usage, images]) => { if (!annule) setEspace({ usage, images }) })
+    return () => { annule = true }
+  }, [nbBoites, nbRendus])
   // Lecture ou écriture des images en cours (export, import) : quelques secondes avec des dizaines de Mo.
   const [preparation, setPreparation] = useState(false)
   const [erreur, setErreur] = useState('')
@@ -158,6 +172,20 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
       return setResultatExport(`Partage refusé (${r.erreur}). Utilise « Exporter la collection ».`)
     }
     noter((r.mode === 'partage' ? `Sauvegarde partagée (${r.nom}).` : `Partage indisponible : ${nom} téléchargé.`) + avertir(e))
+  }
+
+  async function verifierFichier(e) {
+    const fichier = e.target.files?.[0]
+    e.target.value = ''
+    if (!fichier) return
+    setVerif({ etat: 'charge', message: 'Vérification…', resultat: null })
+    let texte
+    try { texte = await fichier.text() } catch { return setVerif({ etat: 'erreur', message: 'Le fichier n\'a pas pu être lu.', resultat: null }) }
+    const lu = lireImport(texte)
+    if (lu.erreur) return setVerif({ etat: 'erreur', message: lu.erreur, resultat: null })
+    let cles = null
+    try { cles = await clesImages() } catch { /* les images de l'appareil illisibles : la comparaison le dira */ }
+    setVerif({ etat: 'ok', message: '', resultat: comparerSauvegarde({ fichier: lu, actuels: sets, cles }) })
   }
 
   async function choisirFichier(e) {
@@ -331,6 +359,19 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
         </div>
         {preparation && <p className="avis" role="status">Préparation des images…</p>}
         {resultatExport && <p className="avis" role="status">{resultatExport}</p>}
+        <label className="bouton bouton--fichier">
+          Vérifier un fichier de sauvegarde
+          <input type="file" accept=".json,.txt,application/json,text/plain" onChange={verifierFichier} className="visuellement-cache" />
+        </label>
+        {verif.etat === 'charge' && <p className="avis" role="status">{verif.message}</p>}
+        {verif.etat === 'erreur' && <p className="avis avis--erreur" role="alert">{verif.message}</p>}
+        {verif.resultat && (
+          <div className={`avis${verif.resultat.identique ? '' : ' avis--erreur'}`} role={verif.resultat.identique ? 'status' : 'alert'}>
+            <p><b>{verif.resultat.titre}</b></p>
+            {verif.resultat.lignes.map((l) => <p key={l}>{l}</p>)}
+            <p>Rien n'a été modifié.</p>
+          </div>
+        )}
         </Section>
         <Section id="import" titre="Importer un fichier" etat="JSON ou .txt, images comprises" ouverte={ouverte} onBasculer={basculer}>
         <label className="bouton bouton--fichier">
@@ -377,6 +418,7 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
         <p className="reglage__aide">
           Les boîtes vues sont gardées ici (elles restent si BrickLink tombe), les rendus Rebrickable passent par le relais. Tout part dans l'export complet.
         </p>
+        <p className="reglage__aide">{espace ? phraseEspace(espace) : 'Calcul de l\'espace utilisé…'}</p>
         <button type="button" className="bouton" disabled={majBoites.etat === 'charge'} onClick={onSauvegarderBoites}>Sauvegarder toutes les images</button>
         {majBoites.message && (
           <p className={`avis${majBoites.etat === 'erreur' ? ' avis--erreur' : ''}`} role={majBoites.etat === 'erreur' ? 'alert' : 'status'}>{majBoites.message}</p>

@@ -161,3 +161,22 @@ export async function restaurerImages(images, decoder) {
   }
   return { restaurees, echecs, stockagePlein };
 }
+
+// Les clés des images gardées (les identifiants de sets pour les photos, les numéros pour les boîtes et les rendus), sans lire
+// les images : de quoi comparer l'appareil à un fichier de sauvegarde.
+export async function clesImages() {
+  const sortie = {};
+  for (const [groupe, magasin] of [['photos', PHOTOS], ['boites', BOITES], ['rendus', RENDUS]]) {
+    sortie[groupe] = (await numerosDe(magasin)).filter((c) => typeof c === 'string');
+  }
+  return sortie;
+}
+
+// La place que prennent les images gardées : la somme des tailles des blobs (on lit leur taille, pas leur contenu).
+export async function tailleImages() {
+  let total = 0;
+  for (const magasin of [PHOTOS, BOITES, RENDUS]) {
+    for (const [, blob] of (await toutLire(magasin)) ?? []) if (blob && typeof blob.size === 'number') total += blob.size;
+  }
+  return total;
+}

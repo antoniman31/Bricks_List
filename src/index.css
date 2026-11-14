@@ -837,6 +837,7 @@ button:not(:disabled):active, .champ:active { box-shadow: inset 0 0 0 999px var(
 .records__ligne--bouton .records__valeur::after { content: ''; display: inline-block; width: 7px; height: 7px; margin-left: 8px; border-right: 2px solid var(--texte-doux); border-bottom: 2px solid var(--texte-doux); transform: rotate(-45deg); }
 
 .kpis--deux { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.kpis--trois { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .legende-mesures { display: flex; flex-wrap: wrap; gap: 4px 16px; list-style: none; margin: 4px 0 0; padding: 0; font-size: 0.875rem; }
 .legende-mesures li { display: inline-flex; align-items: center; gap: 6px; }
 .legende-mesures b { font-weight: 600; }
@@ -873,7 +874,6 @@ div.anneau__ligne { padding: 6px 0; }
 /* Prix officiel (wishlist). « DE » : prix allemand pré-rempli, pas le prix en France ; un contour suffit à le
    distinguer du texte. Contrastes mesurés : texte-doux sur surface 7,8:1 (sombre) et 8,0:1 (clair), contour 4,8:1 et 4,3:1. */
 .carte--tuile .carte__prix { color: var(--texte); font-weight: 600; }
-.pastille-source { margin-left: 6px; padding: 0 6px; border: 1px solid var(--bordure-champ); border-radius: var(--rayon-pilule); font-size: 0.6875rem; font-weight: 600; color: var(--texte-doux); vertical-align: 1px; }
 .total-prix { margin: 0; font-size: 0.875rem; color: var(--texte-doux); }
 .fiche__prix { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .fiche__prix .champ { flex: 1 1 8rem; min-width: 0; }
@@ -955,3 +955,13 @@ div.anneau__ligne { padding: 6px 0; }
 .frise .etape--vide .etape__date { color: var(--accent); font-weight: 500; }
 .etape__sous { font-weight: 400; font-size: 0.6875rem; }
 .etape__fixe { display: block; padding: 6px 0 8px; font-weight: 600; font-size: 0.8125rem; }
+
+/* Budget de la wishlist : les montants sur une seule ligne, une colonne par priorité (même couleur que la barre au-dessus). */
+.wishlist__budget { margin-top: 12px; }
+.budget__colonnes { display: grid; grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)); gap: 8px; margin: 4px 0 0; padding: 0; list-style: none; font-size: 0.875rem; }
+.budget__colonnes li { display: grid; align-content: start; gap: 2px; min-width: 0; }
+.budget__nom { display: inline-flex; align-items: center; gap: 6px; color: var(--texte-doux); }
+.budget__colonnes b { font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.budget__colonnes--serre { font-size: 0.8125rem; gap: 6px; }
+/* Quatre colonnes sur 360 px : les noms rapetissent plutôt que de se toucher ou de passer à la ligne. */
+.budget__colonnes--serre .budget__nom { gap: 3px; font-size: 0.6875rem; }
