@@ -12,7 +12,8 @@ import { ecrirePartageTexte, etatSauvegarde, libelleDelai, lirePartageTexte } fr
 import { cleValide, resumeCle, resumeImages, resumeRelais, resumeSauvegarde } from '../lib/reglages.js'
 import { LIBELLES, MODES } from '../lib/apparence.js'
 import { REGLES } from '../lib/imageListe.js'
-import { jetonValide, urlRelaisValide } from '../lib/relais.js'
+import { envoyerSauvegarde, jetonValide, listerSauvegardes, messageRelais, telechargerSauvegarde, urlRelaisValide } from '../lib/relais.js'
+import { etatEnLigne, libelleCopie, lireDernierEnvoi, noterEnvoi, resumeEnLigne } from '../lib/sauvegardeEnLigne.js'
 import { verifierMiseAJour } from '../lib/miseAJour.js'
 
 // Une section repliable : un titre, son état en une ligne, et son contenu. UNE SEULE s'ouvre à la fois (l'écran reste court
@@ -174,6 +175,49 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
     noter((r.mode === 'partage' ? `Sauvegarde partagée (${r.nom}).` : `Partage indisponible : ${nom} téléchargé.`) + avertir(e))
   }
 
+  // Sauvegarde en ligne : envoyer le même fichier au relais (KV), relire une des copies gardées. Le texte relu passe par `lireImport`
+  // comme un fichier choisi : même aperçu, même confirmation avant de remplacer.
+  const [enLigne, setEnLigne] = useState({ etat: '', message: '' })
+  const [copies, setCopies] = useState(null)
+  const [dernierEnvoi, setDernierEnvoi] = useState(() => lireDernierEnvoi())
+  const pret = Boolean(relais.url) && Boolean(relais.jeton)
+
+  async function envoyerEnLigne() {
+    setEnLigne({ etat: 'charge', message: 'Envoi…' })
+    const e = await preparerExport()
+    setEnLigne({ etat: 'charge', message: 'Envoi…' })
+    const r = await envoyerSauvegarde(relais, e.contenu)
+    if (!r.ok) return setEnLigne({ etat: 'erreur', message: messageRelais(r.code) })
+    const noteeLocale = noterEnvoi()
+    setDernierEnvoi(lireDernierEnvoi())
+    // Une copie en ligne est une sauvegarde : le rappel des 30 jours repart, comme après un export.
+    const nonNotee = !noteeLocale.ok || !onSauvegardeFaite().ok
+    setCopies(null)
+    setEnLigne({ etat: 'ok', message: `${decrire(e)} envoyé${sets.length > 1 ? 's' : ''} en ligne.${avertir(e)}${nonNotee ? ' La date n\'a pas pu être enregistrée.' : ''}` })
+  }
+
+  async function voirCopies() {
+    setEnLigne({ etat: 'charge', message: 'Lecture des copies…' })
+    const r = await listerSauvegardes(relais)
+    if (!r.ok) { setCopies(null); return setEnLigne({ etat: 'erreur', message: messageRelais(r.code) }) }
+    setCopies(r.versions)
+    setEnLigne(r.versions.length === 0 ? { etat: 'ok', message: messageRelais('vide') } : { etat: '', message: '' })
+  }
+
+  async function choisirCopie(copie) {
+    setEnLigne({ etat: 'charge', message: 'Téléchargement…' })
+    const t = await telechargerSauvegarde(relais, copie.cle)
+    if (!t.ok) return setEnLigne({ etat: 'erreur', message: messageRelais(t.code) })
+    const lu = lireImport(t.texte)
+    if (lu.erreur) return setEnLigne({ etat: 'erreur', message: lu.erreur })
+    setErreur('')
+    setResultat('')
+    setConfirmerRemplacement(false)
+    setApercu(lu)
+    setOuverte('import')
+    setEnLigne({ etat: 'ok', message: `Copie du ${libelleCopie(copie.date)} lue : choisis Fusionner ou Remplacer.` })
+  }
+
   async function verifierFichier(e) {
     const fichier = e.target.files?.[0]
     e.target.value = ''
@@ -294,7 +338,7 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
         </Section>
         <Section id="relais" titre="Brickset · dates, prix, images" etat={resumeRelais(relais.url)} ouverte={ouverte} onBasculer={basculer}>
         <p className="reglage__aide">
-          Dates, prix et images de Brickset. Adresse gardée sur cet appareil. Jeton : seulement si ton relais en exige un.
+          Dates, prix et images de Brickset. Adresse gardée sur cet appareil. Jeton : obligatoire pour la sauvegarde en ligne.
         </p>
         <label className="formulaire__champ">
           Adresse du relais
@@ -371,6 +415,25 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
             {verif.resultat.lignes.map((l) => <p key={l}>{l}</p>)}
             <p>Rien n'a été modifié.</p>
           </div>
+        )}
+        </Section>
+        <Section id="enligne" titre="Sauvegarde en ligne" etat={resumeEnLigne({ relais, dernier: dernierEnvoi })} ouverte={ouverte} onBasculer={basculer}>
+        <p className="reglage__aide">{etatEnLigne({ relais, dernier: dernierEnvoi })}</p>
+        <div className="sheet__pied">
+          <button type="button" className="bouton bouton--plein" onClick={envoyerEnLigne} disabled={!pret || sets.length === 0 || preparation || enLigne.etat === 'charge'}>Envoyer en ligne</button>
+          <button type="button" className="bouton" onClick={voirCopies} disabled={!pret || enLigne.etat === 'charge'}>Voir les copies</button>
+        </div>
+        {enLigne.message && (
+          <p className={`avis${enLigne.etat === 'erreur' ? ' avis--erreur' : ''}`} role={enLigne.etat === 'erreur' ? 'alert' : 'status'}>{enLigne.message}</p>
+        )}
+        {copies && copies.length > 0 && (
+          <ul className="reglage__copies" aria-label="Copies en ligne">
+            {copies.map((c) => (
+              <li key={c.cle}>
+                <button type="button" className="bouton" disabled={enLigne.etat === 'charge'} onClick={() => choisirCopie(c)}>{libelleCopie(c.date, c.octets)}</button>
+              </li>
+            ))}
+          </ul>
         )}
         </Section>
         <Section id="import" titre="Restaurer un fichier" etat="JSON ou .txt, images comprises" ouverte={ouverte} onBasculer={basculer}>

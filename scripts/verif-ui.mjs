@@ -1094,6 +1094,55 @@ const ECRANS = {
     exiger(await p.locator('.fiche__ligne:has(dt:text-is("Notices PDF"))').count() === 0, 'sans relais, la ligne « Notices PDF » ne doit pas apparaître');
   },
   // Réglages en quatre groupes, une ligne d'état par section, UNE SEULE section ouverte à la fois (Apparence au départ).
+  // Sauvegarde en ligne : le relais (R2) est simulé en mémoire. Envoi du même fichier que l'export, liste des copies, relecture d'une copie
+  // dans l'aperçu de « Restaurer un fichier » (même confirmation avant de remplacer).
+  'sauvegarde en ligne : envoyer, lister, relire': async (p) => {
+    // Dit quelle attente a échoué (le message de Playwright ne cite pas toujours le sélecteur).
+    const att = async (sel, timeout = 8000) => { try { await p.waitForSelector(sel, { timeout }); } catch { throw new Error(`attendu : ${sel} ; messages : ${(await p.locator('dialog[open] .avis').allInnerTexts()).join(' | ').replace(/\n+/g, ' ').slice(0, 300)}`); } };
+    const CLE = 'sauvegardes/2026-11-14T143005Z.json';
+    const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'X-Jeton, Content-Type', 'Access-Control-Allow-Methods': 'GET, PUT, OPTIONS' };
+    let recu = null; let jetonVu = '';
+    await p.route('https://relais-ligne.example/**', (r) => {
+      const req = r.request();
+      const chemin = new globalThis.URL(req.url()).pathname;
+      if (req.method() === 'OPTIONS') return r.fulfill({ status: 204, headers: CORS });
+      jetonVu = req.headers()['x-jeton'] ?? '';
+      if (req.method() === 'PUT' && chemin === '/sauvegarde') { recu = req.postData(); return r.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify({ cle: CLE, octets: recu.length }) }); }
+      if (chemin === '/sauvegardes') return r.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify({ versions: recu ? [{ cle: CLE, octets: recu.length, date: '2026-11-14T14:30:05.000Z' }] : [] }) });
+      if (chemin === '/sauvegarde') return r.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: recu ?? '{}' });
+      return r.fulfill({ status: 404, headers: CORS, body: '{}' });
+    });
+    await p.evaluate(() => localStorage.setItem('bl_relais', JSON.stringify({ url: 'https://relais-ligne.example', jeton: 'jeton-de-test-1234' })));
+    await p.reload(); await att('.carte');
+    const nbSets = await p.evaluate(() => JSON.parse(localStorage.getItem('bl_v1')).sets.length);
+    await p.click(REGLAGES);
+    await p.click('dialog[open] summary:has-text("Sauvegarde en ligne")');
+    await p.click('dialog[open] button:has-text("Voir les copies")');
+    await att('dialog[open] [role=status]:has-text("Aucune sauvegarde en ligne")');
+    await p.click('dialog[open] button:has-text("Envoyer en ligne")');
+    await att('dialog[open] [role=status]:has-text("en ligne.")', 40000);
+    exiger(recu !== null && JSON.parse(recu).sets?.length === nbSets, `le relais doit recevoir l'export complet (${nbSets} sets)`);
+    exiger(jetonVu === 'jeton-de-test-1234', 'le jeton doit accompagner chaque appel');
+    exiger(/Envoyée aujourd'hui/.test(await p.locator('dialog[open] details.reglage[open] .reglage__etat').innerText()), 'le titre doit dire que la copie date d\'aujourd\'hui');
+    await p.click('dialog[open] button:has-text("Voir les copies")');
+    await att('dialog[open] ul[aria-label="Copies en ligne"] button');
+    exiger(await p.locator('dialog[open] ul[aria-label="Copies en ligne"] li').count() === 1, 'une copie doit être listée');
+    await p.click('dialog[open] ul[aria-label="Copies en ligne"] button');
+    await att('dialog[open] details.reglage[open] .reglage__nom:text-is("Restaurer un fichier")');
+    await att('dialog[open] details.reglage[open] .avis:has-text("lu")');
+    exiger(await p.locator('dialog[open] button:has-text("Remplacer")').count() === 1 && await p.locator('dialog[open] button:has-text("Fusionner")').count() === 1, 'la copie relue doit passer par l\'aperçu : Remplacer et Fusionner');
+  },
+  'sauvegarde en ligne : sans jeton, rien ne part': async (p) => {
+    let appels = 0;
+    await p.route('https://relais-ligne.example/**', (r) => { appels += 1; return r.fulfill({ status: 500, body: '{}' }); });
+    await p.evaluate(() => localStorage.setItem('bl_relais', JSON.stringify({ url: 'https://relais-ligne.example', jeton: '' })));
+    await p.reload(); await p.waitForSelector('.carte');
+    await p.click(REGLAGES);
+    await p.click('dialog[open] summary:has-text("Sauvegarde en ligne")');
+    exiger(await p.locator('dialog[open] button:has-text("Envoyer en ligne")').isDisabled() && await p.locator('dialog[open] button:has-text("Voir les copies")').isDisabled(), 'sans jeton, les deux boutons doivent être inactifs');
+    exiger(/jeton/i.test(await p.locator('dialog[open] details.reglage[open] .reglage__aide').first().innerText()), 'le texte doit dire d\'ajouter le jeton');
+    exiger(appels === 0, 'aucun appel ne doit partir sans jeton');
+  },
   'réglages (groupes et états)': async (p) => {
     await p.click(REGLAGES);
     for (const g of ['Affichage', 'Connexions', 'Données', 'À propos']) {

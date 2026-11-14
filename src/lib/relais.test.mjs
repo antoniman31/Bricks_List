@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { DELAIS_AVANT_ARRET, arretRelais, ecrireRelais, jetonValide, lireRelais, messageRelais, recupererGalerie, recupererImage, recupererNotices, recupererSortie, urlNoticeSure, urlRelaisValide } from './relais.js';
+import { DELAIS_AVANT_ARRET, arretRelais, ecrireRelais, envoyerSauvegarde, listerSauvegardes, telechargerSauvegarde, jetonValide, lireRelais, messageRelais, recupererGalerie, recupererImage, recupererNotices, recupererSortie, urlNoticeSure, urlRelaisValide } from './relais.js';
 
 const faux = (init = {}) => {
   const m = new Map(Object.entries(init));
@@ -180,4 +180,61 @@ test('recupererImage : accepte les images de la galerie de Brickset, refuse les 
   assert.equal(appels, 1);
   for (const u of ['https://evil.example/a.jpg', `${BASE_IMG}a.jpg?x=1`, 'https://images.brickset.com/other/a.jpg']) assert.equal((await recupererImage(RELAIS, u, fetchFn)).code, 'url', u);
   assert.equal(appels, 1);
+});
+
+// ---- Sauvegarde en ligne ------------------------------------------------------------------------------------------
+const R = { url: 'https://relais.example', jeton: 'jeton-de-test-1234' };
+const COPIE = 'sauvegardes/2026-11-14T143005Z.json';
+const rep = (corps, statut = 200) => async () => new Response(JSON.stringify(corps), { status: statut });
+
+test('envoyerSauvegarde : PUT du texte avec le jeton, la clé rendue est revérifiée', async () => {
+  let vu;
+  const fetchFn = async (url, init) => { vu = { url, init }; return new Response(JSON.stringify({ cle: COPIE, octets: 12 }), { status: 200 }); };
+  const r = await envoyerSauvegarde(R, '{"sets":[]}', fetchFn);
+  assert.deepEqual(r, { ok: true, cle: COPIE, octets: 12 });
+  assert.equal(vu.url, 'https://relais.example/sauvegarde');
+  assert.equal(vu.init.method, 'PUT');
+  assert.equal(vu.init.headers['X-Jeton'], 'jeton-de-test-1234');
+  assert.equal(vu.init.headers['Content-Type'], 'application/json');
+  assert.equal(vu.init.body, '{"sets":[]}');
+  assert.equal((await envoyerSauvegarde(R, '{}', rep({ cle: '../x', octets: 1 }))).code, 'reponse');
+});
+
+test('envoyerSauvegarde : sans jeton ou sans adresse, rien ne part ; les erreurs du relais deviennent des codes connus', async () => {
+  let appels = 0;
+  const f = async () => { appels += 1; return new Response('{}'); };
+  assert.equal((await envoyerSauvegarde({ url: R.url, jeton: '' }, '{}', f)).code, 'jeton');
+  assert.equal((await envoyerSauvegarde({ url: '', jeton: R.jeton }, '{}', f)).code, 'url');
+  assert.equal((await envoyerSauvegarde(R, '', f)).code, 'url');
+  assert.equal(appels, 0);
+  for (const [statut, code] of [[401, 'jeton'], [403, 'protection'], [413, 'gros'], [500, 'stockage']]) {
+    assert.equal((await envoyerSauvegarde(R, '{}', rep({ erreur: code }, statut))).code, code);
+  }
+  assert.equal((await envoyerSauvegarde(R, '{}', rep({ erreur: 'inconnue' }, 500))).code, 'reponse');
+  assert.equal((await envoyerSauvegarde(R, '{}', async () => { throw new TypeError('réseau'); })).code, 'reseau');
+  assert.equal((await envoyerSauvegarde(R, '{}', async () => { throw Object.assign(new Error('t'), { name: 'TimeoutError' }); })).code, 'delai');
+});
+
+test('listerSauvegardes : garde les copies valides, au plus 5, écarte le reste', async () => {
+  const v = (cle, date = '2026-11-14T14:30:05.000Z', octets = 100) => ({ cle, date, octets });
+  const r = await listerSauvegardes(R, rep({ versions: [v(COPIE), v('mauvaise'), v('sauvegardes/2026-11-13T100000Z.json', 'pas une date'), v('sauvegardes/2026-11-12T100000Z.json', '2026-11-12T10:00:00Z', -4), v('sauvegardes/2026-11-11T100000Z.json'), v('sauvegardes/2026-11-10T100000Z.json'), v('sauvegardes/2026-11-09T100000Z.json')] }));
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.versions.map((x) => x.cle), [COPIE, 'sauvegardes/2026-11-12T100000Z.json', 'sauvegardes/2026-11-11T100000Z.json']);
+  assert.equal(r.versions[1].octets, null);
+  assert.equal((await listerSauvegardes(R, rep({ versions: 'non' }))).code, 'reponse');
+  assert.equal((await listerSauvegardes(R, rep({ erreur: 'stockage' }, 500))).code, 'stockage');
+  assert.equal((await listerSauvegardes({ url: R.url, jeton: '' }, rep({}))).code, 'jeton');
+});
+
+test('telechargerSauvegarde : le texte tel quel ; clé invalide refusée avant tout appel', async () => {
+  let vu;
+  const f = async (url) => { vu = url; return new Response('{"sets":[]}'); };
+  assert.deepEqual(await telechargerSauvegarde(R, COPIE, f), { ok: true, texte: '{"sets":[]}' });
+  assert.equal(vu, `https://relais.example/sauvegarde?v=${encodeURIComponent(COPIE)}`);
+  let appels = 0;
+  const g = async () => { appels += 1; return new Response('x'); };
+  for (const cle of ['../x', 'sauvegardes/x.json', '', null, undefined]) assert.equal((await telechargerSauvegarde(R, cle, g)).code, 'url');
+  assert.equal(appels, 0);
+  assert.equal((await telechargerSauvegarde(R, COPIE, rep({ erreur: 'vide' }, 404))).code, 'vide');
+  assert.match(messageRelais('stockage'), /KV/);
 });

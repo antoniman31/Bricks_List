@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { datePropre, identifiantBrickset, libellePropre, lireBrickset, lireImagesSet, lireNotices, prixPropre, traiter, urlImageValide, urlNoticeValide } from './worker.js';
+import { cleDeSauvegarde, datePropre, identifiantBrickset, libellePropre, lireBrickset, lireImagesSet, lireNotices, prixPropre, traiter, urlImageValide, urlNoticeValide } from './worker.js';
 
 const ENV = { BRICKSET_KEY: 'cle-secrete-de-test', ORIGINE: 'https://antoniman31.github.io' };
 const SUCCES = (sets) => ({ status: 'success', matches: sets.length, sets });
@@ -319,4 +319,147 @@ test('urlImageValide : les images de la galerie de Brickset passent, rien d\'aut
     'https://cdn.rebrickable.com/sets/AdditionalImages/75192-1/a.jpg', 'https://images.brickset.com/media/sets/75192-1.jpg',
   ]) assert.equal(urlImageValide(v), null, String(v));
   assert.equal(urlImageValide('https://__proto__/media/sets/a.jpg'), null);
+});
+
+// ---- Sauvegarde en ligne : un faux espace KV en mémoire -----------------------------------------------------------
+function fauxKV() {
+  const valeurs = new Map();
+  const octets = async (v) => (typeof v === 'string' ? new TextEncoder().encode(v) : new Uint8Array(v instanceof ArrayBuffer ? v : v.buffer.slice(v.byteOffset, v.byteOffset + v.byteLength)));
+  return {
+    valeurs,
+    async put(cle, v, opts = {}) {
+      const o = await octets(v);
+      if (o.byteLength > 25 * 1024 * 1024) throw new Error('valeur trop grosse pour KV');
+      valeurs.set(cle, { o, metadata: opts.metadata });
+    },
+    async get(cle, type) {
+      const e = valeurs.get(cle);
+      if (!e) return null;
+      return type === 'stream' ? new Response(e.o).body : type === 'json' ? JSON.parse(new TextDecoder().decode(e.o)) : new TextDecoder().decode(e.o);
+    },
+    async list({ prefix }) { return { keys: [...valeurs].filter(([k]) => k.startsWith(prefix)).map(([name, e]) => ({ name, metadata: e.metadata })), list_complete: true }; },
+    async delete(cle) { valeurs.delete(cle); },
+  };
+}
+const ENV_SAUV = () => ({ ...ENV, JETON: 'jeton-de-test-1234', SAUVEGARDES: fauxKV() });
+const AVEC_JETON = { 'X-Jeton': 'jeton-de-test-1234' };
+const MORCEAU_PETIT = 7; // octets : de petits morceaux pour exercer le découpage
+const envoyer = (env, texte, entetes = {}, morceau = MORCEAU_PETIT) => traiter(
+  new Request('https://relais.example/sauvegarde', { method: 'PUT', body: texte, headers: { 'Content-Type': 'application/json', 'Content-Length': String(new TextEncoder().encode(texte).length), ...AVEC_JETON, ...entetes } }),
+  env, { morceau },
+);
+const lire = (env, chemin) => appel(chemin, { env, init: { headers: AVEC_JETON } });
+
+test('cleDeSauvegarde : la date UTC, triable', () => {
+  assert.equal(cleDeSauvegarde(new Date('2026-11-14T14:30:05Z')), 'sauvegardes/2026-11-14T143005Z.json');
+  assert.ok(cleDeSauvegarde(new Date('2026-11-14T14:30:05Z')) < cleDeSauvegarde(new Date('2026-12-01T00:00:00Z')));
+});
+
+test('sauvegarde : sans JETON défini côté relais, refusée (la collection entière ne passe pas sans protection)', async () => {
+  const env = { ...ENV, SAUVEGARDES: fauxKV() };
+  assert.equal((await lire(env, '/sauvegardes')).status, 403);
+  assert.equal((await envoyer(env, '{}')).status, 403);
+});
+
+test('sauvegarde : mauvais jeton, 401 ; pas d\'espace KV, 500 « stockage »', async () => {
+  const env = ENV_SAUV();
+  assert.equal((await appel('/sauvegardes', { env })).status, 401);
+  assert.equal((await appel('/sauvegardes', { env, init: { headers: { 'X-Jeton': 'autre' } } })).status, 401);
+  const r = await appel('/sauvegardes', { env: { ...ENV, JETON: 'jeton-de-test-1234' }, init: { headers: AVEC_JETON } });
+  assert.deepEqual([r.status, (await r.json()).erreur], [500, 'stockage']);
+});
+
+test('sauvegarde : envoi découpé en morceaux, liste, relecture à l\'identique (accents compris)', async () => {
+  const env = ENV_SAUV();
+  const texte = JSON.stringify({ version: 1, sets: [{ numero: '75192-1', nom: 'Faucon Millenium é à ü' }] });
+  const octets = new TextEncoder().encode(texte).length;
+  const r = await envoyer(env, texte);
+  assert.equal(r.status, 200);
+  const { cle, octets: rendus } = await r.json();
+  assert.match(cle, /^sauvegardes\/\d{4}-\d{2}-\d{2}T\d{6}Z\.json$/);
+  assert.equal(rendus, octets);
+  const morceaux = [...env.SAUVEGARDES.valeurs.keys()].filter((k) => k.startsWith(`${cle}.`));
+  assert.equal(morceaux.length, Math.ceil(octets / MORCEAU_PETIT), 'un morceau par tranche de 7 octets');
+  assert.ok([...env.SAUVEGARDES.valeurs].every(([k, e]) => !k.includes('.0') || e.o.byteLength <= MORCEAU_PETIT));
+  const liste = await (await lire(env, '/sauvegardes')).json();
+  assert.equal(liste.versions.length, 1);
+  assert.deepEqual([liste.versions[0].cle, liste.versions[0].octets], [cle, octets]);
+  assert.match(liste.versions[0].date, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.000Z$/);
+  const lu = await lire(env, `/sauvegarde?v=${encodeURIComponent(cle)}`);
+  assert.equal(lu.status, 200);
+  assert.equal(await lu.text(), texte);
+  assert.equal(await (await lire(env, '/sauvegarde')).text(), texte, 'sans v : la plus récente');
+});
+
+test('sauvegarde : un fichier plus petit qu\'un morceau tient en un seul', async () => {
+  const env = ENV_SAUV();
+  const { cle } = await (await envoyer(env, '{}', {}, 1024)).json();
+  assert.equal([...env.SAUVEGARDES.valeurs.keys()].filter((k) => k.startsWith(`${cle}.`)).length, 1);
+  assert.equal(await (await lire(env, '/sauvegarde')).text(), '{}');
+});
+
+test('sauvegarde : seules les 5 plus récentes restent, morceaux compris', async () => {
+  const env = ENV_SAUV();
+  for (let i = 1; i <= 7; i += 1) {
+    const cle = `sauvegardes/2026-11-0${i}T120000Z.json`;
+    await env.SAUVEGARDES.put(`${cle}.000`, `{"n":${i}}`);
+    await env.SAUVEGARDES.put(cle, '{}', { metadata: { octets: 7, morceaux: 1 } });
+  }
+  assert.equal((await envoyer(env, '{"n":8}')).status, 200);
+  const copies = [...env.SAUVEGARDES.valeurs.keys()].filter((k) => k.endsWith('.json'));
+  assert.equal(copies.length, 5);
+  assert.ok(!copies.includes('sauvegardes/2026-11-01T120000Z.json') && !copies.includes('sauvegardes/2026-11-03T120000Z.json'));
+  assert.ok(![...env.SAUVEGARDES.valeurs.keys()].some((k) => k.startsWith('sauvegardes/2026-11-01') || k.startsWith('sauvegardes/2026-11-03')), 'les morceaux des vieilles copies partent aussi');
+  const liste = await (await lire(env, '/sauvegardes')).json();
+  assert.equal(liste.versions.length, 5);
+  assert.ok(liste.versions[0].cle > liste.versions[4].cle, 'la plus récente d\'abord');
+});
+
+test('sauvegarde : envoi refusé (type, taille absente, trop gros) sans rien ranger', async () => {
+  const env = ENV_SAUV();
+  assert.equal((await envoyer(env, '{}', { 'Content-Type': 'text/plain' })).status, 415);
+  assert.equal((await envoyer(env, '{}', { 'Content-Length': '' })).status, 411);
+  assert.equal((await envoyer(env, '{}', { 'Content-Length': String(101 * 1024 * 1024) })).status, 413);
+  assert.equal(env.SAUVEGARDES.valeurs.size, 0);
+});
+
+test('sauvegarde : une panne d\'écriture en cours d\'envoi ne laisse aucune copie ni morceau', async () => {
+  const env = ENV_SAUV();
+  const put = env.SAUVEGARDES.put.bind(env.SAUVEGARDES);
+  let n = 0;
+  env.SAUVEGARDES.put = async (...a) => { n += 1; if (n === 3) throw new Error('KV en panne'); return put(...a); };
+  const r = await envoyer(env, JSON.stringify({ sets: [1, 2, 3, 4, 5, 6, 7, 8, 9] }));
+  assert.equal(r.status, 502);
+  assert.equal(env.SAUVEGARDES.valeurs.size, 0, 'rien ne reste : ni registre, ni morceaux');
+});
+
+test('sauvegarde : clé demandée invalide, ou copie absente', async () => {
+  const env = ENV_SAUV();
+  for (const v of ['../secret', 'sauvegardes/x.json', 'autre/2026-11-14T143005Z.json', 'sauvegardes/2026-11-14T143005Z.json.000', '']) {
+    assert.equal((await lire(env, `/sauvegarde?v=${encodeURIComponent(v)}`)).status, 400, v);
+  }
+  assert.equal((await lire(env, '/sauvegarde')).status, 404, 'aucune copie');
+  assert.equal((await lire(env, '/sauvegarde?v=sauvegardes%2F2026-11-14T143005Z.json')).status, 404);
+});
+
+test('sauvegarde : un registre sans son premier morceau répond 404, pas un fichier vide', async () => {
+  const env = ENV_SAUV();
+  await env.SAUVEGARDES.put('sauvegardes/2026-11-14T143005Z.json', '{}', { metadata: { octets: 5, morceaux: 2 } });
+  assert.equal((await lire(env, '/sauvegarde')).status, 404);
+});
+
+test('sauvegarde : méthodes refusées, panne KV en 502, CORS accepte PUT et Content-Type', async () => {
+  const env = ENV_SAUV();
+  assert.equal((await appel('/sauvegardes', { env, init: { method: 'PUT', body: '{}', headers: AVEC_JETON } })).status, 405);
+  assert.equal((await appel('/sauvegarde', { env, init: { method: 'DELETE', headers: AVEC_JETON } })).status, 405);
+  env.SAUVEGARDES.list = async () => { throw new Error('kv'); };
+  assert.equal((await lire(env, '/sauvegardes')).status, 502);
+  const pre = await appel('/sauvegarde', { env, init: { method: 'OPTIONS', headers: { Origin: 'https://antoniman31.github.io' } } });
+  assert.equal(pre.status, 204);
+  assert.match(pre.headers.get('Access-Control-Allow-Methods'), /PUT/);
+  assert.match(pre.headers.get('Access-Control-Allow-Headers'), /Content-Type/);
+});
+
+test('les autres routes refusent toujours PUT', async () => {
+  assert.equal((await appel('/sortie?numero=75192-1', { init: { method: 'PUT', body: '{}' } })).status, 405);
 });

@@ -274,6 +274,8 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
 /* Titre d'un groupe de sections. --accent est le jaune lisible en texte : 11:1 sur la surface sombre, 6,5:1 sur la claire. */
 .reglages__groupe { margin: 20px 0 2px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
 [role="group"]:first-child > .reglages__groupe { margin-top: 4px; }
+.reglage__copies { display: flex; flex-direction: column; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
+.reglage__copies .bouton { width: 100%; justify-content: flex-start; }
 .reglage__aide { margin: 0 0 8px; color: var(--texte-doux); font-size: 0.875rem; }
 
 /* Recherche Rebrickable et clé API (3b) */

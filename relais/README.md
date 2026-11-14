@@ -43,6 +43,29 @@ GET /image?url=https://cdn.rebrickable.com/media/sets/75192-1.jpg   ->  l'image 
 Elle sert à copier les rendus Rebrickable sur l'appareil, dont le CDN n'a pas de CORS. Elle n'accepte que cet hôte et
 le dossier `/media/sets/` : ce n'est pas un proxy ouvert.
 
+## Sauvegarde en ligne (KV)
+
+Trois routes, qui exigent **toutes** le secret `JETON` (la collection entière passe par là) : sans `JETON` défini côté relais, elles répondent 403.
+
+```
+PUT /sauvegarde            corps : le fichier d'export JSON (en-tête Content-Type: application/json, 100 Mo au plus)
+-> { "cle": "sauvegardes/2026-11-14T143005Z.json", "octets": 4210345 }
+GET /sauvegardes           -> { "versions": [{ "cle": "…", "octets": 4210345, "date": "2026-11-14T14:30:05.000Z" }] }   (5 au plus, la plus récente d'abord)
+GET /sauvegarde[?v=<cle>]  -> le fichier JSON de cette copie (par défaut la plus récente)
+```
+
+Chaque envoi ajoute une copie et supprime les plus anciennes au-delà de 5 : une mauvaise copie n'écrase pas les bonnes.
+
+**Stockage : un espace KV, sans carte bancaire.** (R2 aurait demandé un moyen de paiement ; KV non.) KV refuse une valeur de plus de 25 Mo : le fichier est rangé en
+morceaux de 20 Mo (`…json.000`, `…json.001`…), recollés à la lecture. Le registre de la copie (clé `…json`) s'écrit **en dernier** : une copie n'existe qu'une fois tous
+ses morceaux rangés, et un envoi interrompu ne laisse rien. Quotas gratuits de KV : 1 Go de stockage (5 copies de 60 Mo : 300 Mo), 1 000 écritures par jour (un envoi en fait 2 à 6).
+
+L'espace `bricks-sauvegardes` est créé (identifiant dans `wrangler.toml`, ce n'est pas un secret). À refaire si tu repars de zéro : Cloudflare > **Storage & Databases** > **KV** > Create,
+nom `bricks-sauvegardes`, puis remplacer l'`id` dans `wrangler.toml`. Le secret `JETON` doit exister (Settings > Variables and Secrets, type **Secret**) et le même jeton doit être saisi dans
+l'appli (Réglages > Brickset > Jeton). Si tu colles le code à la main dans le tableau de bord, ajoute la liaison à la main : Settings > Bindings > Add > **KV namespace**, nom de variable `SAUVEGARDES`.
+
+Erreurs possibles : `{"erreur":"protection"}` (pas de `JETON` défini), `{"erreur":"jeton"}` (jeton absent ou faux), `{"erreur":"stockage"}` (liaison KV absente ou KV en panne), `{"erreur":"gros"}` (plus de 100 Mo), `{"erreur":"vide"}` (aucune copie). Les aperçus de pull request n'ont pas cette liaison : ils répondent `stockage`, et les copies de production ne sont jamais touchées par un aperçu.
+
 ## Ce qu'il te faut
 
 1. **Une clé Brickset.** Compte sur brickset.com, puis le formulaire de demande de clé :
