@@ -187,7 +187,7 @@ const ECRANS = {
     await p.click(REGLAGES);
     await p.click('dialog[open] summary:has-text("Importer un fichier")');
     const contenu = JSON.stringify({ version: 1, sets: [{ id: 'imp1', numero: '30009-1', nom: 'Set importé', statut: 'possédé', theme: 'City', annee: 2024, pieces: 300, etat: 'neuf', dateAjout: '2026-10-10T00:00:00.000Z' }] });
-    await p.setInputFiles('dialog[open] input[type=file]', { name: 'transfert.txt', mimeType: 'text/plain', buffer: Buffer.from(contenu) });
+    await p.setInputFiles('dialog[open] label:has-text("Choisir un fichier JSON") input[type=file]', { name: 'transfert.txt', mimeType: 'text/plain', buffer: Buffer.from(contenu) });
     await p.waitForSelector('dialog[open] .avis:has-text("1 set lu")');
     await p.click('dialog[open] button:has-text("Fusionner")');
     await p.waitForSelector('dialog[open] [role=status]:has-text("1 ajouté")');
@@ -368,7 +368,7 @@ const ECRANS = {
     }));
     exiger(await nbBoitesStock(p, 'photos') === 0 && await nbBoitesStock(p, 'rendus') === 0, 'IndexedDB aurait dû être vidée');
     await p.click('dialog[open] summary:has-text("Importer un fichier")');
-    await p.setInputFiles('dialog[open] input[type=file]', { name: 'sauvegarde.json', mimeType: 'application/json', buffer: fichier });
+    await p.setInputFiles('dialog[open] label:has-text("Choisir un fichier JSON") input[type=file]', { name: 'sauvegarde.json', mimeType: 'application/json', buffer: fichier });
     await p.waitForSelector('dialog[open] .avis:has-text("remplaceront celles de cet appareil")');
     await p.click('dialog[open] button:has-text("Fusionner")');
     await p.waitForSelector('dialog[open] [role=status]:has-text("restaurée")', { timeout: 20000 });
