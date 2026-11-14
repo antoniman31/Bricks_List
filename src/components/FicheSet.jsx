@@ -149,7 +149,7 @@ export function FicheContenu({ set, lectureSeule, relais = null, lieux = [], lie
 
   return (
     <>
-      <PhotoFiche key={set.id} set={set} lectureSeule={lectureSeule} onChanger={changer} sousTitre={sousTitreDe(set)} />
+      <PhotoFiche key={set.id} set={set} lectureSeule={lectureSeule} relais={relais} onChanger={changer} sousTitre={sousTitreDe(set)} />
 
       <div className="fiche__corps">
         <div className="chiffres">

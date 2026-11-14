@@ -9,8 +9,8 @@
 //   GET /galerie?numero=75192-1  ->  { numero, trouve, images: [{ url, miniature }] }  (images supplémentaires de Brickset : DEUX appels Brickset)
 //   GET /notices?numero=75192-1  ->  { numero, trouve, notices: [{ url, description }] }  (notices PDF de Brickset)
 //   GET /image?url=https://cdn.rebrickable.com/media/sets/75192-1.jpg  ->  l'image elle-même, avec CORS
-//     (le CDN de Rebrickable n'en envoie pas : sans relais, l'app ne peut pas copier le rendu sur l'appareil).
-//     Route volontairement étroite : un seul hôte, un seul dossier, des images, une taille maximale.
+//     (ni le CDN de Rebrickable ni les images de Brickset n'en envoient : sans relais, l'app ne peut pas les copier sur l'appareil).
+//     Route volontairement étroite : deux hôtes, un dossier chacun, des images, une taille maximale.
 //
 // Secrets et variables (voir relais/README.md) :
 //   BRICKSET_KEY  (secret, obligatoire)  la clé de l'API Brickset
@@ -21,12 +21,15 @@ const BRICKSET = 'https://brickset.com/api/v3.asmx/getSets';
 const BRICKSET_IMAGES = 'https://brickset.com/api/v3.asmx/getAdditionalImages';
 const BRICKSET_NOTICES = 'https://brickset.com/api/v3.asmx/getInstructions2';
 const MAX_NOTICES = 12;
-const MAX_IMAGES = 30;
+const MAX_IMAGES = 40;
 const NUMERO = /^\d{3,7}-\d{1,2}$/;
 const ORIGINE_PAR_DEFAUT = 'https://antoniman31.github.io';
 const DELAI_MS = 8000;
-const HOTE_IMAGES = 'cdn.rebrickable.com';
-const CHEMIN_IMAGE = /^\/media\/sets\/[A-Za-z0-9_\-./]+\.(?:jpe?g|png|webp)$/i;
+// Deux hôtes seulement, chacun avec son dossier : les rendus de Rebrickable et la galerie de Brickset.
+const HOTES_IMAGES = {
+  'cdn.rebrickable.com': /^\/media\/sets\/[A-Za-z0-9_\-./]+\.(?:jpe?g|png|webp)$/i,
+  'images.brickset.com': /^\/sets\/AdditionalImages\/[A-Za-z0-9_-]+\/[A-Za-z0-9_&.-]{1,80}\.(?:jpe?g|png|webp)$/i,
+};
 // 6 Mo : certains rendus dépassent 2 Mo ; l'appli les réduit à 1 024 px avant de les garder, la taille d'arrivée importe peu.
 const TAILLE_IMAGE_MAX = 6 * 1024 * 1024;
 
@@ -35,9 +38,10 @@ const TAILLE_IMAGE_MAX = 6 * 1024 * 1024;
 export function urlImageValide(brut) {
   let u;
   try { u = new URL(brut); } catch { return null; }
-  if (u.protocol !== 'https:' || u.hostname !== HOTE_IMAGES || u.port !== '' || u.username || u.password) return null;
+  const chemin = Object.hasOwn(HOTES_IMAGES, u.hostname) ? HOTES_IMAGES[u.hostname] : null;
+  if (u.protocol !== 'https:' || !chemin || u.port !== '' || u.username || u.password) return null;
   if (u.search || u.hash || u.pathname.includes('..') || u.pathname.includes('//')) return null;
-  return CHEMIN_IMAGE.test(u.pathname) ? u.href : null;
+  return chemin.test(u.pathname) ? u.href : null;
 }
 
 // Une date de Brickset (« 2017-10-01T00:00:00Z ») devient « 2017-10-01 », ou null si elle n'a pas

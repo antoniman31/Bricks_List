@@ -3,25 +3,31 @@
 //  - `photos` : les photos personnelles, une entrée par fiche (clé = identifiant du set), le JPEG recadré ;
 //  - `boites` : les photos de boîte (BrickLink) déjà vues, une entrée par numéro de set, en JPEG. On les garde
 //    pour que BrickLink en panne ou en maintenance ne fasse pas disparaître les boîtes ;
+//  - `extras` : les images de la galerie de Brickset que l'on a choisi de garder, clé « numéro|nom du fichier », JPEG réduit (par le relais) ;
+//  - `galeries` : la liste des images de Brickset d'un set (adresses seulement, ~3 Ko), pour ne pas la redemander : hors sauvegarde, elle se
+//    redemande en deux appels. Les autres magasins partent dans l'export complet ;
 //  - `rendus` : les rendus Rebrickable, même clé et même forme. Leur CDN n'envoie pas d'en-tête CORS : la copie
 //    passe par le relais (`/image`), jamais par un canvas.
 // Les perdre ne coûte qu'une image (la boîte se retélécharge, la photo retombe sur la boîte). Couche mince :
 // la logique est dans `photos.js` et `boite.js`.
 import { photoValide } from './photos.js';
 import { lireClePhoto } from './imageListe.js';
+import { lireCleExtra, lireGalerie } from './galerie.js';
 
 const BASE = 'bl_photos';
-const VERSION = 3;
+const VERSION = 4;
 const PHOTOS = 'photos';
 const BOITES = 'boites';
 const RENDUS = 'rendus';
+const EXTRAS = 'extras';
+const GALERIES = 'galeries';
 
 function ouvrir() {
   return new Promise((resoudre, rejeter) => {
     if (typeof indexedDB === 'undefined') return rejeter(new Error('indisponible'));
     const r = indexedDB.open(BASE, VERSION);
-    // Chaque version ajoute un magasin (boîtes en 2, rendus en 3) sans toucher aux précédents.
-    r.onupgradeneeded = () => { for (const nom of [PHOTOS, BOITES, RENDUS]) if (!r.result.objectStoreNames.contains(nom)) r.result.createObjectStore(nom); };
+    // Chaque version ajoute un magasin (boîtes en 2, rendus en 3, images de Brickset et leurs listes en 4) sans toucher aux précédents.
+    r.onupgradeneeded = () => { for (const nom of [PHOTOS, BOITES, RENDUS, EXTRAS, GALERIES]) if (!r.result.objectStoreNames.contains(nom)) r.result.createObjectStore(nom); };
     r.onsuccess = () => resoudre(r.result);
     r.onerror = () => rejeter(r.error ?? new Error('ouverture'));
     r.onblocked = () => rejeter(new Error('bloque'));
@@ -112,6 +118,30 @@ export const numerosRendus = () => numerosDe(RENDUS);
 export const ecrireRendu = (numero, blob) => ecrireImageDe(RENDUS, numero, blob);
 export const purgerRendusOrphelins = (valides) => purgerDe(RENDUS, valides);
 
+// Les images de la galerie Brickset gardées : clé « numéro|nom ». Orphelines = le numéro n'est plus dans la collection (ou clé de forme inconnue).
+export const lireExtra = (cle) => lireImageDe(EXTRAS, cle);
+export const clesExtras = () => numerosDe(EXTRAS);
+export const ecrireExtra = (cle, blob) => ecrireImageDe(EXTRAS, cle, blob);
+export async function supprimerExtra(cle) {
+  await transaction(EXTRAS, 'readwrite', (m) => m.delete(cle));
+}
+export async function purgerExtrasOrphelins(numerosValides) {
+  const orphelines = (await numerosDe(EXTRAS)).filter((c) => !numerosValides.has(lireCleExtra(c)?.numero));
+  if (orphelines.length === 0) return 0;
+  await transaction(EXTRAS, 'readwrite', (m) => { for (const c of orphelines) m.delete(c); });
+  return orphelines.length;
+}
+
+// La liste des images de Brickset d'un set, relue sans lui faire confiance (null si absente ou illisible).
+export async function lireGalerieStock(numero) {
+  const brut = await transaction(GALERIES, 'readonly', (m) => m.get(numero));
+  return lireGalerie(brut?.images);
+}
+export async function ecrireGalerieStock(numero, images) {
+  await transaction(GALERIES, 'readwrite', (m) => m.put({ le: new Date().toISOString(), images }, numero));
+}
+export const purgerGaleriesOrphelines = (valides) => purgerDe(GALERIES, valides);
+
 // ---- Sauvegarde : tout lire, tout restaurer --------------------------------------------------------------
 
 // Une passe de curseur par magasin : clés et valeurs lues dans la MÊME transaction, donc toujours en phase (deux
@@ -128,11 +158,11 @@ function toutLire(magasin) {
   });
 }
 
-// Toutes les images gardées, prêtes pour l'export : { photos: [[id, octets]], boites: [[numéro, octets]], rendus: [...] }.
+// Toutes les images gardées, prêtes pour l'export : { photos: [[id, octets]], boites: [[numéro, octets]], rendus: [...], extras: [[clé, octets]] }.
 // Une entrée illisible ou invalide est écartée (on n'écrit pas dans un fichier ce qu'on refuserait à l'affichage).
 export async function imagesDuStock() {
   const sortie = {};
-  for (const [groupe, magasin] of [['photos', PHOTOS], ['boites', BOITES], ['rendus', RENDUS]]) {
+  for (const [groupe, magasin] of [['photos', PHOTOS], ['boites', BOITES], ['rendus', RENDUS], ['extras', EXTRAS]]) {
     sortie[groupe] = [];
     for (const [cle, blob] of (await toutLire(magasin)) ?? []) {
       if (typeof cle === 'string' && photoValide(blob)) sortie[groupe].push([cle, new Uint8Array(await blob.arrayBuffer())]);
@@ -144,7 +174,7 @@ export async function imagesDuStock() {
 // Restaure les images d'un fichier, en remplaçant celles de l'appareil. `decoder(blob)` (le navigateur) a le dernier
 // mot : un JPEG qui ne se décode pas n'entre pas. Une image qui échoue ne bloque pas les suivantes ; on rend le décompte.
 export async function restaurerImages(images, decoder) {
-  const ecrire = { photos: ecrirePhoto, boites: ecrireBoite, rendus: ecrireRendu };
+  const ecrire = { photos: ecrirePhoto, boites: ecrireBoite, rendus: ecrireRendu, extras: ecrireExtra };
   let restaurees = 0;
   let echecs = 0;
   let stockagePlein = false;
@@ -168,7 +198,7 @@ export async function restaurerImages(images, decoder) {
 // les images : de quoi comparer l'appareil à un fichier de sauvegarde.
 export async function clesImages() {
   const sortie = {};
-  for (const [groupe, magasin] of [['photos', PHOTOS], ['boites', BOITES], ['rendus', RENDUS]]) {
+  for (const [groupe, magasin] of [['photos', PHOTOS], ['boites', BOITES], ['rendus', RENDUS], ['extras', EXTRAS]]) {
     sortie[groupe] = (await numerosDe(magasin)).filter((c) => typeof c === 'string');
   }
   return sortie;
@@ -177,7 +207,7 @@ export async function clesImages() {
 // La place que prennent les images gardées : la somme des tailles des blobs (on lit leur taille, pas leur contenu).
 export async function tailleImages() {
   let total = 0;
-  for (const magasin of [PHOTOS, BOITES, RENDUS]) {
+  for (const magasin of [PHOTOS, BOITES, RENDUS, EXTRAS]) {
     for (const [, blob] of (await toutLire(magasin)) ?? []) if (blob && typeof blob.size === 'number') total += blob.size;
   }
   return total;

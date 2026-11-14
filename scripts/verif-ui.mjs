@@ -345,7 +345,8 @@ const ECRANS = {
         const o = indexedDB.open('bl_photos');
         o.onerror = () => rej(o.error);
         o.onsuccess = () => {
-          const tx = o.result.transaction(['photos', 'boites', 'rendus'], 'readwrite');
+          const tx = o.result.transaction(['photos', 'boites', 'rendus', 'extras'], 'readwrite');
+          tx.objectStore('extras').put(blob, `${premier.numero}|75192_Box1_V39.jpg`); // une image gardée de la galerie Brickset
           tx.objectStore('photos').put(blob, premier.id);
           tx.objectStore('photos').put(blob, `${premier.id}#2`); // une deuxième photo du même set
           tx.objectStore('boites').put(blob, premier.numero);
@@ -354,7 +355,7 @@ const ECRANS = {
         };
       }, 'image/jpeg', 0.8);
     }));
-    const avant = [await nbBoitesStock(p, 'photos'), await nbBoitesStock(p, 'boites'), await nbBoitesStock(p, 'rendus')];
+    const avant = [await nbBoitesStock(p, 'photos'), await nbBoitesStock(p, 'boites'), await nbBoitesStock(p, 'rendus'), await nbBoitesStock(p, 'extras')];
     exiger(avant.every((n) => n >= 1), `le semis d'images a échoué (${avant})`);
     await p.click(REGLAGES);
     await p.click('dialog[open] summary:has-text("Sauvegarde")');
@@ -363,7 +364,7 @@ const ECRANS = {
     const exporte = JSON.parse(fichier.toString('utf8'));
     const nb = (g) => Object.keys(exporte.images?.[g] ?? {}).length;
     // Une boîte peut encore arriver de BrickLink pendant le parcours : le fichier en a au moins autant que le semis.
-    const dansFichier = [nb('photos'), nb('boites'), nb('rendus')];
+    const dansFichier = [nb('photos'), nb('boites'), nb('rendus'), nb('extras')];
     exiger(dansFichier.every((n, i) => n >= avant[i]), `l'export doit contenir toutes les images (au moins ${avant}, fichier ${dansFichier})`);
     exiger(Object.values(exporte.images.photos).every((v) => v.startsWith('/9j/')), 'les images exportées doivent être des JPEG');
     exiger(Object.keys(exporte.images.photos).some((k) => k.endsWith('#2')), 'la deuxième photo d\'un set doit être dans l\'export');
@@ -374,8 +375,8 @@ const ECRANS = {
       const o = indexedDB.open('bl_photos');
       o.onerror = () => rej(o.error);
       o.onsuccess = () => {
-        const tx = o.result.transaction(['photos', 'boites', 'rendus'], 'readwrite');
-        for (const m of ['photos', 'boites', 'rendus']) tx.objectStore(m).clear();
+        const tx = o.result.transaction(['photos', 'boites', 'rendus', 'extras'], 'readwrite');
+        for (const m of ['photos', 'boites', 'rendus', 'extras']) tx.objectStore(m).clear();
         tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error);
       };
     }));
@@ -385,7 +386,7 @@ const ECRANS = {
     await p.waitForSelector('dialog[open] .avis:has-text("remplaceront celles de cet appareil")');
     await p.click('dialog[open] button:has-text("Fusionner")');
     await p.waitForSelector('dialog[open] [role=status]:has-text("restaurée")', { timeout: 20000 });
-    const apres = [await nbBoitesStock(p, 'photos'), await nbBoitesStock(p, 'boites'), await nbBoitesStock(p, 'rendus')];
+    const apres = [await nbBoitesStock(p, 'photos'), await nbBoitesStock(p, 'boites'), await nbBoitesStock(p, 'rendus'), await nbBoitesStock(p, 'extras')];
     exiger(apres.every((n, i) => n === dansFichier[i]), `les images doivent revenir à l'identique (fichier ${dansFichier}, après ${apres})`);
   },
   // Collection vers wishlist : la confirmation dit ce qui est perdu, la priorité se choisit, et l'annulation
@@ -651,6 +652,84 @@ const ECRANS = {
     await p.waitForSelector('dialog.visionneuse[open] img.vignette--plein');
     const [telechargement] = await Promise.all([p.waitForEvent('download', { timeout: 8000 }), p.click('dialog.visionneuse .visionneuse__action:not([aria-pressed])')]);
     exiger(/^\d+-\d+-boite\.(png|jpg)$/.test(telechargement.suggestedFilename()), `nom de fichier inattendu : ${telechargement.suggestedFilename()}`);
+  },
+  // Images supplémentaires de Brickset (relais simulé : cinq images dont une « Box »). La liste se demande sur appui ; les images se voient en ligne ;
+  // celles qu'on garde sont copiées sur l'appareil (et partent dans l'export) ; la planche les montre toutes en miniatures.
+  'brickset : chercher les images (carrousel, planche)': async (p) => {
+    await p.evaluate(() => localStorage.setItem('bl_relais', JSON.stringify({ url: 'https://relais.test', jeton: '' })));
+    await p.reload(); await p.waitForSelector('.carte');
+    let appels = 0;
+    p.on('request', (r) => { if (r.url().includes('/galerie')) appels += 1; });
+    await p.locator('.carte:has-text("Set numéro 1 avec")').click();
+    await p.waitForSelector('.heros__legende');
+    exiger(appels === 0, 'la liste Brickset ne doit pas être demandée avant l\'appui');
+    await p.click('button:has-text("Chercher les images Brickset")');
+    await p.waitForSelector('button:has-text("Toutes les images (7)")');
+    exiger(appels === 1, `un seul appel attendu (${appels})`);
+    exiger(await p.locator('button:has-text("Chercher les images Brickset")').count() === 0, 'le bouton de recherche disparaît une fois la liste reçue');
+    await p.click('button:has-text("Toutes les images (7)")');
+    await p.waitForSelector('dialog[open] .planche__cellule');
+    exiger(await p.locator('dialog[open] .planche__cellule').count() === 8, 'la planche doit montrer 7 images et la boîte probable en tête (8 cellules)');
+    await p.locator('dialog[open] .planche__cellule').nth(3).click();
+    await p.waitForSelector('.heros__legende:has-text("Brickset")');
+    // La liste est gardée : rechargée, la fiche la montre sans nouvel appel.
+    await p.reload(); await p.waitForSelector('.carte');
+    await p.locator('.carte:has-text("Set numéro 1 avec")').click();
+    await p.waitForSelector('button:has-text("Toutes les images (7)")');
+    exiger(appels === 1, 'la liste mémorisée ne doit pas être redemandée');
+  },
+  'planche (images Brickset)': async (p) => {
+    await p.evaluate(() => localStorage.setItem('bl_relais', JSON.stringify({ url: 'https://relais.test', jeton: '' })));
+    await p.reload(); await p.waitForSelector('.carte');
+    await p.locator('.carte:has-text("Set numéro 1 avec")').click();
+    await p.click('button:has-text("Chercher les images Brickset")');
+    await p.click('button:has-text("Toutes les images (7)")');
+    await p.waitForSelector('dialog[open] .planche__cellule');
+  },
+  'brickset : garder une image, la choisir pour la liste, l\'exporter': async (p) => {
+    await p.evaluate(() => localStorage.setItem('bl_relais', JSON.stringify({ url: 'https://relais.test', jeton: '' })));
+    await p.reload(); await p.waitForSelector('.carte');
+    await p.locator('.carte:has-text("Set numéro 1 avec")').click();
+    await p.click('button:has-text("Chercher les images Brickset")');
+    await p.waitForSelector('button:has-text("Toutes les images (7)")');
+    await allerA(p, 'Brickset');
+    exiger(await nbBoitesStock(p, 'extras') === 0, 'rien ne doit être copié avant d\'avoir choisi de garder');
+    await p.click('button:has-text("Garder sur l\'appareil")');
+    await p.waitForSelector('.heros__legende:has-text("gardée")');
+    exiger(await nbBoitesStock(p, 'extras') === 1, 'l\'image gardée doit être dans le stockage');
+    await p.waitForSelector('img[data-origine="extra"]');
+    await p.click('button[aria-label="Utiliser dans la liste"]');
+    await p.waitForFunction(() => document.querySelectorAll('.carte img.vignette[data-origine="extra"]').length === 1);
+    exiger(await p.evaluate(() => JSON.parse(localStorage.getItem('bl_v1')).sets.filter((x) => x.imageListe === 'extra:a1.jpg').length) === 1, 'l\'image gardée doit être l\'image de la liste');
+    // Retirée de l'appareil, elle ne peut plus représenter le set.
+    await p.click('button:has-text("Retirer de l\'appareil")');
+    await p.waitForFunction(() => document.querySelectorAll('.carte img.vignette[data-origine="extra"]').length === 0);
+    exiger(await nbBoitesStock(p, 'extras') === 0 && await p.evaluate(() => JSON.parse(localStorage.getItem('bl_v1')).sets.filter((x) => x.imageListe).length) === 0, 'retirer l\'image doit aussi retirer son choix pour la liste');
+  },
+  'brickset : choisir pour la liste garde l\'image (plein écran)': async (p) => {
+    await p.evaluate(() => localStorage.setItem('bl_relais', JSON.stringify({ url: 'https://relais.test', jeton: '' })));
+    await p.reload(); await p.waitForSelector('.carte');
+    await p.locator('.carte:has-text("Set numéro 1 avec")').click();
+    await p.click('button:has-text("Chercher les images Brickset")');
+    await p.waitForSelector('button:has-text("Toutes les images (7)")');
+    await allerA(p, 'Brickset');
+    await p.click('.heros__ouvrir');
+    await p.click('dialog.visionneuse button:has-text("Pour la liste")');
+    await p.waitForSelector('dialog.visionneuse button[aria-pressed=true]:has-text("Image de la liste")');
+    exiger(await nbBoitesStock(p, 'extras') === 1, 'choisir une image Brickset pour la liste doit la garder sur l\'appareil');
+  },
+  'brickset : une image « Box » devient la boîte': async (p) => {
+    await p.evaluate(() => localStorage.setItem('bl_relais', JSON.stringify({ url: 'https://relais.test', jeton: '' })));
+    await p.reload(); await p.waitForSelector('.carte');
+    await p.locator('.carte:has-text("Set numéro 2 avec")').click(); // numéro pair : BrickLink n'a pas de boîte
+    await p.click('button:has-text("Chercher les images Brickset")');
+    await p.waitForSelector('button:has-text("Toutes les images")');
+    await p.click('button:has-text("Toutes les images")');
+    await p.locator('dialog[open] .planche__cellule').first().click(); // la boîte probable est en tête
+    await p.click('button:has-text("Définir comme boîte")');
+    for (let i = 0; i < 30 && await p.evaluate(() => new Promise((res) => { const o = indexedDB.open('bl_photos'); o.onsuccess = () => { const g = o.result.transaction('boites').objectStore('boites').getAllKeys(); g.onsuccess = () => res(g.result.includes('10002-1')); }; })) === false; i += 1) await p.waitForTimeout(150);
+    exiger(await p.evaluate(() => new Promise((res) => { const o = indexedDB.open('bl_photos'); o.onsuccess = () => { const g = o.result.transaction('boites').objectStore('boites').getAllKeys(); g.onsuccess = () => res(g.result.includes('10002-1')); }; })), 'l\'image « Box » doit devenir la boîte du set');
+    await p.waitForSelector('.heros__legende:has-text("Boîte")');
   },
   // Image de la liste : choisie sur la fiche (étoile), puis par la règle des Réglages. La carte montre
   // la photo (une image « blob: », lue dans IndexedDB) seulement dans ces cas.
@@ -1075,6 +1154,7 @@ try {
     for (const largeur of LARGEURS) {
       const ctx = await navigateur.newContext({ colorScheme: theme, viewport: { width: largeur, height: 900 } });
       await ctx.route('https://cdn.rebrickable.com/**', (r) => r.fulfill({ status: 200, contentType: 'image/png', body: PNG }));
+      await ctx.route('https://images.brickset.com/**', (r) => r.fulfill({ status: 200, contentType: 'image/png', body: PNG }));
       // Photos de boîte : une sur deux existe, l'autre répond 404 et doit retomber sur le rendu Rebrickable.
       await ctx.route('https://img.bricklink.com/**', (r) => (parseInt(r.request().url().split('/').pop(), 10) % 2
         ? r.fulfill({ status: 200, contentType: 'image/png', headers: { 'access-control-allow-origin': '*' }, body: PNG })
@@ -1085,6 +1165,13 @@ try {
         if (r.request().method() === 'OPTIONS') return r.fulfill({ status: 204, headers: entetes });
         const adresse = new globalThis.URL(r.request().url());
         const numero = adresse.searchParams.get('numero');
+        // Galerie Brickset : cinq images dont une « Box » ; /image sert les images à copier (avec CORS, comme le vrai relais).
+        if (adresse.pathname === '/galerie') {
+          const base = `https://images.brickset.com/sets/AdditionalImages/${numero}/`;
+          const noms = ['a1.jpg', 'a2.jpg', 'a3.jpg', `${parseInt(numero, 10)}_Box1_V39.jpg`, 'a5.jpg'];
+          return r.fulfill({ status: 200, headers: entetes, body: JSON.stringify({ numero, trouve: true, images: noms.map((n) => ({ url: `${base}${n}`, miniature: `${base}tn_${n}` })) }) });
+        }
+        if (adresse.pathname === '/image') return r.fulfill({ status: 200, headers: { ...entetes, 'content-type': 'image/png' }, body: PNG });
         if (adresse.pathname === '/notices') return r.fulfill({ status: 200, headers: entetes, body: JSON.stringify({ numero, trouve: true, notices: [{ url: 'https://www.lego.com/cdn/product-assets/a.pdf', description: 'Notice 1' }, { url: 'https://www.lego.com/cdn/product-assets/b.pdf', description: '' }] }) });
         const lancement = parseInt(numero, 10) % 3 === 0 ? null : `${new Date().getFullYear() + 1}-06-01`;
         return r.fulfill({ status: 200, headers: entetes, body: JSON.stringify({ numero, trouve: true, lancement, retrait: numero === '20002-1' ? `${new Date().getFullYear() + 1}-01-15` : null, disponibilite: null, prixDE: 129.99, sousTheme: parseInt(numero, 10) % 2 === 0 ? 'Sous-thème test' : '' }) });

@@ -15,7 +15,7 @@ dans le navigateur et s'exportent en JSON.
 - **Photos de boîte** : affichées partout, déduites du numéro (BrickLink). Chaque boîte vue est gardée sur
   l'appareil : une panne de BrickLink ne la fait plus disparaître. Réglages > Données > Images sur l'appareil les
   sauvegarde toutes (boîtes, et rendus Rebrickable via le relais). Repli sur le rendu Rebrickable puis sur le numéro.
-- **Images d'un set** : le haut de la fiche est un carrousel (boîte, rendu, jusqu'à six photos à toi) qu'on fait défiler en glissant ; un appui l'ouvre en plein écran (zoom, partage). Photo de l'appareil ou de la galerie,
+- **Images d'un set** : le haut de la fiche est un carrousel (boîte, rendu, jusqu'à six photos à toi, et les images de Brickset sur appui) qu'on fait défiler en glissant ; une planche de miniatures permet de sauter à une image ; un appui l'ouvre en plein écran (zoom, partage) ; une image de Brickset se garde sur l'appareil pour être l'image de la liste ou la boîte du set. Photo de l'appareil ou de la galerie,
   recadrée en 4:3 et gardée sur l'appareil (dans l'export complet, voir Sauvegarde). Un bouton choisit l'image du set dans la liste ;
   une règle dans Réglages décide pour les autres (boîte, ma photo quand elle existe, rendu).
 - **Dates de sortie** : à saisir sur la fiche, ou à récupérer automatiquement de Brickset par un petit relais à toi

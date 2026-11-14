@@ -31,14 +31,13 @@ GET /galerie?numero=75192-1
 -> { "numero": "75192-1", "trouve": true, "images": [{ "url": "https://…jpg", "miniature": "https://…jpg" }] }
 ```
 
-Les images supplémentaires de Brickset (`getSets` pour l'identifiant interne, puis `getAdditionalImages` : **deux appels Brickset** dans la limite de 100 par jour). Route
-d'essai : l'application ne l'appelle pas encore ; ouvre-la dans ton navigateur pour voir ce que Brickset renvoie. Mêmes adresses autorisées que pour les notices ;
-les noms de champs suivent la documentation et n'ont jamais été vus dans une vraie réponse.
+Les images supplémentaires de Brickset (`getSets` pour l'identifiant interne, puis `getAdditionalImages` : **deux appels Brickset** dans la limite de 100 par jour). L'application l'appelle sur appui (« Chercher les images Brickset » sur la fiche d'un set). Vue en vrai le 14 novembre 2026 : 28 images pour le Faucon, `images.brickset.com`, noms `imageURL` et `thumbnailURL`. Mêmes adresses autorisées que pour les notices.
 
 Quatrième route, sans lien avec Brickset (elle marche même sans `BRICKSET_KEY`) :
 
 ```
-GET /image?url=https://cdn.rebrickable.com/media/sets/75192-1.jpg   ->  l'image (jpeg, png ou webp, 2 Mo au plus)
+GET /image?url=https://cdn.rebrickable.com/media/sets/75192-1.jpg   ->  l'image (jpeg, png ou webp, 6 Mo au plus)
+   (aussi : https://images.brickset.com/sets/AdditionalImages/<set>/<nom>.jpg, la galerie de Brickset)
 ```
 
 Elle sert à copier les rendus Rebrickable sur l'appareil, dont le CDN n'a pas de CORS. Elle n'accepte que cet hôte et

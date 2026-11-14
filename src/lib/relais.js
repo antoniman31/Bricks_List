@@ -6,6 +6,7 @@ import { urlRenduValide } from './boite.js';
 import { normaliserNumero } from './numero.js';
 import { prixValide } from './prix.js';
 import { libelleCourt } from './libelle.js';
+import { lireGalerie, urlImageBrickset } from './galerie.js';
 
 const CLE = 'bl_relais';
 const FORME_JETON = /^[\x21-\x7E]{8,100}$/;
@@ -99,12 +100,12 @@ export async function recupererSortie(relais, numero, fetchFn = globalThis.fetch
 const TAILLE_IMAGE_MAX = 6 * 1024 * 1024; // comme le relais ; l'image est réduite à 1 024 px avant d'être gardée
 const DELAI_IMAGE_MS = 15_000;
 
-// Demande au relais le rendu Rebrickable d'un set (le CDN n'a pas de CORS). Renvoie { ok: true, blob } ou
+// Demande au relais une image à copier : le rendu Rebrickable d'un set ou une image de la galerie de Brickset (aucun des deux n'a de CORS). Renvoie { ok: true, blob } ou
 // { ok: false, code }. Ne lève jamais. Le contenu est une entrée non fiable : type et taille revérifiés ici,
 // puis le décodage par le navigateur (`rendreRendu`) a le dernier mot.
 export async function recupererImage(relais, urlRendu, fetchFn = globalThis.fetch) {
   const base = urlRelaisValide(relais?.url);
-  if (!base || !urlRenduValide(urlRendu)) return { ok: false, code: 'url' };
+  if (!base || !(urlRenduValide(urlRendu) || urlImageBrickset(urlRendu))) return { ok: false, code: 'url' };
   let reponse;
   try {
     reponse = await fetchFn(`${base}/image?url=${encodeURIComponent(urlRendu)}`, {
@@ -173,4 +174,26 @@ export async function recupererNotices(relais, numero, fetchFn = globalThis.fetc
     notices.push({ url, description });
   }
   return { ok: true, notices };
+}
+
+// La liste des images supplémentaires d'un set chez Brickset (route `/galerie` : DEUX appels Brickset, à ne faire que sur appui). Renvoie
+// { ok: true, images: [{ url, miniature, nom, boite }] } (liste vide si Brickset n'en a pas) ou { ok: false, code }. Ne lève jamais.
+export async function recupererGalerie(relais, numero, fetchFn = globalThis.fetch) {
+  const n = normaliserNumero(numero);
+  const base = urlRelaisValide(relais?.url);
+  if (!n || !base) return { ok: false, code: 'numero' };
+  let reponse;
+  try {
+    reponse = await fetchFn(`${base}/galerie?numero=${encodeURIComponent(n)}`, {
+      headers: relais.jeton ? { 'X-Jeton': relais.jeton } : {},
+      signal: AbortSignal.timeout(DELAI_MS * 2), // deux appels Brickset à la suite
+    });
+  } catch (e) {
+    return { ok: false, code: e?.name === 'TimeoutError' ? 'delai' : 'reseau' };
+  }
+  let corps;
+  try { corps = await reponse.json(); } catch { return { ok: false, code: 'reponse' }; }
+  if (!reponse.ok) return { ok: false, code: typeof corps?.erreur === 'string' && corps.erreur in MESSAGES ? corps.erreur : 'reponse' };
+  const images = lireGalerie(corps);
+  return images ? { ok: true, images } : { ok: false, code: 'reponse' };
 }

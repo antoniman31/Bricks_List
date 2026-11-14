@@ -22,7 +22,7 @@ import BarreActionsMasse from './components/BarreActionsMasse.jsx'
 import MasseSheet from './components/MasseSheet.jsx'
 import StatsView from './components/StatsView.jsx'
 import { charger, sauver } from './lib/storage.js'
-import { ecrireBoite, ecrireRendu, idsPhotos, numerosBoites, numerosRendus, purgerBoitesOrphelines, purgerOrphelines, purgerRendusOrphelins } from './lib/photosDB.js'
+import { clesExtras, ecrireBoite, ecrireRendu, idsPhotos, numerosBoites, numerosRendus, purgerBoitesOrphelines, purgerExtrasOrphelins, purgerGaleriesOrphelines, purgerOrphelines, purgerRendusOrphelins } from './lib/photosDB.js'
 import { boiteVersJpeg, chargerImageBoite, rendreRendu } from './lib/photoNavigateur.js'
 import { brickLinkInjoignable, libelleSansPhoto, numerosABoites, rendusACopier, urlBoite } from './lib/boite.js'
 import { normaliserNumero } from './lib/numero.js'
@@ -118,6 +118,11 @@ export default function App() {
   const rafraichirRendus = useCallback(() => {
     numerosRendus().then((n) => setRendus(new Set(n))).catch(() => {})
   }, [])
+  // Les images de la galerie Brickset gardées sur l'appareil, par clé « numéro|nom ».
+  const [extras, setExtras] = useState(() => new Set())
+  const rafraichirExtras = useCallback(() => {
+    return clesExtras().then((c) => setExtras(new Set(c))).catch(() => {})
+  }, [])
   const boitesEnCours = useRef(new Set())
   // Une boîte vue (`<img>` chargée depuis BrickLink) devient un JPEG gardé sur l'appareil. C'est un confort : un échec
   // (stockage plein, navigateur sans IndexedDB) ne se voit pas, la boîte retombe simplement sur le réseau.
@@ -140,10 +145,12 @@ export default function App() {
         purgerOrphelines(new Set(depart.info.sets.map((s) => s.id))).catch(() => {}),
         purgerBoitesOrphelines(new Set(depart.info.sets.map((s) => normaliserNumero(s.numero)))).catch(() => {}),
         purgerRendusOrphelins(new Set(depart.info.sets.map((s) => normaliserNumero(s.numero)))).catch(() => {}),
+        purgerExtrasOrphelins(new Set(depart.info.sets.map((s) => normaliserNumero(s.numero)))).catch(() => {}),
+        purgerGaleriesOrphelines(new Set(depart.info.sets.map((s) => normaliserNumero(s.numero)))).catch(() => {}),
       ])
-    nettoyage.then(() => { rafraichirPhotos(); rafraichirBoites(); rafraichirRendus() })
-  }, [depart, rafraichirPhotos, rafraichirBoites, rafraichirRendus])
-  const images = useMemo(() => ({ photos, regle: regleImage, rafraichir: rafraichirPhotos, boites, sauverBoite, rendus }), [photos, regleImage, rafraichirPhotos, boites, sauverBoite, rendus])
+    nettoyage.then(() => { rafraichirPhotos(); rafraichirBoites(); rafraichirRendus(); rafraichirExtras() })
+  }, [depart, rafraichirPhotos, rafraichirBoites, rafraichirRendus, rafraichirExtras])
+  const images = useMemo(() => ({ photos, regle: regleImage, rafraichir: rafraichirPhotos, boites, sauverBoite, rendus, extras, rafraichirExtras, rafraichirBoites }), [photos, regleImage, rafraichirPhotos, boites, sauverBoite, rendus, extras, rafraichirExtras, rafraichirBoites])
   // « Sauvegarder toutes les images » (Réglages) : va chercher, une par une, ce qui manque sur l'appareil. D'abord les
   // boîtes (BrickLink ; on s'arrête s'il ne répond pas : insister n'apporterait rien), puis les rendus Rebrickable
   // par le relais (leur CDN n'a pas de CORS) ; sans relais configuré, les rendus sont laissés de côté, et on le dit.
@@ -952,7 +959,7 @@ export default function App() {
           onMajDates={mettreAJourDates}
           nbBoites={boites.size}
           nbRendus={rendus.size}
-          onImagesImportees={() => { rafraichirPhotos(); rafraichirBoites(); rafraichirRendus() }}
+          onImagesImportees={() => { rafraichirPhotos(); rafraichirBoites(); rafraichirRendus(); rafraichirExtras() }}
           majBoites={majBoites}
           onSauvegarderBoites={sauvegarderToutesLesBoites}
           onCleChange={changerCle}

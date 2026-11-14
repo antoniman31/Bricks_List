@@ -307,3 +307,16 @@ test('/galerie : set inconnu = aucune image sans second appel ; limite, jeton, n
   assert.equal((await appel('/galerie?numero=75192-1', { fetchFn: async () => reponseJson({}), init: { method: 'POST' } })).status, 405);
   assert.equal((await appel('/galerie?numero=75192-1', { fetchFn: async () => reponseJson({}), env: { ORIGINE: ENV.ORIGINE } })).status, 500);
 });
+
+test('urlImageValide : les images de la galerie de Brickset passent, rien d\'autre chez eux', () => {
+  const base = 'https://images.brickset.com/sets/AdditionalImages/75192-1/';
+  assert.equal(urlImageValide(`${base}75192_Box1_V39.jpg`), `${base}75192_Box1_V39.jpg`);
+  assert.equal(urlImageValide(`${base}75192_BI_Cover_&_Side_Color_Comp.jpg`), `${base}75192_BI_Cover_&_Side_Color_Comp.jpg`);
+  for (const v of [
+    'https://images.brickset.com/sets/75192-1.jpg', 'https://images.brickset.com/', `${base}a.jpg?x=1`, `${base}..%2Fa.jpg`, `${base}a.svg`,
+    'http://images.brickset.com/sets/AdditionalImages/75192-1/a.jpg', 'https://brickset.com/sets/AdditionalImages/75192-1/a.jpg',
+    'https://images.brickset.com.evil.example/sets/AdditionalImages/75192-1/a.jpg', 'https://constructor/sets/AdditionalImages/75192-1/a.jpg',
+    'https://cdn.rebrickable.com/sets/AdditionalImages/75192-1/a.jpg', 'https://images.brickset.com/media/sets/75192-1.jpg',
+  ]) assert.equal(urlImageValide(v), null, String(v));
+  assert.equal(urlImageValide('https://__proto__/media/sets/a.jpg'), null);
+});
