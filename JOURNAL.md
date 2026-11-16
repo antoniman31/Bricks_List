@@ -452,3 +452,10 @@ Qualité : lint OK, 533 tests, `verif:ui` 606 écrans (121 parcours ; comporteme
 - `verif:ui` compte tout refus de la CSP comme un écart. Vu échouer : sans l'empreinte, 112 écarts sur les 46 écrans de
   « liste » ; avec, aucun.
 - Qualité : lint OK, 538 tests (dont 5 pour `csp.js`), `verif:ui` 606 écrans (121 parcours), aucun écart.
+
+### Essais sur le téléphone après la CSP — 16/11/2026
+
+Antoni a validé sur le S26, après la mise en ligne de la #98 : images, photos, recherche Rebrickable et relais avec la
+CSP ; dates de sortie et prix de la wishlist ; sauvegarde des images et export complet. Reste la restauration sur un
+appareil vidé. Documentation seule : les 4 jobs d'interface doivent être « sautés » sur cette PR.
+Qualité : lint OK, 538 tests ; `verif:ui` non rejoué (aucun code changé).
