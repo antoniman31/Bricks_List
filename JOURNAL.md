@@ -1,8 +1,11 @@
-# Bricks-List : où on en est, et la suite
+# Bricks-List — Journal
+
+> Anciennement `docs/SUITE.md` (renommé le 16/11/2026, règle commune des dépôts) : le détail de chaque fonction, les
+> décisions et les limites. L'état résumé est dans `README.md`, ce qui reste dans `RESTE-A-FAIRE.md`.
 
 État au 4 novembre 2026. Site : https://antoniman31.github.io/Bricks_List/ (la version se lit en bas des Réglages).
 Ce fichier sert à reprendre le travail sans relire la conversation qui l'a produit. Pour savoir **par quoi
-commencer**, lire d'abord `docs/TODO.md`.
+commencer**, lire d'abord `RESTE-A-FAIRE.md`.
 
 ## Ce qui est fait et en ligne
 

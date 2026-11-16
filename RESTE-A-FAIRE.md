@@ -1,6 +1,6 @@
 # À faire : reprise de session (état au 13 novembre 2026)
 
-Ce fichier dit **où on s'est arrêtés** et **quoi faire ensuite**, dans l'ordre. Il complète `docs/SUITE.md` (état
+Ce fichier dit **où on s'est arrêtés** et **quoi faire ensuite**, dans l'ordre. Il complète `JOURNAL.md` (état
 complet du projet, décisions, limites) et `CLAUDE.md` (règles de travail). Lire les trois avant de commencer.
 
 Dernière PR fusionnée : **#88** (bandeau « Sort dans… ») ; en cours : sous-onglets des Stats (puces, 4 onglets : Aperçu, Répartition, Suivi, Wishlist, plus les blocs ajoutés). Branche de travail unique :
@@ -12,7 +12,7 @@ de la wishlist (#71), correctif de la copie des rendus (#72).
 
 ## 1. Tout de suite
 
-1. ~~Réorganiser les Réglages~~ : fait (quatre groupes, états en une ligne, une section ouverte à la fois ; voir `docs/SUITE.md`). La wishlist
+1. ~~Réorganiser les Réglages~~ : fait (quatre groupes, états en une ligne, une section ouverte à la fois ; voir `JOURNAL.md`). La wishlist
    n'a plus que le total et un bouton-icône « Copier la liste » (la mise à jour dates et prix est dans Réglages > Brickset).
 1 bis. ~~Sauvegarde en ligne~~ : faite et vérifiée par Antoni le 14 novembre 2026 sur son S26 (PR #93). Premier envoi : 54 sets et 129 images, **17,4 Mo**, un seul morceau dans KV ; « Voir les copies » et
    la relecture dans l'aperçu (54 sets, 18 photos, 52 boîtes, 54 rendus, 5 images Brickset) fonctionnent. Le secret `JETON` est sur le relais (bloc Exécution, pas le bloc Build) et saisi dans l'appli. Le
@@ -46,7 +46,7 @@ Connexions > Relais. **Vérifié avec une vraie réponse de Brickset** pour le F
   autorisée. **Jamais la clé dans une conversation, un fichier ou le dépôt.**
 - **Limite Brickset : 100 appels `getSets` par jour et par clé.** « Récupérer dates et prix » fait un appel par set
   (dates manquantes ou à venir, prix vides ou pré-remplis) : une première mise à jour en consomme environ 55, ne pas la relancer
-  le même jour. Le prix et la limite exacts de la clé restent à confirmer sur la page de Brickset, puis à consigner dans `docs/SUITE.md`.
+  le même jour. Le prix et la limite exacts de la clé restent à confirmer sur la page de Brickset, puis à consigner dans `JOURNAL.md`.
 - Les prix sont des **prix allemands** (la France n'a pas de prix chez Brickset), marqués « DE » ; un prix saisi à la main n'est
   jamais écrasé. À vérifier par Antoni sur quelques sets (LEGO.fr).
 - Le check GitHub « Workers Builds: bricks-relais » a échoué une fois sur la PR #72 (« This Worker does not exist on your
@@ -81,7 +81,7 @@ Refusées pour l'instant : dimensions de la boîte, variantes Rebrickable (MOC).
 - **Export CSV** de la collection (séparateur point-virgule, BOM UTF-8 pour l'Excel français ; lecture seule).
 - **Transfert téléphone ↔ PC** : le fichier d'export complet suffit pour l'instant (Partager > Partage rapide, puis Réglages >
   Restaurer un fichier ; l'import accepte `.txt`). Si le geste pèse : lien (données compressées après le `#`) et QR allégé ;
-  détails dans `docs/SUITE.md`. Les images, elles, ne tiennent ni dans un lien ni dans un QR.
+  détails dans `JOURNAL.md`. Les images, elles, ne tiennent ni dans un lien ni dans un QR.
 - **Choix de l'image en sélection multiple** (idée D de la page de maquettes) : seulement si Antoni doit changer des dizaines de
   sets d'un coup. **Plusieurs photos par set** (idée E) : seulement s'il le demande.
 - Écartés pour l'instant : synchronisation Drive/serveur, Brickognize (conditions d'utilisation à risque), images principales
@@ -100,10 +100,9 @@ Refusées pour l'instant : dimensions de la boîte, variantes Rebrickable (MOC).
 - Antoni : français, tutoiement, réponses courtes, franchise. **Proposer puis attendre un « ok » explicite** avant de
   toucher au code ; « Pose des questions » signifie utiliser AskUserQuestion ; pour des visuels, publier une maquette
   en Artifact (privé).
-- Fusion par squash **dès que le CI est vert** (choix d'Antoni), sauf si une donnée peut être perdue : demander, et
-  rappeler d'exporter d'abord. Compter les tests et les écrans de `verif:ui` dans `docs/SUITE.md` à chaque PR.
-- Git : repartir de `origin/main`, branche `ccr-bf63eeba-887je4`, avant le push `git merge -s ours --no-edit
-  origin/ccr-bf63eeba-887je4` (le push forcé est refusé), PR en brouillon, abonnement à la PR, fusion avec
+- Fusion **seulement sur le « go » d'Antoni** (règle commune du 16/11/2026, voir `CLAUDE.md`) ; si une donnée peut être
+  perdue, rappeler d'exporter d'abord. Compter les tests et les écrans de `verif:ui` dans `JOURNAL.md` à chaque PR.
+- Git : repartir de `origin/main`, sur la branche que la session impose ; PR en brouillon, abonnement à la PR, fusion avec
   `expectedHeadSha` **complet (40 caractères)**. Ne pas enchaîner `npm test` et `git push` avec des `;` : un test en échec ne
   doit pas partir. Un contrôle qui casse le code exprès ne doit jamais être commité (restaurer avant tout commit).
 - Un contrôle « de non-vacuité » (casser exprès le code et vérifier que le test échoue) a été fait pour les parcours
