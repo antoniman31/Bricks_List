@@ -89,12 +89,10 @@ Refusées pour l'instant : dimensions de la boîte, variantes Rebrickable (MOC).
 
 ## 5. À tester par Antoni sur son S26
 
-- [ ] **CSP du site (16/11/2026)** : images des sets, photos, recherche Rebrickable, relais (dates, notices, prix,
-      sauvegarde en ligne) s'affichent et répondent comme avant ; un refus de la CSP casserait une fonction sans message.
-
-- Les dates de sortie et les prix DE sur la wishlist (total, tri par prix, filtre par tranche, saisie à la main sur la fiche).
-- La sauvegarde des images (point 1.2) et l'export complet, puis, un jour, la restauration sur un appareil vidé.
-- Déjà validé : photos (appareil photo, recadrage), choix de l'image de la liste, filtres par onglet, relais joignable.
+- La restauration complète sur un appareil vidé, un jour (l'export complet, lui, est validé).
+- Déjà validé : photos (appareil photo, recadrage), choix de l'image de la liste, filtres par onglet, relais joignable ;
+  le 16/11/2026, après la mise en ligne de la #98 : CSP (images, photos, recherche Rebrickable, relais), dates de sortie
+  et prix sur la wishlist, sauvegarde des images et export complet.
 - Les photos de boîte viennent de BrickLink (adresses déduites du numéro, non officielles) : si des sets restent sur leur
   numéro, le noter.
 
