@@ -46,6 +46,21 @@ const HOTES_IMAGES = {
 // 6 Mo : certains rendus dépassent 2 Mo ; l'appli les réduit à 1 024 px avant de les garder, la taille d'arrivée importe peu.
 const TAILLE_IMAGE_MAX = 6 * 1024 * 1024;
 
+// Comparaison du jeton à temps constant. `!==` s'arrête au premier caractère différent : le temps de réponse
+// trahit alors, caractère par caractère, la longueur du préfixe juste, et ce jeton protège la collection entière
+// (routes de sauvegarde). Les deux valeurs sont d'abord ramenées à une empreinte de 32 octets, ce qui efface
+// aussi leur longueur, puis comparées octet par octet sans sortie anticipée. `crypto.subtle.timingSafeEqual`
+// n'existe que chez Cloudflare : cette version tourne aussi sous Node, donc dans les tests.
+export async function jetonValide(recu, attendu) {
+  if (typeof recu !== 'string' || typeof attendu !== 'string' || attendu === '') return false;
+  const code = new TextEncoder();
+  const [a, b] = await Promise.all([recu, attendu].map((v) => crypto.subtle.digest('SHA-256', code.encode(v))));
+  const x = new Uint8Array(a), y = new Uint8Array(b);
+  let diff = 0;
+  for (let i = 0; i < x.length; i++) diff |= x[i] ^ y[i];
+  return diff === 0;
+}
+
 // L'adresse d'image demandée, ou null si elle sort du cadre. Sans cette liste blanche le relais serait
 // un proxy ouvert (SSRF, bande passante offerte à n'importe qui) : on n'accepte que les rendus de sets.
 export function urlImageValide(brut) {
@@ -349,7 +364,7 @@ async function fluxDeCopie(kv, copie) {
 async function traiterSauvegarde(request, url, env, h, rep, morceau) {
   // La collection entière passe par ces routes : sans jeton défini côté relais, on refuse plutôt que d'être ouvert à tous.
   if (!env.JETON) return rep(403, { erreur: 'protection' });
-  if (request.headers.get('X-Jeton') !== env.JETON) return rep(401, { erreur: 'jeton' });
+  if (!(await jetonValide(request.headers.get('X-Jeton'), env.JETON))) return rep(401, { erreur: 'jeton' });
   if (!env.SAUVEGARDES) return rep(500, { erreur: 'stockage' });
   const kv = env.SAUVEGARDES;
 
@@ -398,7 +413,7 @@ export async function traiter(request, env, { fetchFn = fetch, morceau = MORCEAU
   }
   if (request.method !== 'GET') return rep(405, { erreur: 'methode' });
   if (url.pathname !== '/sortie' && url.pathname !== '/image' && url.pathname !== '/notices' && url.pathname !== '/galerie') return rep(404, { erreur: 'introuvable' });
-  if (env.JETON && request.headers.get('X-Jeton') !== env.JETON) return rep(401, { erreur: 'jeton' });
+  if (env.JETON && !(await jetonValide(request.headers.get('X-Jeton'), env.JETON))) return rep(401, { erreur: 'jeton' });
   if (url.pathname === '/image') return traiterImage(url, h, rep, fetchFn);
 
   const numero = url.searchParams.get('numero') ?? '';

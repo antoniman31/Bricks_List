@@ -62,7 +62,8 @@ ses morceaux rangés, et un envoi interrompu ne laisse rien. Quotas gratuits de 
 
 L'espace `bricks-sauvegardes` est créé (identifiant dans `wrangler.toml`, ce n'est pas un secret). À refaire si tu repars de zéro : Cloudflare > **Storage & Databases** > **KV** > Create,
 nom `bricks-sauvegardes`, puis remplacer l'`id` dans `wrangler.toml`. Le secret `JETON` doit exister (Settings > Variables and Secrets, type **Secret**) et le même jeton doit être saisi dans
-l'appli (Réglages > Brickset > Jeton). Si tu colles le code à la main dans le tableau de bord, ajoute la liaison à la main : Settings > Bindings > Add > **KV namespace**, nom de variable `SAUVEGARDES`.
+l'appli (Réglages > Brickset > Jeton). Le relais compare le jeton à temps constant (`jetonValide`) : il ne trahit pas, par sa durée de réponse, le début juste d'un jeton.
+Qu'il soit long et tiré au hasard (32 caractères ou plus, par exemple ceux d'un gestionnaire de mots de passe) : il protège la collection entière. Si tu colles le code à la main dans le tableau de bord, ajoute la liaison à la main : Settings > Bindings > Add > **KV namespace**, nom de variable `SAUVEGARDES`.
 
 Erreurs possibles : `{"erreur":"protection"}` (pas de `JETON` défini), `{"erreur":"jeton"}` (jeton absent ou faux), `{"erreur":"stockage"}` (liaison KV absente ou KV en panne), `{"erreur":"gros"}` (plus de 100 Mo), `{"erreur":"vide"}` (aucune copie). Les aperçus de pull request n'ont pas cette liaison : ils répondent `stockage`, et les copies de production ne sont jamais touchées par un aperçu.
 

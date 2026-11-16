@@ -50,3 +50,14 @@ export function resumeEnLigne({ relais, dernier, maintenant = new Date() }) {
   const jours = Math.max(0, Math.floor((maintenant.getTime() - Date.parse(dernier)) / JOUR_MS));
   return `Envoyée ${libelleDelai(jours)}`;
 }
+
+// Envoi automatique (choix d'Antoni, 16 novembre 2026 : « tout réseau ») : à l'ouverture de l'app, une copie part si la
+// dernière a plus de 7 jours. Jamais sans relais complet, jamais hors ligne, jamais pour une collection vide ni illisible
+// (une collection illisible enverrait une copie quasi vide qui chasserait une bonne copie des 5 gardées).
+export const ENVOI_AUTO_JOURS = 7;
+export function envoiAutoDu({ relais, dernier, nbSets, lectureSeule, enLigne = true, maintenant = new Date(), seuilJours = ENVOI_AUTO_JOURS }) {
+  if (!relais?.url || !relais.jeton || lectureSeule || !enLigne || !(nbSets > 0)) return false;
+  const t = typeof dernier === 'string' ? Date.parse(dernier) : NaN;
+  if (Number.isNaN(t)) return true;
+  return maintenant.getTime() - t >= seuilJours * JOUR_MS;
+}
