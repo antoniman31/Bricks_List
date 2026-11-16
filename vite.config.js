@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { execSync } from 'node:child_process'
+import { pluginCsp } from './src/lib/csp.js'
 
 // Le site se déploie tout seul et l'application s'installe à la main : le
 // commit est ce qui répond à « quelle version ai-je devant moi ». Une
@@ -17,6 +18,7 @@ export default defineConfig({
   define: { __COMMIT__: JSON.stringify(commit) },
   plugins: [
     react(),
+    pluginCsp(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],

@@ -1448,6 +1448,9 @@ try {
         page.setDefaultTimeout(4000);
         const erreursPage = [];
         page.on('pageerror', (e) => erreursPage.push(String(e)));
+        // Un script ou une requête refusés par la CSP (src/lib/csp.js) sont un écart : sur le site publié, ils casseraient
+        // une fonction sans le moindre message à l'écran.
+        page.on('console', (m) => { if (/Content Security Policy/i.test(m.text())) erreursPage.push(`refus de la CSP : ${m.text().slice(0, 200)}`); });
         if (process.env.VERIF_TRACE) page.on('console', (m) => console.log(`[${theme} ${largeur}px · ${nom}] console ${m.type()}: ${m.text().slice(0, 160)}`));
         await page.goto(URL);
         // Chaque écran part d'un état identique : les pages d'un même contexte partagent leur

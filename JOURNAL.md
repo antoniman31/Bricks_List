@@ -440,3 +440,15 @@ fusion par squash (voir `CLAUDE.md`).
 Bloc commun : règle « CI, trois niveaux » (rapide à chaque PR, lourd seulement si autre chose que des `.md` change, appareil réel). Les 4 jobs du contrôle d'interface dépendent d'un job `changements` et se sautent sur une PR qui ne touche que des
 `.md` ; « Vérifier et construire » (lint, tests, build) tourne toujours. Sur `main`, tout tourne avant le déploiement.
 Qualité : lint OK, 533 tests, `verif:ui` 606 écrans (121 parcours ; comportements en 360 et 1280 px), aucun écart.
+
+### Actions figées, Dependabot, CSP — 16/11/2026
+
+- Les 8 appels d'actions de `deploy.yml` sont figés sur un commit précis, la version en commentaire : une étiquette comme
+  `@v4` peut être déplacée par son auteur, ou par qui lui vole son compte. `dependabot.yml` (mensuel, une PR par
+  écosystème : actions et npm).
+- CSP écrite à la construction par `src/lib/csp.js` (plugin Vite, build seulement) : scripts limités aux fichiers du site
+  et au script du thème, autorisé par son empreinte recalculée à chaque build. Images et appels réseau restent ouverts à
+  toute adresse https (pochettes de plusieurs hôtes, relais à l'adresse choisie dans les réglages).
+- `verif:ui` compte tout refus de la CSP comme un écart. Vu échouer : sans l'empreinte, 112 écarts sur les 46 écrans de
+  « liste » ; avec, aucun.
+- Qualité : lint OK, 538 tests (dont 5 pour `csp.js`), `verif:ui` 606 écrans (121 parcours), aucun écart.
