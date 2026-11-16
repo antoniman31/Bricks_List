@@ -22,13 +22,15 @@ import BarreActionsMasse from './components/BarreActionsMasse.jsx'
 import MasseSheet from './components/MasseSheet.jsx'
 import StatsView from './components/StatsView.jsx'
 import { charger, sauver } from './lib/storage.js'
-import { clesExtras, ecrireBoite, ecrireRendu, idsPhotos, numerosBoites, numerosRendus, purgerBoitesOrphelines, purgerExtrasOrphelins, purgerGaleriesOrphelines, purgerOrphelines, purgerRendusOrphelins } from './lib/photosDB.js'
+import { clesExtras, ecrireBoite, imagesDuStock, ecrireRendu, idsPhotos, numerosBoites, numerosRendus, purgerBoitesOrphelines, purgerExtrasOrphelins, purgerGaleriesOrphelines, purgerOrphelines, purgerRendusOrphelins } from './lib/photosDB.js'
 import { boiteVersJpeg, chargerImageBoite, rendreRendu } from './lib/photoNavigateur.js'
 import { brickLinkInjoignable, libelleSansPhoto, numerosABoites, rendusACopier, urlBoite } from './lib/boite.js'
 import { normaliserNumero } from './lib/numero.js'
 import ImagesContext from './ImagesContext.js'
 import { ecrireRegle, lireRegle } from './lib/imageListe.js'
-import { arretRelais, ecrireRelais, lireRelais, messageRelais, recupererImage, recupererSortie } from './lib/relais.js'
+import { arretRelais, ecrireRelais, envoyerSauvegarde, lireRelais, messageRelais, recupererImage, recupererSortie } from './lib/relais.js'
+import { envoiAutoDu, lireDernierEnvoi, noterEnvoi } from './lib/sauvegardeEnLigne.js'
+import { exporter } from './lib/partage.js'
 import { FILTRES_RETRAIT, FILTRES_SORTIE, aInterroger, candidats, dateCourte } from './lib/sortie.js'
 import { TRANCHES_PRIX, aPreRemplir, libelleTotal, totalPrix } from './lib/prix.js'
 import { ajouter, ajouterPlusieurs, acheter, compterExemplaires, exemplairesPossedes, modifier, modifierPlusieurs, remettreEnWishlist, supprimer, supprimerPlusieurs } from './lib/collection.js'
@@ -327,6 +329,35 @@ export default function App() {
     if (r.ok) setDerniereSauvegarde(maintenant.toISOString())
     return r
   }
+
+  // Copie en ligne automatique : 5 s après l'ouverture (le démarrage passe d'abord), si la dernière a 7 jours ou plus.
+  // Une seule tentative par ouverture ; le résultat se voit dans un bandeau, l'échec comme la réussite.
+  const [copieAuto, setCopieAuto] = useState({ etat: '', message: '' })
+  const setsCourants = useRef(sets)
+  useEffect(() => { setsCourants.current = sets }, [sets])
+  const copieAutoLancee = useRef(false)
+  useEffect(() => {
+    const minuteur = setTimeout(async () => {
+      const courants = setsCourants.current
+      const enLigne = typeof navigator === 'undefined' || navigator.onLine !== false
+      if (copieAutoLancee.current || !envoiAutoDu({ relais, dernier: lireDernierEnvoi(), nbSets: courants.length, lectureSeule, enLigne })) return
+      copieAutoLancee.current = true
+      setCopieAuto({ etat: 'charge', message: 'Copie en ligne automatique en cours…' })
+      let images = null
+      let sansImages = false
+      try { images = await imagesDuStock() } catch { sansImages = true }
+      const r = await envoyerSauvegarde(relais, exporter(courants, new Date(), images).contenu)
+      if (!r.ok) return setCopieAuto({ etat: 'erreur', message: `Copie en ligne automatique impossible : ${messageRelais(r.code)}` })
+      const notee = noterEnvoi().ok && sauvegardeFaite().ok
+      setCopieAuto({
+        etat: 'ok',
+        message: `Copie en ligne envoyée (${courants.length} set${courants.length > 1 ? 's' : ''}).${sansImages ? ' Sans les images : elles n\'ont pas pu être lues.' : ''}${notee ? '' : ' La date n\'a pas pu être enregistrée.'}`,
+      })
+    }, 5000)
+    return () => clearTimeout(minuteur)
+    // Une fois par ouverture : relais et collection sont relus au moment de l'envoi.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Applique le thème résolu, et le suit si le téléphone bascule (en mode
   // automatique) pendant que l'app est ouverte.
@@ -697,6 +728,14 @@ export default function App() {
         <p className="avis" role="status">
           Dernière sauvegarde : {libelleDelai(rappel.jours)}.{' '}
           <button type="button" className="lien lien--bouton" onClick={() => setEcran({ type: 'reglages' })}>Sauvegarder</button>
+        </p>
+      )}
+      {copieAuto.message && (
+        <p className={`avis${copieAuto.etat === 'erreur' ? ' avis--erreur' : ''}`} role="status">
+          {copieAuto.message}{' '}
+          {copieAuto.etat !== 'charge' && (
+            <button type="button" className="lien lien--bouton" onClick={() => setCopieAuto({ etat: '', message: '' })}>Fermer</button>
+          )}
         </p>
       )}
       {confirmation && (

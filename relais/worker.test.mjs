@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cleDeSauvegarde, datePropre, identifiantBrickset, libellePropre, lireBrickset, lireImagesSet, lireNotices, prixPropre, traiter, urlImageValide, urlNoticeValide } from './worker.js';
+import { cleDeSauvegarde, datePropre, identifiantBrickset, jetonValide, libellePropre, lireBrickset, lireImagesSet, lireNotices, prixPropre, traiter, urlImageValide, urlNoticeValide } from './worker.js';
 
 const ENV = { BRICKSET_KEY: 'cle-secrete-de-test', ORIGINE: 'https://antoniman31.github.io' };
 const SUCCES = (sets) => ({ status: 'success', matches: sets.length, sets });
@@ -77,6 +77,16 @@ test('configuration : sans clé, le relais cite les noms voisins (jamais les val
   assert.deepEqual(corps.proches, ['BRICKSET_API_KEY', ' BRICKSET_KEY']);
   const brut = JSON.stringify(corps);
   assert.ok(!brut.includes('valeur-secrete') && !brut.includes('autre-secrete') && !brut.includes('secret-jeton'), 'aucune valeur ne doit sortir');
+});
+
+test('jetonValide : égalité exacte seulement, jamais un préfixe, une casse ou un vide', async () => {
+  assert.equal(await jetonValide('jeton-de-test-1234', 'jeton-de-test-1234'), true);
+  assert.equal(await jetonValide('jeton-de-test-1235', 'jeton-de-test-1234'), false);
+  assert.equal(await jetonValide('jeton-de-test-123', 'jeton-de-test-1234'), false);
+  assert.equal(await jetonValide('JETON-DE-TEST-1234', 'jeton-de-test-1234'), false);
+  assert.equal(await jetonValide(null, 'jeton-de-test-1234'), false);
+  assert.equal(await jetonValide('', ''), false);
+  assert.equal(await jetonValide('x', undefined), false);
 });
 
 test('jeton facultatif : exigé seulement s\'il est défini', async () => {

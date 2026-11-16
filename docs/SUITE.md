@@ -150,7 +150,7 @@ testé avec sa vraie collection, tout fonctionne.
   (sans lui, 403 : la collection entière ne passe pas sans protection) et la liaison KV `SAUVEGARDES` (`wrangler.toml` ; les aperçus de PR n'en ont pas et répondent « stockage »).
   KV refuse plus de 25 Mo par valeur : le fichier est rangé en morceaux de 20 Mo, le registre de la copie s'écrit en dernier (un envoi interrompu ne laisse rien). Côté appli (`src/lib/relais.js` : `envoyerSauvegarde`, `listerSauvegardes`, `telechargerSauvegarde`, réponses
   revérifiées ; `src/lib/sauvegardeEnLigne.js`, testé) : section **Sauvegarde en ligne** des Réglages, groupe Données : « Envoyer en ligne », « Voir les copies » ; une copie
-  choisie est relue par `lireImport` et passe par l'aperçu de « Restaurer un fichier » (Remplacer demande d'exporter d'abord). Envoi manuel ; il relance le rappel des
+  choisie est relue par `lireImport` et passe par l'aperçu de « Restaurer un fichier » (Remplacer demande d'exporter d'abord). Envoi manuel, et **automatique** depuis le 16 novembre 2026 (choix d'Antoni, « tout réseau ») : 5 s après l'ouverture, si la dernière copie a 7 jours ou plus, relais complet, en ligne, collection non vide et lisible (`envoiAutoDu`, testé) ; une tentative par ouverture, réussite ou échec affichés dans un bandeau. L'envoi relance le rappel des
   30 jours comme un export. Limite : 100 Mo par envoi (requête de Workers, offre gratuite) ; le fichier est en base64, un tiers plus gros que les octets.
 - **Réglages réorganisés et wishlist allégée** (novembre 2026, demandé par Antoni : « c'est le foutoir »). Les sept sections à plat
   deviennent quatre groupes : **Affichage** (Apparence), **Connexions** (Rebrickable, Relais « dates et prix »), **Données** (Sauvegarde,
@@ -304,7 +304,7 @@ testé avec sa vraie collection, tout fonctionne.
   au rechargement (`bl_filtres`, hors export, `src/lib/filtresMemo.js`, entrée validée ; l'ancien format à un
   seul jeu est lu). La recherche texte n'est pas retenue et se vide au changement d'onglet. Un raccourci des
   Stats remplace les filtres de la collection.
-- **Qualité** : `npm run lint`, `npm test` (503 tests, dont ceux du relais), `npm run verif:ui` (axe-core, cibles de
+- **Qualité** : `npm run lint`, `npm test` (533 tests, dont ceux du relais), `npm run verif:ui` (axe-core, cibles de
   48 px, débordements, navigation, recherche visible clavier ouvert, et quatre parcours qui vérifient un
   comportement : filtres conservés au rechargement, onglets indépendants, import d'un `.txt`, repli des
   boîtes, photo personnelle (enregistrée, relue, retirée), image de la liste (fiche et règle), dates de sortie (affichage, filtre, saisie, relais), remise en wishlist (fiche et sélection, avec annulation), retrait (carte, filtre, frise), sous-thème (fiche, filtre, rattrapage), notices PDF, carrousel, plein écran (zoom, flèches, partage, image de la liste), plusieurs photos par set, images Brickset (chercher, planche, garder, boîte), prix par pièce, bloc « À venir », boîtes gardées (sauvegarde, service hors BrickLink, arrêt en maintenance), rendus gardés par le relais, sauvegarde complète avec images (export, vidage, restauration) ; 118 parcours : les contrôles visuels dans les 2 thèmes à 360, 900 et 1280 px, les parcours qui vérifient un comportement seulement en 360 et 1280 px, soit 554 écrans, en parallèle). Les trois tournent dans le CI avant le déploiement (le contrôle d'interface en 4 jobs).

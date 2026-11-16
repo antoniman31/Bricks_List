@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { etatEnLigne, libelleCopie, lireDernierEnvoi, noterEnvoi, resumeEnLigne } from './sauvegardeEnLigne.js';
+import { envoiAutoDu, etatEnLigne, libelleCopie, lireDernierEnvoi, noterEnvoi, resumeEnLigne } from './sauvegardeEnLigne.js';
 
 const faux = (init = {}) => {
   const m = new Map(Object.entries(init));
@@ -41,4 +41,26 @@ test('resumeEnLigne : relais à compléter, aucune copie, ou le délai', () => {
   assert.equal(resumeEnLigne({ relais: ok, dernier: null }), 'Aucune copie');
   assert.equal(resumeEnLigne({ relais: ok, dernier: '2026-11-14T08:00:00Z', maintenant: MAINTENANT }), 'Envoyée aujourd\'hui');
   assert.equal(resumeEnLigne({ relais: ok, dernier: '2026-11-13T08:00:00Z', maintenant: MAINTENANT }), 'Envoyée hier');
+});
+
+test('envoiAutoDu : une copie part après 7 jours, ou si aucune n\'est jamais partie', () => {
+  const relais = { url: 'https://relais.example.workers.dev', jeton: 'j' };
+  const maintenant = new Date('2026-11-16T10:00:00Z');
+  const base = { relais, nbSets: 54, lectureSeule: false, enLigne: true, maintenant };
+  assert.equal(envoiAutoDu({ ...base, dernier: null }), true);
+  assert.equal(envoiAutoDu({ ...base, dernier: 'pas une date' }), true);
+  assert.equal(envoiAutoDu({ ...base, dernier: '2026-11-09T10:00:00Z' }), true, 'pile 7 jours');
+  assert.equal(envoiAutoDu({ ...base, dernier: '2026-11-09T10:00:01Z' }), false, 'une seconde de moins');
+  assert.equal(envoiAutoDu({ ...base, dernier: '2026-11-15T10:00:00Z' }), false);
+});
+
+test('envoiAutoDu : jamais sans relais complet, hors ligne, collection vide ou illisible', () => {
+  const relais = { url: 'https://relais.example.workers.dev', jeton: 'j' };
+  const base = { relais, nbSets: 54, lectureSeule: false, enLigne: true, dernier: null };
+  assert.equal(envoiAutoDu({ ...base, relais: { url: relais.url, jeton: '' } }), false);
+  assert.equal(envoiAutoDu({ ...base, relais: { url: '', jeton: 'j' } }), false);
+  assert.equal(envoiAutoDu({ ...base, relais: undefined }), false);
+  assert.equal(envoiAutoDu({ ...base, enLigne: false }), false);
+  assert.equal(envoiAutoDu({ ...base, nbSets: 0 }), false);
+  assert.equal(envoiAutoDu({ ...base, lectureSeule: true }), false);
 });
