@@ -432,3 +432,11 @@ Corollaire : la recherche par nom de Rebrickable ne trouve que de l'anglais (« 
 
 Proposer d'abord, attendre un « ok » explicite avant de modifier quoi que ce soit, PR en brouillon,
 fusion par squash (voir `CLAUDE.md`).
+
+## Lots
+
+### CI, trois niveaux — 16/11/2026
+
+Bloc commun : règle « CI, trois niveaux » (rapide à chaque PR, lourd seulement si autre chose que des `.md` change, appareil réel). Les 4 jobs du contrôle d'interface dépendent d'un job `changements` et se sautent sur une PR qui ne touche que des
+`.md` ; « Vérifier et construire » (lint, tests, build) tourne toujours. Sur `main`, tout tourne avant le déploiement.
+Qualité : lint OK, 533 tests, `verif:ui` 606 écrans (121 parcours ; comportements en 360 et 1280 px), aucun écart.
