@@ -42,6 +42,8 @@ de chaque fonction, des décisions et des limites ; anciennement `docs/SUITE.md`
 
 - Un module de `src/lib/` a son `*.test.mjs` à côté. La logique pure vit dans
   `src/lib/`, ce qui touche au réseau reste mince (`api.js`).
+- La CSP est écrite à la construction par `src/lib/csp.js` (empreinte du script du thème recalculée à chaque build) ;
+  `verif:ui` compte tout refus de la CSP comme un écart.
 - Couleurs et tailles par jetons CSS (`src/index.css`), jamais de valeur en dur. Chaque
   jeton existe dans le thème sombre (défaut) et dans `html[data-theme='light']`, avec son
   contraste mesuré en commentaire. Le jaune en texte (`--accent`) n'est pas le jaune en
