@@ -89,6 +89,9 @@ Refusées pour l'instant : dimensions de la boîte, variantes Rebrickable (MOC).
 
 ## 5. À tester par Antoni sur son S26
 
+- [ ] **Hors ligne et mise à jour (21/11/2026)** : vite-plugin-pwa est passé de 1 à 2 (#100). Ouvrir le site connecté,
+      puis en mode avion : il s'affiche ; après une nouvelle version, la bannière de mise à jour apparaît.
+
 - La restauration complète sur un appareil vidé, un jour (l'export complet, lui, est validé).
 - Déjà validé : photos (appareil photo, recadrage), choix de l'image de la liste, filtres par onglet, relais joignable ;
   le 16/11/2026, après la mise en ligne de la #98 : CSP (images, photos, recherche Rebrickable, relais), dates de sortie
