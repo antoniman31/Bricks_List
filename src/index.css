@@ -43,6 +43,25 @@
   --rayon-carte: 16px;
   --rayon-pilule: 999px;
   --ombre-fab: 0 4px 14px rgb(0 0 0 / 0.6);
+  /* Sur une photo ou un fond noir (fiche, plein écran, planche) : mêmes valeurs dans les deux thèmes, la photo ne change pas avec le thème.
+     Contrastes mesurés, le pire cas étant une photo blanche sous le voile : blanc sur --voile-photo 6,2:1, sur --voile-photo-bandeau 9,3:1,
+     sur --voile-photo-fort 15,1:1 ; --sur-photo sur --pastille-photo 15,7:1, sur --plein-ecran 21:1 ; --sur-photo-doux sur --fond-photo-vide 10,6:1 ;
+     --erreur-photo-texte sur --erreur-photo-fond 11,7:1. --voile-photo-leger ne porte pas de texte (poignée : 3,9:1 sur photo blanche, 3:1 requis). */
+  --voile-photo: rgb(0 0 0 / 0.62);
+  --voile-photo-leger: rgb(0 0 0 / 0.5);
+  --voile-photo-bandeau: rgb(0 0 0 / 0.72);
+  --voile-photo-fort: rgb(0 0 0 / 0.85);
+  --voile-photo-nul: rgb(0 0 0 / 0);
+  --filet-photo: rgb(255 255 255 / 0.6);
+  --ombre-bandeau: rgb(0 0 0 / 0.3);
+  --sur-photo: #ffffff;
+  --sur-photo-doux: #dfe2ea;
+  --fond-photo-vide: #2a2d36;
+  --plein-ecran: #000000;
+  --pastille-photo: #20232b;
+  --bordure-photo: #4a4f5c;
+  --erreur-photo-fond: #3b1d1d;
+  --erreur-photo-texte: #ffd9d6;
   --police-titre: 'Fredoka', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --barre-basse: 64px;
   --rail: 96px;
@@ -89,6 +108,25 @@ html[data-theme='light'] {
   --sur-accent-conteneur: #3b2d00;
   --accent-bande: #fff3cf;     /* bande d'en-tête d'une étape faite : l'accent y est à 5,9:1 */
   --ombre-fab: 0 4px 14px rgb(0 0 0 / 0.25);
+  /* Sur une photo ou un fond noir (fiche, plein écran, planche) : mêmes valeurs dans les deux thèmes, la photo ne change pas avec le thème.
+     Contrastes mesurés, le pire cas étant une photo blanche sous le voile : blanc sur --voile-photo 6,2:1, sur --voile-photo-bandeau 9,3:1,
+     sur --voile-photo-fort 15,1:1 ; --sur-photo sur --pastille-photo 15,7:1, sur --plein-ecran 21:1 ; --sur-photo-doux sur --fond-photo-vide 10,6:1 ;
+     --erreur-photo-texte sur --erreur-photo-fond 11,7:1. --voile-photo-leger ne porte pas de texte (poignée : 3,9:1 sur photo blanche, 3:1 requis). */
+  --voile-photo: rgb(0 0 0 / 0.62);
+  --voile-photo-leger: rgb(0 0 0 / 0.5);
+  --voile-photo-bandeau: rgb(0 0 0 / 0.72);
+  --voile-photo-fort: rgb(0 0 0 / 0.85);
+  --voile-photo-nul: rgb(0 0 0 / 0);
+  --filet-photo: rgb(255 255 255 / 0.6);
+  --ombre-bandeau: rgb(0 0 0 / 0.3);
+  --sur-photo: #ffffff;
+  --sur-photo-doux: #dfe2ea;
+  --fond-photo-vide: #2a2d36;
+  --plein-ecran: #000000;
+  --pastille-photo: #20232b;
+  --bordure-photo: #4a4f5c;
+  --erreur-photo-fond: #3b1d1d;
+  --erreur-photo-texte: #ffd9d6;
   --survol: rgb(20 22 28 / 0.08);
   --appui: rgb(20 22 28 / 0.14);
   /* Couleurs de données, thème clair. Contraste du repère sur surface : 5,5 / 3,2 / 2,8 / 1,6:1 : les deux derniers
@@ -906,28 +944,28 @@ div.anneau__ligne { padding: 6px 0; }
 .heros .vignette--fiche, .heros .photo-vide { display: block; width: 100%; max-height: none; aspect-ratio: 5 / 4; margin: 0; border: 0; border-radius: 0; }
 .heros .vignette--fiche.vignette--vide { height: auto; aspect-ratio: 5 / 4; }
 /* Sans image : un fond sombre uni dans les deux thèmes (le titre blanc posé dessus reste lisible), avec le numéro en clair. */
-.heros .vignette--vide, .heros .photo-vide { background: #2a2d36; color: #dfe2ea; }
+.heros .vignette--vide, .heros .photo-vide { background: var(--fond-photo-vide); color: var(--sur-photo-doux); }
 /* Carrousel : la légende (image et rang) en haut à gauche, les flèches au milieu des bords, l'étoile en bas à droite. Tous sur fond
    sombre translucide, comme l'étoile. Un calque transparent couvre l'image : un appui l'ouvre en plein écran, un glissé horizontal
    change d'image (`touch-action: pan-y` laisse la page défiler). Il passe sous les autres contrôles. */
 .heros__ouvrir { position: absolute; inset: 0; z-index: 1; display: block; width: 100%; height: 100%; padding: 0; border: 0; background: transparent; cursor: zoom-in; touch-action: pan-y; }
 .heros__ouvrir:focus-visible { outline: 3px solid var(--accent-fond); outline-offset: -6px; }
 .heros__ouvrir--ajout { cursor: default; }
-.heros__legende { position: absolute; top: 12px; left: 12px; z-index: 2; display: inline-flex; align-items: center; gap: 4px; max-width: calc(100% - 84px); margin: 0; padding: 0 12px; min-height: 32px; border-radius: var(--rayon-pilule); background: rgb(0 0 0 / 0.62); color: #fff; font-size: 0.8125rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.heros__legende { position: absolute; top: 12px; left: 12px; z-index: 2; display: inline-flex; align-items: center; gap: 4px; max-width: calc(100% - 84px); margin: 0; padding: 0 12px; min-height: 32px; border-radius: var(--rayon-pilule); background: var(--voile-photo); color: var(--sur-photo); font-size: 0.8125rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sheet--heros .heros__legende { top: 36px; }
 .heros__legende .puce__etoile svg { width: 14px; height: 14px; display: block; }
-.heros__fleche { position: absolute; top: 50%; z-index: 2; display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border: 0; border-radius: 50%; background: rgb(0 0 0 / 0.62); color: #fff; transform: translateY(-50%); }
+.heros__fleche { position: absolute; top: 50%; z-index: 2; display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border: 0; border-radius: 50%; background: var(--voile-photo); color: var(--sur-photo); transform: translateY(-50%); }
 .heros__fleche--gauche { left: 8px; }
 .heros__fleche--droite { right: 8px; }
 .heros__fleche svg { width: 28px; height: 28px; display: block; }
-.heros__etoile { position: absolute; right: 12px; bottom: 12px; z-index: 2; display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border: 0; border-radius: 50%; background: rgb(0 0 0 / 0.62); color: #fff; }
+.heros__etoile { position: absolute; right: 12px; bottom: 12px; z-index: 2; display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border: 0; border-radius: 50%; background: var(--voile-photo); color: var(--sur-photo); }
 .heros__etoile[aria-pressed='true'] { background: var(--accent-fond); color: var(--sur-accent); }
 .heros__etoile svg { width: 24px; height: 24px; display: block; }
 /* Pas de `pointer-events: none` ici : le contrôle de contraste ignore alors ce calque et lit le blanc de l'image derrière le texte. */
-.heros__titre { position: absolute; left: 0; right: 0; bottom: 0; padding: 56px 72px 14px 18px; background: linear-gradient(to top, rgb(0 0 0 / 0.85), rgb(0 0 0 / 0)); color: #fff; }
+.heros__titre { position: absolute; left: 0; right: 0; bottom: 0; padding: 56px 72px 14px 18px; background: linear-gradient(to top, var(--voile-photo-fort), var(--voile-photo-nul)); color: var(--sur-photo); }
 /* Sans image à montrer (numéro seul, ou pas encore de photo), pas de dégradé fondu sur une image : un bandeau sombre uni, lisible partout. */
-.heros__image:has(.vignette--vide, .photo-vide) .heros__titre { background: rgb(0 0 0 / 0.72); padding-top: 12px; }
-.heros__titre p { display: inline-block; margin: 0; padding: 1px 10px; border-radius: var(--rayon-pilule); background: rgb(0 0 0 / 0.62); font-size: 0.8125rem; }
+.heros__image:has(.vignette--vide, .photo-vide) .heros__titre { background: var(--voile-photo-bandeau); padding-top: 12px; }
+.heros__titre p { display: inline-block; margin: 0; padding: 1px 10px; border-radius: var(--rayon-pilule); background: var(--voile-photo); font-size: 0.8125rem; }
 .heros__titre h2 { margin: 2px 0 0; font-family: var(--police-titre); font-weight: 600; font-size: 1.5rem; line-height: 1.15; text-wrap: balance; }
 .heros .photo-actions { padding: 12px 16px 0; }
 .heros > .avis { margin: 12px 16px 0; }
@@ -939,8 +977,8 @@ div.anneau__ligne { padding: 6px 0; }
 .sheet__haut--heros .sheet__poignee, .sheet__haut--heros .sheet__droite { pointer-events: auto; }
 .sheet__haut--heros .sheet__poignee { position: relative; }
 .sheet__haut--heros .sheet__poignee::before { content: ''; position: absolute; inset: -12px -48px; }
-.sheet__haut--heros .sheet__poignee { background: rgb(0 0 0 / 0.5); box-shadow: 0 0 0 1px rgb(255 255 255 / 0.6); }
-.sheet__haut--heros .icone-btn { background: rgb(0 0 0 / 0.62); color: #fff; }
+.sheet__haut--heros .sheet__poignee { background: var(--voile-photo-leger); box-shadow: 0 0 0 1px var(--filet-photo); }
+.sheet__haut--heros .icone-btn { background: var(--voile-photo); color: var(--sur-photo); }
 .sheet__defile--heros { padding: 0 0 16px; }
 /* Panneau de droite (grand écran) : l'image déborde du remplissage du panneau, comme dans la feuille. */
 .detail .heros { margin: -20px -20px 0; }
@@ -998,35 +1036,35 @@ div.anneau__ligne { padding: 6px 0; }
 .budget__colonnes--serre .budget__nom { gap: 3px; font-size: 0.6875rem; }
 
 /* ---------- Visionneuse : les images du set en plein écran ---------- */
-.visionneuse { width: 100vw; max-width: none; height: 100dvh; max-height: none; margin: 0; padding: 0; border: 0; background: #000; color: #fff; overflow: hidden; }
+.visionneuse { width: 100vw; max-width: none; height: 100dvh; max-height: none; margin: 0; padding: 0; border: 0; background: var(--plein-ecran); color: var(--sur-photo); overflow: hidden; }
 .visionneuse[open] { display: flex; flex-direction: column; }
-.visionneuse::backdrop { background: #000; }
+.visionneuse::backdrop { background: var(--plein-ecran); }
 .visionneuse__haut { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; }
-.visionneuse__legende { margin: 0; padding: 4px 12px; border-radius: var(--rayon-pilule); background: #20232b; font-size: 0.875rem; font-weight: 600; }
-.visionneuse .icone-btn { background: #20232b; color: #fff; }
+.visionneuse__legende { margin: 0; padding: 4px 12px; border-radius: var(--rayon-pilule); background: var(--pastille-photo); font-size: 0.875rem; font-weight: 600; }
+.visionneuse .icone-btn { background: var(--pastille-photo); color: var(--sur-photo); }
 .visionneuse .icone-btn:disabled { opacity: 0.35; }
 /* La scène défile quand l'image est zoomée : on se déplace avec le doigt ou la souris. */
 .visionneuse__scene { flex: 1 1 0; min-height: 0; overflow: auto; }
 .visionneuse__image { display: block; width: 100%; height: 100%; padding: 0; border: 0; background: transparent; cursor: zoom-in; }
 .visionneuse__scene--zoom .visionneuse__image { width: 260%; height: 260%; cursor: zoom-out; }
 .visionneuse .vignette--plein { display: block; width: 100%; height: 100%; max-height: none; margin: 0; border: 0; border-radius: 0; aspect-ratio: auto; object-fit: contain; background: transparent; }
-.visionneuse .photo-vide { height: 100%; max-height: none; aspect-ratio: auto; border: 0; color: #dfe2ea; }
-.visionneuse .vignette--vide { background: #2a2d36; color: #dfe2ea; }
-.visionneuse__message { margin: 0; padding: 8px 16px; background: #3b1d1d; color: #ffd9d6; font-size: 0.875rem; }
+.visionneuse .photo-vide { height: 100%; max-height: none; aspect-ratio: auto; border: 0; color: var(--sur-photo-doux); }
+.visionneuse .vignette--vide { background: var(--fond-photo-vide); color: var(--sur-photo-doux); }
+.visionneuse__message { margin: 0; padding: 8px 16px; background: var(--erreur-photo-fond); color: var(--erreur-photo-texte); font-size: 0.875rem; }
 .visionneuse__bas { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); }
-.visionneuse__action { display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex: 0 1 auto; margin: 0; background: #20232b; border-color: #4a4f5c; color: #fff; }
+.visionneuse__action { display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex: 0 1 auto; margin: 0; background: var(--pastille-photo); border-color: var(--bordure-photo); color: var(--sur-photo); }
 .visionneuse__action[aria-pressed='true'] { background: var(--accent-fond); border-color: var(--accent-fond); color: var(--sur-accent); }
 .visionneuse__action svg { width: 20px; height: 20px; }
 @media (max-width: 420px) { .visionneuse__action { padding: 0 10px; } }
 
 /* ---------- Planche : toutes les images du set en miniatures ---------- */
 .planche { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; margin: 0 0 14px; padding: 0; list-style: none; }
-.planche__cellule { position: relative; display: block; width: 100%; aspect-ratio: 4 / 3; min-height: 78px; padding: 0; overflow: hidden; border: 2px solid var(--bordure); border-radius: 10px; background: #2a2d36; }
+.planche__cellule { position: relative; display: block; width: 100%; aspect-ratio: 4 / 3; min-height: 78px; padding: 0; overflow: hidden; border: 2px solid var(--bordure); border-radius: 10px; background: var(--fond-photo-vide); }
 .planche__cellule[aria-current='true'] { border-color: var(--accent-fond); box-shadow: 0 0 0 2px var(--accent-fond); }
 .planche .vignette--mini { display: block; width: 100%; height: 100%; max-height: none; margin: 0; border: 0; border-radius: 0; aspect-ratio: auto; object-fit: cover; }
-.planche .vignette--mini.vignette--vide, .planche .photo-vide { height: 100%; min-height: 0; max-height: none; aspect-ratio: auto; border: 0; background: #2a2d36; color: #dfe2ea; font-size: 0.6875rem; padding: 4px; }
+.planche .vignette--mini.vignette--vide, .planche .photo-vide { height: 100%; min-height: 0; max-height: none; aspect-ratio: auto; border: 0; background: var(--fond-photo-vide); color: var(--sur-photo-doux); font-size: 0.6875rem; padding: 4px; }
 /* Rang et marques sur fond sombre opaque : lisibles sur n'importe quelle image (blanc sur #20232b, environ 14:1). */
-.planche__rang, .planche__badge { position: absolute; padding: 0 6px; border-radius: var(--rayon-pilule); background: #20232b; color: #fff; font-size: 0.6875rem; font-weight: 700; line-height: 18px; }
+.planche__rang, .planche__badge { position: absolute; padding: 0 6px; border-radius: var(--rayon-pilule); background: var(--pastille-photo); color: var(--sur-photo); font-size: 0.6875rem; font-weight: 700; line-height: 18px; }
 .planche__rang { top: 4px; left: 4px; }
 .planche__badges { position: absolute; right: 4px; bottom: 4px; display: flex; gap: 4px; }
 .planche__badge { position: static; }
@@ -1051,7 +1089,7 @@ div.anneau__ligne { padding: 6px 0; }
 .carte__photo { position: relative; flex: none; overflow: hidden; border-radius: 8px; }
 .tuile__image { overflow: hidden; }
 /* Une bande de bord à bord, penchée, au milieu de l'image : rouge pour « Retiré », jaune de l'appli (texte sombre) dans les six mois. */
-.badge-retrait { position: absolute; left: -12%; right: -12%; top: 50%; z-index: 1; padding: 2px 0; text-align: center; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.14em; line-height: 16px; text-transform: uppercase; white-space: nowrap; transform: translateY(-50%) rotate(-16deg); box-shadow: 0 1px 0 rgb(0 0 0 / 0.3); }
+.badge-retrait { position: absolute; left: -12%; right: -12%; top: 50%; z-index: 1; padding: 2px 0; text-align: center; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.14em; line-height: 16px; text-transform: uppercase; white-space: nowrap; transform: translateY(-50%) rotate(-16deg); box-shadow: 0 1px 0 var(--ombre-bandeau); }
 .badge-retrait--retire { background: var(--retire); color: var(--sur-retire); }
 .badge-retrait--bientot { background: var(--accent-fond); color: var(--sur-accent); font-size: 0.65625rem; letter-spacing: 0.08em; }
 .carte--tuile .badge-retrait { font-size: 0.9375rem; line-height: 20px; }
