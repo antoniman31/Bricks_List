@@ -12,6 +12,12 @@ de la wishlist (#71), correctif de la copie des rendus (#72).
 
 ## 1. Tout de suite
 
+0. **CSP : `blob:` absent de `connect-src`** (trouvé le 21/11/2026, un écart de `verif:ui` en sombre 1280 px, non reproduit en rejouant le parcours seul). `Visionneuse.jsx` lit
+   l'image affichée par `fetch(img.currentSrc)` ; une fois la boîte gardée sur l'appareil, `currentSrc` est une adresse `blob:` et la CSP (`connect-src 'self' https:`, `src/lib/csp.js`)
+   la refuse : « Partager » / « Enregistrer » échouerait avec un message trompeur (« garde-la d'abord »). Correctif probable : ajouter `blob:` à `connect-src`, avec un test de `csp.js`
+   et un parcours qui force l'image en `blob:`. **À proposer à Antoni avant de coder.** À vérifier sur le S26 : plein écran sur une boîte gardée, « Partager ».
+0 bis. **Règle Design, couleurs en jetons : faite** (voir `JOURNAL.md`). **À vérifier sur le S26 ou le PC** : la fiche d'un set (voiles sur la photo, étoile, flèches, fermeture), le plein écran, la planche
+   et le bandeau « Retiré » ont le même aspect qu'avant, en thème clair et sombre.
 1. ~~Réorganiser les Réglages~~ : fait (quatre groupes, états en une ligne, une section ouverte à la fois ; voir `JOURNAL.md`). La wishlist
    n'a plus que le total et un bouton-icône « Copier la liste » (la mise à jour dates et prix est dans Réglages > Brickset).
 1 bis. ~~Sauvegarde en ligne~~ : faite et vérifiée par Antoni le 14 novembre 2026 sur son S26 (PR #93). Premier envoi : 54 sets et 129 images, **17,4 Mo**, un seul morceau dans KV ; « Voir les copies » et

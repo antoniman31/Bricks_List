@@ -484,3 +484,17 @@ Bloc commun de `CLAUDE.md` aligné sur `regles-communes` (BLOC.md, commit 98885d
 ### Règles communes mises à jour — 21/11/2026
 
 Bloc commun de `CLAUDE.md` aligné sur `regles-communes` (BLOC.md, commit 400626b), par la propagation automatique.
+
+### Règle Design : couleurs de la fiche, du plein écran et de la planche en jetons — 21/11/2026
+
+Audit de l'appli contre la nouvelle règle commune « Design » (jetons jamais en dur, deux thèmes, contraste 4,5:1, focus visible, animations réduites, erreurs
+d'une phrase). Conforme : `prefers-reduced-motion` coupe tout (`index.css`), « Automatique » suit le système, `:focus-visible` partout, aucun `outline: none`.
+Écart : **21 lignes de CSS** portaient une couleur en dur (voiles noirs et blanc sur la photo de la fiche, fond noir et pastilles de la visionneuse, fonds de
+la planche, ombre du bandeau « Retiré »). Un premier décompte à 9 lignes était faux : ma recherche ne voyait pas les hexadécimaux. Le test les compte désormais.
+Quinze jetons ajoutés dans les deux thèmes (`--voile-photo*`, `--filet-photo`, `--ombre-bandeau`, `--sur-photo*`, `--fond-photo-vide`, `--plein-ecran`,
+`--pastille-photo`, `--bordure-photo`, `--erreur-photo-*`), mêmes valeurs qu'avant (la photo ne change pas avec le thème), contrastes mesurés en commentaire (pire cas :
+photo blanche sous le voile : blanc sur `--voile-photo` 6,2:1). Rendu inchangé. Test `src/lib/jetonsCss.test.mjs` : aucune couleur en dur hors des deux blocs de
+jetons (vu échouer sur le CSS d'avant, avec les 21 lignes) et chaque jeton de photo existe dans les deux thèmes (vu échouer quand `--sur-photo` manque au thème clair,
+puis restauré).
+- Qualité : lint OK, 540 tests, `verif:ui` 606 écrans (121 parcours). Un écart, sans lien avec le CSS : « plein écran : enregistrer l'image » en sombre 1280 px, la CSP
+  refusait `fetch(blob:…)` (voir `RESTE-A-FAIRE.md`) ; le parcours rejoué seul deux fois ne montre aucun écart.
