@@ -498,3 +498,7 @@ jetons (vu échouer sur le CSS d'avant, avec les 21 lignes) et chaque jeton de p
 puis restauré).
 - Qualité : lint OK, 540 tests, `verif:ui` 606 écrans (121 parcours). Un écart, sans lien avec le CSS : « plein écran : enregistrer l'image » en sombre 1280 px, la CSP
   refusait `fetch(blob:…)` (voir `RESTE-A-FAIRE.md`) ; le parcours rejoué seul deux fois ne montre aucun écart.
+
+### Règles communes mises à jour — 21/11/2026
+
+Bloc commun de `CLAUDE.md` aligné sur `regles-communes` (BLOC.md, commit 2005adb), par la propagation automatique.
