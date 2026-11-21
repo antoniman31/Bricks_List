@@ -466,3 +466,9 @@ Qualité : lint OK, 538 tests ; `verif:ui` non rejoué (aucun code changé).
 - #100 : 5 dépendances npm (plugin React 6.3, oxlint 1.93, Playwright 1.65.0, Vite 8.3.8, vite-plugin-pwa 2.0 : version
   majeure, le mode hors ligne est à revoir sur le S26, voir `RESTE-A-FAIRE.md`, section 5).
 - Qualité : lint OK, 538 tests, `verif:ui` 606 écrans (121 parcours), aucun écart, rejoués en local après fusion.
+
+### Règles communes : trois changements — 21/11/2026
+
+Bloc commun de `CLAUDE.md` mis à jour (décision d'Antoni) : deux règles en plus et une règle précisée, « Versions et API » (vérifier les
+versions dans la doc officielle, signaler tout code déprécié) et « Contradiction » (signaler une demande qui contredit une
+règle avant de l'appliquer) ; « Proposer d'abord » demande désormais un plan détaillé et des suggestions avant tout code, et un visuel (maquette HTML ou schéma ASCII) pour une fonctionnalité ou un design ; « les 8 dépôts » devient « tous les dépôts d'Antoni, existants et futurs », avec l'arrivée de game_timer.
