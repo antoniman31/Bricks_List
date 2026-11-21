@@ -459,3 +459,10 @@ Antoni a validé sur le S26, après la mise en ligne de la #98 : images, photos,
 CSP ; dates de sortie et prix de la wishlist ; sauvegarde des images et export complet. Reste la restauration sur un
 appareil vidé. Documentation seule : les 4 jobs d'interface doivent être « sautés » sur cette PR.
 Qualité : lint OK, 538 tests ; `verif:ui` non rejoué (aucun code changé).
+
+### Mises à jour Dependabot — 21/11/2026
+
+- #99 : les 5 actions de la CI (checkout 7, setup-node 7, configure-pages 6, upload-pages-artifact 5, deploy-pages 5).
+- #100 : 5 dépendances npm (plugin React 6.3, oxlint 1.93, Playwright 1.65.0, Vite 8.3.8, vite-plugin-pwa 2.0 : version
+  majeure, le mode hors ligne est à revoir sur le S26, voir `RESTE-A-FAIRE.md`, section 5).
+- Qualité : lint OK, 538 tests, `verif:ui` 606 écrans (121 parcours), aucun écart, rejoués en local après fusion.
