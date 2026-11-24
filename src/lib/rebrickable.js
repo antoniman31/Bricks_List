@@ -4,18 +4,18 @@ import { ErreurRebrickable } from './api.js';
 const PROFONDEUR_MAX = 6; // les thèmes réels n'ont que 3 niveaux : le reste est un cycle
 
 export const MESSAGES = {
-  cle: 'Clé refusée (Réglages).',
-  introuvable: 'Set introuvable chez Rebrickable.',
+  cle: 'Clé refusée : corrige-la dans Réglages.',
+  introuvable: 'Set introuvable chez Rebrickable : vérifie le numéro.',
   limite: 'Trop de requêtes : réessaie.',
-  reseau: 'Pas de réseau.',
-  reponse: 'Réponse inattendue de Rebrickable.',
-  serveur: 'Rebrickable indisponible.',
+  reseau: 'Pas de réseau : réessaie une fois connecté.',
+  reponse: 'Réponse inattendue de Rebrickable : réessaie plus tard.',
+  serveur: 'Rebrickable indisponible : réessaie plus tard.',
   numero: 'Numéro invalide (ex. 75192).',
   requete: 'Saisis au moins 3 caractères.',
 };
 
 export function messageErreur(e) {
-  return MESSAGES[e?.code] ?? 'Recherche impossible.';
+  return MESSAGES[e?.code] ?? 'Recherche impossible : réessaie plus tard.';
 }
 
 // Un thème Rebrickable est hiérarchique : le Faucon Millenium est dans

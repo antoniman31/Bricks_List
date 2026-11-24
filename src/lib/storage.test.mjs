@@ -50,5 +50,5 @@ test('une écriture qui échoue renvoie le motif', () => {
   const plein = { getItem: () => null, setItem: () => { const e = new Error('plein'); e.name = 'QuotaExceededError'; throw e; } };
   const r = sauver([SET], plein);
   assert.equal(r.ok, false);
-  assert.equal(r.erreur, 'Stockage plein.');
+  assert.match(r.erreur, /^Stockage plein : /);
 });

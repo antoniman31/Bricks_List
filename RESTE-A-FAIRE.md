@@ -18,6 +18,8 @@ de la wishlist (#71), correctif de la copie des rendus (#72).
    et un parcours qui force l'image en `blob:`. **À proposer à Antoni avant de coder.** À vérifier sur le S26 : plein écran sur une boîte gardée, « Partager ».
 0 bis. **Règle Design, couleurs en jetons : faite** (voir `JOURNAL.md`). **À vérifier sur le S26 ou le PC** : la fiche d'un set (voiles sur la photo, étoile, flèches, fermeture), le plein écran, la planche
    et le bandeau « Retiré » ont le même aspect qu'avant, en thème clair et sombre.
+0 ter. **Messages d'erreur (24/11/2026)** : forme « constat : action » partout où un message s'arrêtait au constat. **À vérifier sur le S26** : saisir une
+   date avant 1949 dans une fiche, chercher un numéro inexistant, chercher un set en mode avion.
 1. ~~Réorganiser les Réglages~~ : fait (quatre groupes, états en une ligne, une section ouverte à la fois ; voir `JOURNAL.md`). La wishlist
    n'a plus que le total et un bouton-icône « Copier la liste » (la mise à jour dates et prix est dans Réglages > Brickset).
 1 bis. ~~Sauvegarde en ligne~~ : faite et vérifiée par Antoni le 14 novembre 2026 sur son S26 (PR #93). Premier envoi : 54 sets et 129 images, **17,4 Mo**, un seul morceau dans KV ; « Voir les copies » et

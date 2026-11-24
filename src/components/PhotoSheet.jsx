@@ -55,7 +55,7 @@ export default function PhotoSheet({ fichier, onFermer, onEnregistrer }) {
       if (r.ok) onFermer()
       else setErreur(r.erreur)
     } catch {
-      setErreur('Le rendu de la photo a échoué.')
+      setErreur('Le rendu de la photo a échoué : essaie une autre photo.')
     } finally {
       setEnvoi(false)
     }

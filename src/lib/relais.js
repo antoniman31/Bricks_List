@@ -7,6 +7,7 @@ import { normaliserNumero } from './numero.js';
 import { prixValide } from './prix.js';
 import { libelleCourt } from './libelle.js';
 import { lireGalerie, urlImageBrickset } from './galerie.js';
+import { STOCKAGE_BLOQUE, ECRITURE_IMPOSSIBLE } from './messages.js';
 
 const CLE = 'bl_relais';
 const FORME_JETON = /^[\x21-\x7E]{8,100}$/;
@@ -44,14 +45,14 @@ export function lireRelais(store) {
 
 export function ecrireRelais({ url, jeton }, store) {
   const s = stockage(store);
-  if (!s) return { ok: false, erreur: 'Stockage indisponible.' };
+  if (!s) return { ok: false, erreur: STOCKAGE_BLOQUE };
   try {
     const propre = urlRelaisValide(url);
     if (!propre) s.removeItem(CLE);
     else s.setItem(CLE, JSON.stringify({ url: propre, jeton: jetonValide(jeton) ? jeton.trim() : '' }));
     return { ok: true, erreur: null };
   } catch {
-    return { ok: false, erreur: 'Écriture impossible.' };
+    return { ok: false, erreur: ECRITURE_IMPOSSIBLE };
   }
 }
 
@@ -60,14 +61,14 @@ const MESSAGES = {
   limite: 'Limite quotidienne de Brickset atteinte : réessaie demain.',
   configuration: 'Le relais n\'a pas de clé Brickset : ajoute le secret BRICKSET_KEY.',
   jeton: 'Le relais exige un jeton : saisis-le dans Réglages.',
-  delai: 'Le relais ne répond pas à temps.',
-  numero: 'Numéro refusé par le relais.',
+  delai: 'Le relais ne répond pas à temps : réessaie.',
+  numero: 'Numéro refusé par le relais : vérifie-le (ex. 75192).',
   reseau: 'Relais injoignable : vérifie l\'adresse et la connexion.',
-  brickset: 'Brickset ne répond pas correctement.',
-  reponse: 'Réponse du relais illisible.',
+  brickset: 'Brickset ne répond pas correctement : réessaie plus tard.',
+  reponse: 'Réponse du relais illisible : vérifie son adresse dans Réglages.',
   absente: 'Pas de rendu chez Rebrickable pour ce set.',
   url: 'Adresse de rendu refusée par le relais.',
-  rebrickable: 'Rebrickable ne répond pas correctement.',
+  rebrickable: 'Rebrickable ne répond pas correctement : réessaie plus tard.',
   type: 'Le relais n\'a pas renvoyé une image.',
   taille: 'Image trop grosse pour le relais.',
   protection: 'Le relais n\'a pas de secret JETON : ajoute-le (sauvegarde en ligne).',

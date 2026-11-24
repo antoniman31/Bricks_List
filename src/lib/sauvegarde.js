@@ -1,3 +1,4 @@
+import { STOCKAGE_BLOQUE, ECRITURE_IMPOSSIBLE } from './messages.js';
 // Suivi de la sauvegarde : quand a-t-on exporté pour la dernière fois, est-ce
 // qu'il est temps de le refaire, et Chrome nous laissera-t-il nos données ?
 // La date vit sous sa propre clé de stockage, hors de la collection : elle ne
@@ -27,12 +28,12 @@ export function lireDerniereSauvegarde(store, maintenant = new Date()) {
 
 export function noterSauvegarde(maintenant = new Date(), store) {
   const s = stockage(store);
-  if (!s) return { ok: false, erreur: 'Stockage indisponible.' };
+  if (!s) return { ok: false, erreur: STOCKAGE_BLOQUE };
   try {
     s.setItem(CLE_DERNIERE, maintenant.toISOString());
     return { ok: true, erreur: null };
   } catch {
-    return { ok: false, erreur: 'Écriture impossible.' };
+    return { ok: false, erreur: ECRITURE_IMPOSSIBLE };
   }
 }
 

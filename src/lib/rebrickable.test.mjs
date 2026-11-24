@@ -99,7 +99,7 @@ test('un cycle dans les thèmes ne boucle pas', async () => {
 test('messages d\'erreur lisibles', () => {
   assert.match(messageErreur({ code: 'cle' }), /Clé/);
   assert.match(messageErreur({ code: 'reseau' }), /réseau/);
-  assert.equal(messageErreur(new Error('x')), 'Recherche impossible.');
+  assert.equal(messageErreur(new Error('x')), 'Recherche impossible : réessaie plus tard.');
 });
 
 // ---------- recherche par nom ----------

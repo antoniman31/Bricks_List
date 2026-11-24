@@ -84,7 +84,7 @@ export default function AjoutRapide({ statut, aCle, lieux, compterExemplaires, o
       emplacement: possede ? lieu : '',
       notes: '',
     }
-    if (!normaliserSet(brut)) return setMessage('Set refusé.')
+    if (!normaliserSet(brut)) return setMessage('Set refusé : vérifie le numéro (ex. 75192).')
     retenir()
     onAjouter(brut)
   }
