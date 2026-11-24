@@ -1,3 +1,4 @@
+import { STOCKAGE_BLOQUE, ECRITURE_IMPOSSIBLE } from './messages.js';
 const CLE_API = 'bl_rebrickable';
 const CLE_THEMES = 'bl_themes';
 // 8 à 100 caractères ASCII imprimables, sans espace : ce qu'une clé d'API peut
@@ -21,13 +22,13 @@ export function lireCle(store) {
 
 export function ecrireCle(cle, store) {
   const s = stockage(store);
-  if (!s) return { ok: false, erreur: 'Stockage indisponible.' };
+  if (!s) return { ok: false, erreur: STOCKAGE_BLOQUE };
   try {
     if (cle === '') s.removeItem(CLE_API);
     else s.setItem(CLE_API, cle.trim());
     return { ok: true, erreur: null };
   } catch {
-    return { ok: false, erreur: 'Écriture impossible.' };
+    return { ok: false, erreur: ECRITURE_IMPOSSIBLE };
   }
 }
 

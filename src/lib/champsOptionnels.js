@@ -14,13 +14,13 @@ export function changementsOptionnels(depart, champs, souhaite) {
   if (change('dateSortie')) {
     const v = champs.dateSortie.trim();
     if (v === '') Object.assign(changements, { dateSortie: null, sortieSource: null });
-    else if (dateSortieValide(v) === null) return { erreur: 'Date de sortie invalide.' };
+    else if (dateSortieValide(v) === null) return { erreur: 'Date de sortie invalide : entre 1949 et dans dix ans.' };
     else Object.assign(changements, { dateSortie: v, sortieSource: 'manuelle' });
   }
   if (change('dateRetrait')) {
     const v = champs.dateRetrait.trim();
     if (v === '') changements.dateRetrait = null;
-    else if (dateSortieValide(v) === null) return { erreur: 'Date de retrait invalide.' };
+    else if (dateSortieValide(v) === null) return { erreur: 'Date de retrait invalide : entre 1949 et dans dix ans.' };
     else changements.dateRetrait = v;
   }
   // '' veut dire « pas de sous-thème » (Brickset n'est plus interrogé), à la différence de null (jamais demandé).

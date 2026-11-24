@@ -2,6 +2,7 @@
 // dans un export) et la façon de décrire les copies gardées chez le relais. Le réseau est dans `relais.js`.
 import { formaterOctets } from './octets.js';
 import { libelleDelai } from './sauvegarde.js';
+import { STOCKAGE_BLOQUE, ECRITURE_IMPOSSIBLE } from './messages.js';
 
 const CLE_ENVOI = 'bl_derniere_copie_en_ligne';
 const JOUR_MS = 24 * 60 * 60 * 1000;
@@ -21,8 +22,8 @@ export function lireDernierEnvoi(store, maintenant = new Date()) {
 
 export function noterEnvoi(maintenant = new Date(), store) {
   const s = stockage(store);
-  if (!s) return { ok: false, erreur: 'Stockage indisponible.' };
-  try { s.setItem(CLE_ENVOI, maintenant.toISOString()); return { ok: true, erreur: null }; } catch { return { ok: false, erreur: 'Écriture impossible.' }; }
+  if (!s) return { ok: false, erreur: STOCKAGE_BLOQUE };
+  try { s.setItem(CLE_ENVOI, maintenant.toISOString()); return { ok: true, erreur: null }; } catch { return { ok: false, erreur: ECRITURE_IMPOSSIBLE }; }
 }
 
 // « 14 nov. 2026 à 15:30 » : la date d'une copie, dans le fuseau de l'appareil.

@@ -102,7 +102,7 @@ export function FicheContenu({ set, lectureSeule, relais = null, lieux = [], lie
   // un changement qui disparaîtrait sans bruit serait pire qu'un bouton « Enregistrer » oublié.
   function changer(changements) {
     const ok = onChanger(changements)
-    setProbleme(ok ? '' : 'Modification refusée.')
+    setProbleme(ok ? '' : 'Modification refusée : valeur hors limites, corrige-la.')
     return ok
   }
   const basculer = (nom) => { setEdition((e) => (e === nom ? '' : nom)); setProbleme('') }
@@ -114,7 +114,7 @@ export function FicheContenu({ set, lectureSeule, relais = null, lieux = [], lie
   function changerDate(champ, v) {
     if (v === null) { if (changer({ [champ]: null })) setEdition(''); return }
     if (v === '') return
-    if (dateValide(v) === null) return setProbleme('Date invalide (pas dans le futur).')
+    if (dateValide(v) === null) return setProbleme('Date invalide : entre 1949 et aujourd\'hui.')
     if (changer({ [champ]: v })) setEdition('')
   }
   // La date de sortie, elle, peut être dans le futur (un set annoncé). Saisie à la main, elle n'est plus
@@ -122,7 +122,7 @@ export function FicheContenu({ set, lectureSeule, relais = null, lieux = [], lie
   function changerSortie(v) {
     if (v === null) { if (changer({ dateSortie: null, sortieSource: null })) setEdition(''); return }
     if (v === '') return
-    if (dateSortieValide(v) === null) return setProbleme('Date invalide.')
+    if (dateSortieValide(v) === null) return setProbleme('Date invalide : entre 1949 et dans dix ans.')
     if (changer({ dateSortie: v, sortieSource: 'manuelle' })) setEdition('')
   }
   // Le prix officiel (wishlist) : saisi à la main, il n'est plus remplacé par le prix allemand pré-rempli ; l'effacer

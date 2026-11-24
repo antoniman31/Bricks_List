@@ -502,3 +502,13 @@ puis restauré).
 ### Règles communes mises à jour — 21/11/2026
 
 Bloc commun de `CLAUDE.md` aligné sur `regles-communes` (BLOC.md, commit 2005adb), par la propagation automatique.
+
+### Messages d'erreur : dire quoi faire — 24/11/2026
+
+Revue de la règle commune « Design » (un message d'erreur dit ce qui s'est passé et comment corriger). Plusieurs messages s'arrêtaient
+au constat : « Stockage indisponible. » et « Écriture impossible. » (dans six modules), « Date invalide. », « Set refusé. »,
+« Modification refusée. », « Pas de réseau. », « Recherche impossible. », cinq réponses du relais, le rendu d'une photo. Ils prennent
+la forme « constat : action » (« Stockage plein : libère de la place, puis réessaie. », « Date invalide : entre 1949 et dans dix ans. »).
+Les trois messages du stockage vivent dans `src/lib/messages.js`, partagé. Test `src/lib/messages.test.mjs` : chaque message affiché tel
+quel contient « … : … » (vu échouer sur le code d'avant : 4 tests sur 5) ; il vérifie la forme, le sens se relit dans la PR.
+- Qualité : lint OK, 545 tests. `verif:ui` non rejoué en local (textes seuls) : la CI le joue.

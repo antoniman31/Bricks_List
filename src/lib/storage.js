@@ -1,3 +1,4 @@
+import { STOCKAGE_BLOQUE, STOCKAGE_PLEIN, ECRITURE_IMPOSSIBLE } from './messages.js';
 import { validerSets } from './model.js';
 
 export const CLE = 'bl_v1';
@@ -15,10 +16,10 @@ function stockage(store) {
 // `illisible` permet à l'application de passer en lecture seule dans ce cas.
 export function charger(store) {
   const s = stockage(store);
-  if (!s) return { sets: null, corriges: 0, rejetes: 0, erreur: 'Stockage indisponible : rien ne sera enregistré.' };
+  if (!s) return { sets: null, corriges: 0, rejetes: 0, erreur: STOCKAGE_BLOQUE };
 
   let brut;
-  try { brut = s.getItem(CLE); } catch { return { sets: null, corriges: 0, rejetes: 0, erreur: 'Stockage inaccessible.' }; }
+  try { brut = s.getItem(CLE); } catch { return { sets: null, corriges: 0, rejetes: 0, erreur: STOCKAGE_BLOQUE }; }
   if (brut == null) return { sets: null, corriges: 0, rejetes: 0, erreur: null };
 
   let donnees;
@@ -33,11 +34,11 @@ export function charger(store) {
 // silence : l'appelant reçoit le motif et l'affiche.
 export function sauver(sets, store) {
   const s = stockage(store);
-  if (!s) return { ok: false, erreur: 'Stockage indisponible.' };
+  if (!s) return { ok: false, erreur: STOCKAGE_BLOQUE };
   try {
     s.setItem(CLE, JSON.stringify({ version: VERSION, sets }));
     return { ok: true, erreur: null };
   } catch (e) {
-    return { ok: false, erreur: e?.name === 'QuotaExceededError' ? 'Stockage plein.' : 'Écriture impossible.' };
+    return { ok: false, erreur: e?.name === 'QuotaExceededError' ? STOCKAGE_PLEIN : ECRITURE_IMPOSSIBLE };
   }
 }
