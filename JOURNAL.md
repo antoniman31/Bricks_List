@@ -543,3 +543,7 @@ appui sur le logo (vrai bouton de 48 px, composant `Signature`) alterne cette co
   sous-titre, mais le bouton, renommé « Chercher une mise à jour », reste : c'est l'outil pour forcer une mise à jour sur le téléphone. Le parcours
   `verif:ui` « réglages (vérification de version) » exige l'absence de l'ancienne section et d'état affiché ; vu échouer avant le changement
   (4 configurations). `verif:ui` filtré « réglages » : le même délai dépassé sur « boîtes : sauvegarder toutes », vert à la relance seule.
+
+### Règles communes mises à jour — 25/11/2026
+
+Bloc commun de `CLAUDE.md` aligné sur `regles-communes` (BLOC.md, commit 8e4cde6), par la propagation automatique.
