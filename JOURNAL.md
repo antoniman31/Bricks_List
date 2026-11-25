@@ -539,3 +539,7 @@ appui sur le logo (vrai bouton de 48 px, composant `Signature`) alterne cette co
 `mention.test.mjs` (module sans les nouvelles fonctions) et le parcours `verif:ui` « réglages (groupes et états) » (4 configurations).
 - Qualité : lint OK, 549 tests. `verif:ui` filtré « réglages » : 32 écrans, un délai dépassé déjà vu hier sur « boîtes : sauvegarder
   toutes » (360 px sombre), vert à la relance seule.
+- La section « Version de l'appli » devient « Mise à jour » (choix d'Antoni : la signature donne la version) : plus de « Version 88c0394 » en
+  sous-titre, mais le bouton, renommé « Chercher une mise à jour », reste : c'est l'outil pour forcer une mise à jour sur le téléphone. Le parcours
+  `verif:ui` « réglages (vérification de version) » exige l'absence de l'ancienne section et d'état affiché ; vu échouer avant le changement
+  (4 configurations). `verif:ui` filtré « réglages » : le même délai dépassé sur « boîtes : sauvegarder toutes », vert à la relance seule.

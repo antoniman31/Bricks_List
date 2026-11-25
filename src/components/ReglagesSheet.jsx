@@ -492,9 +492,9 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
 
       <div role="group" aria-labelledby="reglages-apropos">
         <h3 className="reglages__groupe" id="reglages-apropos">À propos</h3>
-        <Section id="maj" titre="Version de l'appli" etat={`Version ${__COMMIT__}`} ouverte={ouverte} onBasculer={basculer}>
+        <Section id="maj" titre="Mise à jour" ouverte={ouverte} onBasculer={basculer}>
         <button type="button" className="bouton" disabled={maj.etat === 'charge'} onClick={verifierMaj}>
-          {maj.etat === 'charge' ? 'Vérification…' : 'Chercher une version'}
+          {maj.etat === 'charge' ? 'Vérification…' : 'Chercher une mise à jour'}
         </button>
         {maj.message && maj.etat !== 'charge' && (
           <p className={`avis${maj.etat === 'erreur' ? ' avis--erreur' : ''}`} role={maj.etat === 'erreur' ? 'alert' : 'status'}>{maj.message}</p>

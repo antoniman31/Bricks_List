@@ -1184,8 +1184,11 @@ const ECRANS = {
   // Le bouton « Vérifier les mises à jour » des Réglages : le serveur de test sert le même build, donc « à jour ».
   'réglages (vérification de version)': async (p) => {
     await p.click(REGLAGES);
-    await p.click('dialog[open] summary:has-text("Version de l\'appli")');
-    await p.click('dialog[open] button:has-text("Chercher une version")');
+    // L'ancienne section « Version de l'appli » n'affiche plus de version (la signature la donne) : elle ne garde que l'outil de mise à jour.
+    exiger(await p.locator('dialog[open] summary:has-text("Version de l\'appli")').count() === 0, 'l\'ancienne section « Version de l\'appli » doit avoir disparu');
+    await p.click('dialog[open] summary:has-text("Mise à jour")');
+    exiger(await p.locator('dialog[open] .reglage[open] .reglage__etat').count() === 0, 'la section Mise à jour ne doit plus montrer « Version … »');
+    await p.click('dialog[open] button:has-text("Chercher une mise à jour")');
     await p.waitForSelector('dialog[open] [role=status]:has-text("dernière version")');
   },
   'stats': async (p) => { await p.click('.nav__item:has-text("Stats")'); await p.waitForSelector('.stats'); },
