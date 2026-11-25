@@ -15,7 +15,8 @@ const commit = (() => {
 export default defineConfig({
   // Le site vit dans un sous-dossier de GitHub Pages.
   base: '/Bricks_List/',
-  define: { __COMMIT__: JSON.stringify(commit) },
+  // La date du build accompagne le commit dans Réglages › À propos : elle dit quand l'appareil a reçu cette version.
+  define: { __COMMIT__: JSON.stringify(commit), __BUILD_DATE__: JSON.stringify(new Date().toISOString()) },
   plugins: [
     react(),
     pluginCsp(),

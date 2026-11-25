@@ -1148,6 +1148,9 @@ const ECRANS = {
     for (const g of ['Affichage', 'Connexions', 'Données', 'À propos']) {
       exiger(await p.locator(`dialog[open] .reglages__groupe:text-is("${g}")`).count() === 1, `le groupe « ${g} » manque`);
     }
+    // Règle commune « Interface » : la mention exacte et une version remplie (commit et date du build).
+    const mention = await p.locator('dialog[open] .reglages__mention').allInnerTexts();
+    exiger(mention.length === 1 && /^Fait par AntoniMan31\/Claude Code · version [0-9a-f]{7,} du \d{2}\/\d{2}\/\d{4}$/.test(mention[0]), `la mention d'À propos est fausse : ${mention.join(' | ') || 'absente'}`);
     const ouvertes = () => p.locator('dialog[open] details.reglage[open]').count();
     exiger(await ouvertes() === 1 && await p.locator('dialog[open] details.reglage[open] .reglage__nom:text-is("Apparence")').count() === 1, 'Apparence doit être la seule section ouverte au départ');
     await p.click('dialog[open] summary:has-text("Exporter")');

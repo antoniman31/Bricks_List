@@ -315,6 +315,8 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
 .reglage__copies { display: flex; flex-direction: column; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
 .reglage__copies .bouton { width: 100%; justify-content: flex-start; }
 .reglage__aide { margin: 0 0 8px; color: var(--texte-doux); font-size: 0.875rem; }
+/* Mention et version (règle commune « Interface ») : texte secondaire, sous la dernière section. */
+.reglages__mention { margin: 12px 0 0; color: var(--texte-doux); font-size: 0.875rem; }
 
 /* Recherche Rebrickable et clé API (3b) */
 .formulaire__recherche { display: flex; gap: 8px; }
