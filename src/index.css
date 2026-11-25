@@ -29,6 +29,8 @@
   --remplissage: #f5c518;      /* cases cochées et progression (les barres des stats prennent --accent-fond) */
   --vignette: #ffffff;         /* fond des images de sets : leur blanc est intégré à l'image */
   --sur-accent: #15161a;       /* 11,1:1 sur --accent-fond */
+  --logo-contour: #2464c0;     /* bleu d'origine du logo AM.31 : contour (3,4:1 sur le fond, graphique WCAG 1.4.11 : 3:1) */
+  --logo-remplissage: #4aabff; /* bleu d'origine du logo AM.31 : remplissage */
   --danger: #ff6b6d;
   /* « Conteneur » à la Material 3 : fond teinté pour l'élément sélectionné (section affichée,
      puce active), moins criard qu'un aplat jaune. 8,6:1 pour le texte dessus, et l'accent
@@ -102,6 +104,8 @@ html[data-theme='light'] {
   --texte: #14161c;            /* 18,1:1 */
   --texte-doux: #4b5060;       /* 8,0:1 */
   --accent: #7a5800;           /* 6,5:1 sur surface */
+  --logo-contour: #2464c0;     /* 5,4:1 sur surface */
+  --logo-remplissage: #4aabff;
   --remplissage: #a97c00;
   --danger: #b3261e;           /* 6,5:1 */
   --accent-conteneur: #ffe08a; /* texte dessus --sur-accent-conteneur : 10,4:1 ; l'accent y reste à 5,1:1 */
@@ -316,7 +320,22 @@ button { min-height: var(--cible-min); min-width: var(--cible-min); cursor: poin
 .reglage__copies .bouton { width: 100%; justify-content: flex-start; }
 .reglage__aide { margin: 0 0 8px; color: var(--texte-doux); font-size: 0.875rem; }
 /* Mention et version (règle commune « Interface ») : texte secondaire, sous la dernière section. */
-.reglages__mention { margin: 12px 0 0; color: var(--texte-doux); font-size: 0.875rem; }
+/* Signature (règle commune « Interface ») : trois calques, colorés par l'accent en aplat de l'appli (contour = accent mêlé de noir,
+   remplissage = accent mêlé de blanc), donc le logo suit le thème. Le bleu d'origine vient de deux jetons. */
+.signature { display: grid; justify-items: center; gap: 2px; margin: 16px 0 0; text-align: center; }
+.signature p { margin: 0; }
+.signature__texte { color: var(--texte-doux); font-size: 0.875rem; }
+.signature__texte b { color: var(--accent); font-weight: 700; }
+.signature__version { color: var(--texte-doux); font-size: 0.75rem; letter-spacing: 0.04em; font-variant-numeric: tabular-nums; }
+.am31 { --am31-contour: color-mix(in srgb, var(--accent-fond) 58%, black); --am31-remplissage: color-mix(in srgb, var(--accent-fond) 72%, white);
+  min-width: 48px; min-height: 48px; padding: 7px 12px; border: 0; border-radius: 12px; background: none; cursor: pointer; display: grid; place-items: center; -webkit-tap-highlight-color: transparent; user-select: none; }
+.am31[data-couleur='origine'] { --am31-contour: var(--logo-contour); --am31-remplissage: var(--logo-remplissage); }
+.am31:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.am31__logo { position: relative; display: block; width: 106px; height: 34px; }
+.am31__logo i { position: absolute; inset: 0; -webkit-mask-size: 100% 100%; mask-size: 100% 100%; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; }
+.am31__c { background: var(--am31-contour); -webkit-mask-image: url('/logo/am31-masque-contour.png'); mask-image: url('/logo/am31-masque-contour.png'); }
+.am31__r { background: var(--am31-remplissage); -webkit-mask-image: url('/logo/am31-masque-remplissage.png'); mask-image: url('/logo/am31-masque-remplissage.png'); }
+.am31__l { background: color-mix(in srgb, var(--am31-remplissage) 30%, white); -webkit-mask-image: url('/logo/am31-masque-reflets.png'); mask-image: url('/logo/am31-masque-reflets.png'); }
 
 /* Recherche Rebrickable et clé API (3b) */
 .formulaire__recherche { display: flex; gap: 8px; }

@@ -97,8 +97,8 @@ Refusées pour l'instant : dimensions de la boîte, variantes Rebrickable (MOC).
 
 ## 5. À tester par Antoni sur son S26
 
-- [ ] **Mention et version (25/11/2026)** : Réglages › À propos, en bas : « Fait par AntoniMan31/Claude Code · version … du … »,
-      avec le commit et le jour de la mise en ligne.
+- [ ] **Signature AM.31 (25/11/2026)** : Réglages › À propos, en bas : le logo AM.31 (jaune de l'appli), « Fait par AntoniMan31/Claude
+      Code » et « version … · jj/mm/aaaa » (commit et jour de la mise en ligne). Double appui sur le logo : bleu d'origine, puis retour.
 - [ ] **Hors ligne et mise à jour (21/11/2026)** : vite-plugin-pwa est passé de 1 à 2 (#100). Ouvrir le site connecté,
       puis en mode avion : il s'affiche ; après une nouvelle version, la bannière de mise à jour apparaît.
 

@@ -1148,9 +1148,25 @@ const ECRANS = {
     for (const g of ['Affichage', 'Connexions', 'Données', 'À propos']) {
       exiger(await p.locator(`dialog[open] .reglages__groupe:text-is("${g}")`).count() === 1, `le groupe « ${g} » manque`);
     }
-    // Règle commune « Interface » : la mention exacte et une version remplie (commit et date du build).
-    const mention = await p.locator('dialog[open] .reglages__mention').allInnerTexts();
-    exiger(mention.length === 1 && /^Fait par AntoniMan31\/Claude Code · version [0-9a-f]{7,} du \d{2}\/\d{2}\/\d{4}$/.test(mention[0]), `la mention d'À propos est fausse : ${mention.join(' | ') || 'absente'}`);
+    // Règle commune « Interface » : le logo AM.31, la mention exacte et une version remplie (commit et date du build).
+    const texte = await p.locator('dialog[open] .signature__texte').allInnerTexts();
+    const version = await p.locator('dialog[open] .signature__version').allInnerTexts();
+    exiger(texte.length === 1 && texte[0] === 'Fait par AntoniMan31/Claude Code', `la mention d'À propos est fausse : ${texte.join(' | ') || 'absente'}`);
+    exiger(version.length === 1 && /^version [0-9a-f]{7,} · \d{2}\/\d{2}\/\d{4}$/.test(version[0]), `la version d'À propos est fausse : ${version.join(' | ') || 'absente'}`);
+    // Le logo est un vrai bouton de 48 px au moins ; un double clic alterne la couleur de l'appli et le bleu d'origine, sans rien mémoriser.
+    const logo = p.locator('dialog[open] button.am31');
+    exiger(await logo.count() === 1, 'le logo AM.31 manque');
+    const boite = await logo.boundingBox();
+    exiger(boite && boite.height >= 47.5 && boite.width >= 47.5, `le logo est trop petit pour le doigt : ${JSON.stringify(boite)}`);
+    exiger(await logo.getAttribute('data-couleur') === 'app', 'le logo doit partir à la couleur de l\'appli');
+    await logo.click();
+    exiger(await logo.getAttribute('data-couleur') === 'app', 'un seul appui ne doit rien changer');
+    await p.waitForTimeout(450);
+    await logo.dblclick();
+    exiger(await logo.getAttribute('data-couleur') === 'origine', 'un double clic doit passer au bleu d\'origine');
+    await p.waitForTimeout(450);
+    await logo.dblclick();
+    exiger(await logo.getAttribute('data-couleur') === 'app', 'un second double clic doit revenir à la couleur de l\'appli');
     const ouvertes = () => p.locator('dialog[open] details.reglage[open]').count();
     exiger(await ouvertes() === 1 && await p.locator('dialog[open] details.reglage[open] .reglage__nom:text-is("Apparence")').count() === 1, 'Apparence doit être la seule section ouverte au départ');
     await p.click('dialog[open] summary:has-text("Exporter")');
@@ -1168,8 +1184,11 @@ const ECRANS = {
   // Le bouton « Vérifier les mises à jour » des Réglages : le serveur de test sert le même build, donc « à jour ».
   'réglages (vérification de version)': async (p) => {
     await p.click(REGLAGES);
-    await p.click('dialog[open] summary:has-text("Version de l\'appli")');
-    await p.click('dialog[open] button:has-text("Chercher une version")');
+    // L'ancienne section « Version de l'appli » n'affiche plus de version (la signature la donne) : elle ne garde que l'outil de mise à jour.
+    exiger(await p.locator('dialog[open] summary:has-text("Version de l\'appli")').count() === 0, 'l\'ancienne section « Version de l\'appli » doit avoir disparu');
+    await p.click('dialog[open] summary:has-text("Mise à jour")');
+    exiger(await p.locator('dialog[open] .reglage[open] .reglage__etat').count() === 0, 'la section Mise à jour ne doit plus montrer « Version … »');
+    await p.click('dialog[open] button:has-text("Chercher une mise à jour")');
     await p.waitForSelector('dialog[open] [role=status]:has-text("dernière version")');
   },
   'stats': async (p) => { await p.click('.nav__item:has-text("Stats")'); await p.waitForSelector('.stats'); },
