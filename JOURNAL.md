@@ -512,3 +512,7 @@ la forme « constat : action » (« Stockage plein : libère de la place, puis r
 Les trois messages du stockage vivent dans `src/lib/messages.js`, partagé. Test `src/lib/messages.test.mjs` : chaque message affiché tel
 quel contient « … : … » (vu échouer sur le code d'avant : 4 tests sur 5) ; il vérifie la forme, le sens se relit dans la PR.
 - Qualité : lint OK, 545 tests. `verif:ui` non rejoué en local (textes seuls) : la CI le joue.
+
+### Règles communes mises à jour — 25/11/2026
+
+Bloc commun de `CLAUDE.md` aligné sur `regles-communes` (BLOC.md, commit 864f26d), par la propagation automatique.
