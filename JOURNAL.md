@@ -516,3 +516,13 @@ quel contient « … : … » (vu échouer sur le code d'avant : 4 tests sur 5) 
 ### Règles communes mises à jour — 25/11/2026
 
 Bloc commun de `CLAUDE.md` aligné sur `regles-communes` (BLOC.md, commit 864f26d), par la propagation automatique.
+
+### Mention « Fait par AntoniMan31/Claude Code » et version — 25/11/2026
+
+Règle commune « Interface » écrite le même jour (choix d'Antoni) : Réglages › À propos se termine par « Fait par
+AntoniMan31/Claude Code · version a1b2c3d du 25/11/2026 », commit court et date du build en heure de Paris. La ligne vient de
+`src/lib/mention.js` ; `vite.config.js` ajoute `__BUILD_DATE__` à `__COMMIT__`. Test `mention.test.mjs` (texte exact, date
+de Paris en hiver, en été et la nuit du changement d'heure, version absente) et parcours `verif:ui` « réglages (groupes et
+états) » qui exige la ligne et une version remplie ; vu échouer sur le code d'avant (4 configurations sur 4, « absente »).
+- Qualité : lint OK, 548 tests. `verif:ui` filtré « réglages » : 32 écrans, un écart au premier passage (« boîtes : sauvegarder
+  toutes », attente de 40 s dépassée en 360 px sombre, sans rapport avec ce lot), vert à la relance seule.
