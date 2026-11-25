@@ -526,3 +526,16 @@ de Paris en hiver, en été et la nuit du changement d'heure, version absente) e
 états) » qui exige la ligne et une version remplie ; vu échouer sur le code d'avant (4 configurations sur 4, « absente »).
 - Qualité : lint OK, 548 tests. `verif:ui` filtré « réglages » : 32 écrans, un écart au premier passage (« boîtes : sauvegarder
   toutes », attente de 40 s dépassée en 360 px sombre, sans rapport avec ce lot), vert à la relance seule.
+
+### Signature : logo AM.31 aux couleurs de l'appli — 25/11/2026
+
+Suite de la mention du même jour (demande d'Antoni : « plus joli, texte centré, adapté au design »). Choix d'Antoni : variante C d'une
+maquette. Réglages › À propos se termine par le logo AM.31 (34 px de haut), « Fait par AntoniMan31/Claude Code » (le nom en accent) et
+« version a1b2c3d · jj/mm/aaaa » en petit. Le logo vient de trois calques PNG (`public/logo/`, 16 Ko en tout : contour, remplissage,
+reflets) que le CSS colore avec l'accent en aplat de l'appli (`--accent-fond` mêlé de noir ou de blanc) : il suit donc le thème. Un double
+appui sur le logo (vrai bouton de 48 px, composant `Signature`) alterne cette couleur et le bleu d'origine (jetons `--logo-contour` et
+`--logo-remplissage`) ; rien n'est mémorisé, pas de lien GitHub (choix d'Antoni). Le double appui se compte à la main (`estDoubleClic`,
+350 ms) : `dblclick` n'existe pas au clavier. `ligneVersion` devient `versionTexte`. Contrôles vus échouer sur le code d'avant :
+`mention.test.mjs` (module sans les nouvelles fonctions) et le parcours `verif:ui` « réglages (groupes et états) » (4 configurations).
+- Qualité : lint OK, 549 tests. `verif:ui` filtré « réglages » : 32 écrans, un délai dépassé déjà vu hier sur « boîtes : sauvegarder
+  toutes » (360 px sombre), vert à la relance seule.

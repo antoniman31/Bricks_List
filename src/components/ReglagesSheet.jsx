@@ -15,7 +15,7 @@ import { REGLES } from '../lib/imageListe.js'
 import { envoyerSauvegarde, jetonValide, listerSauvegardes, messageRelais, telechargerSauvegarde, urlRelaisValide } from '../lib/relais.js'
 import { etatEnLigne, libelleCopie, lireDernierEnvoi, noterEnvoi, resumeEnLigne } from '../lib/sauvegardeEnLigne.js'
 import { verifierMiseAJour } from '../lib/miseAJour.js'
-import { ligneVersion } from '../lib/mention.js'
+import Signature from './Signature.jsx'
 
 // Une section repliable : un titre, son état en une ligne, et son contenu. UNE SEULE s'ouvre à la fois (l'écran reste court
 // sur téléphone) : `details` est piloté depuis la feuille, un appui sur le titre ouvre celle-ci et referme l'autre.
@@ -500,7 +500,7 @@ export default function ReglagesSheet({ sets, lectureSeule, mode, onModeChange, 
           <p className={`avis${maj.etat === 'erreur' ? ' avis--erreur' : ''}`} role={maj.etat === 'erreur' ? 'alert' : 'status'}>{maj.message}</p>
         )}
         </Section>
-        <p className="reglages__mention">{ligneVersion(__COMMIT__, __BUILD_DATE__)}</p>
+        <Signature />
       </div>
     </Sheet>
   )
